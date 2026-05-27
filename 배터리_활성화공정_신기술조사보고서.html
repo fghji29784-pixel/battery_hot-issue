@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>리튬이차전지 활성화공정 신기술 조사 보고서 (2023–2026)</title>
+<style>
+  :root {
+    --primary: #1a4a8c;
+    --secondary: #2e7d32;
+    --accent: #e65100;
+    --bg: #f4f6fa;
+    --card: #ffffff;
+    --border: #dde3ed;
+    --text: #1c2434;
+    --muted: #5a6a85;
+    --sidebar-w: 260px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    position: fixed; top: 0; left: 0; width: var(--sidebar-w);
+    height: 100vh; background: var(--primary); color: #fff;
+    overflow-y: auto; z-index: 100; padding: 0 0 40px;
+  }
+  #sidebar .logo {
+    padding: 22px 18px 16px; font-size: 13px; font-weight: 700;
+    border-bottom: 1px solid rgba(255,255,255,.15); line-height: 1.4;
+  }
+  #sidebar .logo span { display:block; font-size:10px; font-weight:400; opacity:.7; margin-top:4px; }
+  #sidebar nav a {
+    display: block; padding: 10px 18px; font-size: 13px; color: rgba(255,255,255,.85);
+    text-decoration: none; border-left: 3px solid transparent; transition: all .2s;
+  }
+  #sidebar nav a:hover, #sidebar nav a.active {
+    background: rgba(255,255,255,.12); border-left-color: #7ecfff; color: #fff;
+  }
+  #sidebar nav .sec-title {
+    padding: 14px 18px 4px; font-size: 10px; text-transform: uppercase;
+    letter-spacing: .1em; color: rgba(255,255,255,.45); font-weight: 700;
+  }
+
+  /* ── MAIN ── */
+  #main { margin-left: var(--sidebar-w); padding: 36px 44px 80px; max-width: 960px; }
+
+  /* HERO */
+  .hero {
+    background: linear-gradient(135deg, var(--primary) 0%, #0d2d6e 100%);
+    color: #fff; border-radius: 14px; padding: 40px 44px; margin-bottom: 36px;
+  }
+  .hero h1 { font-size: 24px; font-weight: 800; margin-bottom: 10px; line-height: 1.3; }
+  .hero .meta { font-size: 13px; opacity: .8; display: flex; gap: 24px; flex-wrap: wrap; margin-top: 14px; }
+  .hero .meta span::before { content: '▸ '; opacity: .6; }
+
+  /* SECTION */
+  .chapter { margin-bottom: 60px; }
+  .chapter-header {
+    display: flex; align-items: center; gap: 12px;
+    border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 24px;
+  }
+  .chap-num {
+    background: var(--primary); color: #fff; border-radius: 8px;
+    padding: 4px 12px; font-size: 12px; font-weight: 700; white-space: nowrap;
+  }
+  .chapter-header h2 { font-size: 20px; font-weight: 700; color: var(--primary); }
+
+  /* CARDS for TOP5 */
+  .top5-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .top5-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px 20px; border-top: 4px solid var(--primary);
+  }
+  .top5-card.accent { border-top-color: var(--accent); }
+  .top5-card.green  { border-top-color: var(--secondary); }
+  .top5-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 8px; color: var(--primary); }
+  .top5-card.accent h4 { color: var(--accent); }
+  .top5-card.green h4  { color: var(--secondary); }
+  .top5-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .star { color: #f59e0b; }
+
+  /* MATRIX */
+  .matrix-box {
+    background: #1a2740; color: #cdd8f0; border-radius: 10px;
+    padding: 20px 24px; font-size: 13px; line-height: 1.9; margin-bottom: 20px;
+  }
+  .matrix-box .m-title { color: #7ecfff; font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+
+  /* SECTION H3/H4 */
+  h3 { font-size: 16px; font-weight: 700; color: var(--primary); margin: 28px 0 10px;
+       padding-left: 10px; border-left: 4px solid var(--primary); }
+  h4 { font-size: 14px; font-weight: 700; margin: 18px 0 8px; color: #2c3e6b; }
+  p  { font-size: 14px; margin-bottom: 10px; }
+
+  /* BLOCKQUOTE */
+  blockquote {
+    background: #fff8e1; border-left: 4px solid #f59e0b; border-radius: 0 8px 8px 0;
+    padding: 12px 16px; font-size: 13px; color: #5a4000; margin: 12px 0 16px;
+  }
+
+  /* TABLES */
+  .tbl-wrap { overflow-x: auto; margin: 14px 0 20px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { background: var(--primary); color: #fff; }
+  thead th { padding: 10px 12px; text-align: left; font-weight: 600; }
+  tbody tr:nth-child(even) { background: #f0f4ff; }
+  tbody td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tbody tr:hover { background: #e6eeff; }
+
+  /* CODE / PRE */
+  pre {
+    background: #0f1e36; color: #a8d8ff; border-radius: 8px;
+    padding: 16px 20px; font-size: 12.5px; overflow-x: auto;
+    line-height: 1.75; margin: 12px 0 18px; font-family: 'Consolas', monospace;
+  }
+  code { font-family: 'Consolas', monospace; font-size: 12.5px; }
+
+  /* LISTS */
+  ul, ol { padding-left: 20px; margin-bottom: 12px; }
+  li { font-size: 14px; margin-bottom: 4px; }
+  li strong { color: var(--primary); }
+
+  /* BADGE */
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 700; margin-right: 4px;
+  }
+  .badge-blue  { background: #dbeafe; color: #1e40af; }
+  .badge-green { background: #dcfce7; color: #166534; }
+  .badge-orange{ background: #ffedd5; color: #9a3412; }
+  .badge-red   { background: #fee2e2; color: #991b1b; }
+
+  /* SOURCE BOX */
+  .source-box {
+    background: #f8faff; border: 1px solid #c5d3f0; border-radius: 8px;
+    padding: 14px 18px; margin-top: 20px;
+  }
+  .source-box .src-title {
+    font-size: 12px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px;
+  }
+  .source-box ol { margin: 0; padding-left: 18px; }
+  .source-box li { font-size: 12.5px; margin-bottom: 6px; color: var(--text); }
+  .source-box a  { color: var(--primary); text-decoration: none; }
+  .source-box a:hover { text-decoration: underline; }
+
+  /* WARN BOX */
+  .warn-box {
+    background: #fff3e0; border: 1px solid #ffcc80; border-radius: 8px;
+    padding: 14px 18px; margin: 16px 0; font-size: 13.5px;
+  }
+  .warn-box .warn-title { font-weight: 700; color: #e65100; margin-bottom: 6px; }
+
+  /* DIVIDER */
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+  /* SCROLL-TO-TOP */
+  #totop {
+    position: fixed; bottom: 28px; right: 28px;
+    background: var(--primary); color: #fff; border: none;
+    width: 42px; height: 42px; border-radius: 50%; font-size: 18px;
+    cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,.2);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #totop:hover { background: #0d2d6e; }
+
+  @media (max-width: 800px) {
+    #sidebar { display: none; }
+    #main { margin-left: 0; padding: 24px 18px 60px; }
+    .top5-grid { grid-template-columns: 1fr; }
+  }
+  @media print {
+    #sidebar, #totop { display: none; }
+    #main { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="logo">⚡ 배터리 활성화공정<br>신기술 조사 보고서<span>2023–2026 | 원통형 셀 중심</span></div>
+  <nav>
+    <div class="sec-title">개요</div>
+    <a href="#index">📋 종합 요약 · INDEX</a>
+    <div class="sec-title">주제별 챕터</div>
+    <a href="#ch01">01 활성화공정 신기술</a>
+    <a href="#ch02">02 저전압 불량 원인분석</a>
+    <a href="#ch03">03 비파괴 이물 검사법</a>
+    <a href="#ch04">04 덴드라이트 검사법</a>
+    <a href="#ch05">05 자가방전 빠른 측정</a>
+    <a href="#ch06">06 ML·딥러닝 불량 선별</a>
+    <a href="#ch07">07 EIS 내부단락 검출</a>
+    <a href="#ch08">08 함침 불량 · 전해액</a>
+    <a href="#ch09">09 타 산업 선별 기법</a>
+    <a href="#ch10">10 SEM/EDS 분석 개선</a>
+  </nav>
+</nav>
+
+<!-- MAIN -->
+<main id="main">
+
+<!-- HERO -->
+<div class="hero">
+  <h1>리튬이차전지 활성화공정 신기술 조사 보고서</h1>
+  <p style="opacity:.85;font-size:14px;margin-top:8px;">저전압 불량 예방·선별 방법론 및 비파괴 검사 신기술 발굴</p>
+  <div class="meta">
+    <span>조사 기간: 2023–2026</span>
+    <span>작성일: 2026-05-27</span>
+    <span>대상 셀: 원통형(Cylindrical)</span>
+    <span>출처 검증 완료</span>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- INDEX -->
+<!-- ============================================================ -->
+<section class="chapter" id="index">
+  <div class="chapter-header">
+    <span class="chap-num">INDEX</span>
+    <h2>종합 요약 및 즉시 적용 가능 기술 TOP 5</h2>
+  </div>
+
+  <div class="top5-grid">
+    <div class="top5-card">
+      <h4><span class="star">★★★</span> ① EIS + 딥러닝 내부단락 조기 검출</h4>
+      <p><strong>성능:</strong> 정확도 97.5%, False Positive 0건, 측정 15초<br>
+         <strong>적용:</strong> Formation 완료 후 자동 ISC 스크리닝<br>
+         <strong>출처:</strong> J. Power Sources 2023, ScienceDirect 2025</p>
+    </div>
+    <div class="top5-card">
+      <h4><span class="star">★★★</span> ② OCV 이완 고속 예측</h4>
+      <p><strong>성능:</strong> 6분 이내, 오차 ±3mV → 기존 7일 방치 대체<br>
+         <strong>적용:</strong> Aging 완료 후 자가방전 빠른 스크리닝<br>
+         <strong>출처:</strong> ScienceDirect 2023</p>
+    </div>
+    <div class="top5-card accent">
+      <h4><span class="star">★★★</span> ③ Isolation Forest 이상탐지</h4>
+      <p><strong>성능:</strong> 높은 Recall, 비지도 학습, 소프트웨어만 필요<br>
+         <strong>적용:</strong> Formation 충방전 데이터 실시간 이상 탐지<br>
+         <strong>출처:</strong> arXiv 벤치마크 2025</p>
+    </div>
+    <div class="top5-card green">
+      <h4><span class="star">★★</span> ④ 레이저 초음파 비접촉 비파괴 검사</h4>
+      <p><strong>성능:</strong> 내부 가스결함 오차 2% 이하, 비접촉<br>
+         <strong>적용:</strong> 기포·공동·금속이물 비파괴 검출<br>
+         <strong>출처:</strong> PMC 2025</p>
+    </div>
+    <div class="top5-card green" style="grid-column:1/-1">
+      <h4><span class="star">★★</span> ⑤ HORIBA XGT-9000 자동 이물 분석</h4>
+      <p><strong>성능:</strong> 분리막 이물 자동 좌표 기록, Fe·Cu·Cr·Zn 성분 자동 동정<br>
+         <strong>적용:</strong> 현행 수동 SEM/EDS 분석의 자동화·정량화 대안<br>
+         <strong>출처:</strong> HORIBA Application Note</p>
+    </div>
+  </div>
+
+  <h3>기술 도입 로드맵 (비용 vs 효과)</h3>
+  <div class="matrix-box">
+    <div class="m-title">즉시 적용 가능 (추가 비용 없음 — 소프트웨어·알고리즘)</div>
+    ├── Isolation Forest 이상탐지 (Formation 데이터 활용)<br>
+    ├── OCV 이완 6분 예측 모델<br>
+    ├── ICA/DVA 기반 Formation 모니터링<br>
+    └── SPC 관리도 자동화<br><br>
+    <div class="m-title">중기 도입 (중간 투자 — 장비/모듈 추가)</div>
+    ├── EIS 모듈 + DNN 내부단락 검출<br>
+    ├── HORIBA XGT-9000 (분리막 자동 분석)<br>
+    ├── 초음파 트랜스듀서 (비파괴 인라인)<br>
+    └── Flash 열화상 검사 장비<br><br>
+    <div class="m-title">장기 도입 (높은 투자 — 시스템 구축)</div>
+    ├── 인라인 고속 X-ray CT (MetalJet 기반, 초당 1셀)<br>
+    ├── 레이저 초음파 시스템<br>
+    └── 스마트 분리막 (내장 센서)
+  </div>
+
+  <div class="warn-box">
+    <div class="warn-title">⚠️ 검증 노트</div>
+    접근 가능한 문헌(PMC, arXiv, MDPI, USPTO)은 본문 직접 확인하여 수치를 추출하였습니다.<br>
+    ScienceDirect·Wiley 일부 유료 문헌은 초록·메타데이터 기준으로 기술하였으며, 본문과 다소 차이가 있을 수 있습니다.<br>
+    각 기술의 실험 조건이 실제 생산 환경과 다를 수 있으므로, 현장 적용 전 파일럿 검증을 권장합니다.
+  </div>
+</section>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- CH01 -->
+<!-- ============================================================ -->
+<section class="chapter" id="ch01">
+  <div class="chapter-header">
+    <span class="chap-num">CH 01</span>
+    <h2>활성화(Formation) 공정 신기술 (2023–2026)</h2>
+  </div>
+
+  <h3>1. 개요</h3>
+  <p>Formation(활성화) 공정은 리튬이온전지 제조에서 가장 중요한 단계 중 하나로, 전체 생산 비용의 <strong>최대 33%</strong>를 차지한다. 이 과정에서 음극에 SEI(Solid Electrolyte Interphase) 및 양극에 CEI(Cathode Electrolyte Interphase) 층이 형성되며, 배터리 성능·수명·안전성에 직결된다.</p>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"Lithium-ion battery cell formation: status and future directions towards a knowledge-based process design", <em>Energy &amp; Environmental Science</em>, RSC Publishing, 2024 — <a href="https://pubs.rsc.org/en/content/articlehtml/2024/ee/d3ee03559j" target="_blank">링크</a></li></ol></div>
+
+  <h3>2. Formation 공정 중 주요 반응</h3>
+  <ul>
+    <li>SEI 형성 (음극)</li>
+    <li>CEI 형성 (양극)</li>
+    <li>활물질의 구조적 변화</li>
+    <li>구리 부식 (Copper Corrosion)</li>
+    <li>알루미늄 용출 (Aluminum Dissolution)</li>
+  </ul>
+  <blockquote>알루미늄 부식은 전기저항 증가 및 전해액 분해에 의한 자가방전율 상승을 유발할 수 있다.</blockquote>
+
+  <h3>3. 신규 Formation 프로토콜</h3>
+  <h4>3.1 고속 단일 사이클 Formation (Fast Single-Cycle Formation)</h4>
+  <ul>
+    <li>기존 80시간 이상 소요 → <strong>2시간 이내로 단축</strong> 가능</li>
+    <li>고전류율(최대 1.5C) 사용, 음극 전위 정밀 제어 병행</li>
+    <li>LiFePO₄/흑연 파우치 셀 기준 Formation 시간 약 10배 단축, 사이클 성능 동등 수준 유지</li>
+  </ul>
+  <h4>3.2 외부 압축(External Compression) 적용</h4>
+  <ul>
+    <li>Formation 중 기계적 압력 인가 → 과전위 감소 및 Formation 시간 단축</li>
+    <li><strong>임피던스 최대 50% 감소</strong> 효과</li>
+  </ul>
+  <h4>3.3 펄스 압축(Pulsating Compression) 특허</h4>
+  <ul>
+    <li>충전 중 1차 압축력 인가 → 2차 낮은 압축력 반복 교번 방식</li>
+    <li>전해액 확산 최적화, SEI 균일성 향상</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>USPTO 특허 #10553910 — <a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/10553910" target="_blank">링크</a></li></ol></div>
+
+  <h3>4. SEI 형성 최신 연구</h3>
+  <h4>4.1 직접 광학 관찰 (PNAS 2026)</h4>
+  <p>Formation 중 SEI 형성 동역학을 실시간 광학 관찰. <a href="https://www.pnas.org/doi/10.1073/pnas.2531794123" target="_blank">PNAS 2026</a></p>
+  <h4>4.2 SEI 성장 동역학 3단계 (ACS JCTC 2025)</h4>
+  <p>초기 급속 형성 → 전환 조절 → 정상 상태 성장. <a href="https://pubs.acs.org/doi/10.1021/acs.jctc.5c01561" target="_blank">ACS JCTC 2025</a></p>
+  <h4>4.3 Formation 온도 영향</h4>
+  <div class="tbl-wrap"><table><thead><tr><th>온도 조건</th><th>SEI 특성</th></tr></thead><tbody>
+    <tr><td>고온</td><td>부반응 심화</td></tr>
+    <tr><td>저온</td><td>이온전도성 낮은 SEI 생성</td></tr>
+    <tr><td><strong>상온</strong></td><td><strong>최적 이온전도성 및 안정성 확보</strong></td></tr>
+  </tbody></table></div>
+
+  <h3>5. Lithium Plating 검출 및 방지</h3>
+  <div class="tbl-wrap"><table><thead><tr><th>검출 방법</th><th>원리</th><th>출처/연도</th></tr></thead><tbody>
+    <tr><td>전압 이완(Voltage Relaxation) 기반</td><td>충전 후 전압 이완 특성으로 플레이팅 발생 시점 검출</td><td><a href="https://pubs.acs.org/doi/abs/10.1021/acsenergylett.0c00831" target="_blank">ACS Energy Letters</a></td></tr>
+    <tr><td>충전 내부저항 변화 (온라인)</td><td>플레이팅 시 충전 내부저항 단기적 감소 신호 활용</td><td><a href="https://www.sciencedirect.com/science/article/abs/pii/S2352152X24047261" target="_blank">ScienceDirect 2024</a></td></tr>
+    <tr><td>NFRA (비선형 주파수 응답)</td><td>비선형 EIS 기반 조기 검출</td><td><a href="https://www.sciencedirect.com/science/article/pii/S0378775325011942" target="_blank">J. Power Sources 2025</a></td></tr>
+    <tr><td>비파괴 전기화학적 식별</td><td>고에너지 자동차 배터리 비파괴 식별</td><td><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11983349/" target="_blank">PMC 2025</a></td></tr>
+  </tbody></table></div>
+
+  <h3>6. 활성화공정 적용 시사점</h3>
+  <div class="tbl-wrap"><table><thead><tr><th>기술</th><th>적용 포인트</th><th>기대 효과</th></tr></thead><tbody>
+    <tr><td>고속 Formation (1.5C)</td><td>Formation 공정 시간 단축</td><td>생산성 향상 (80h → 2h)</td></tr>
+    <tr><td>외부 압축</td><td>Formation 지그 설계 개선</td><td>임피던스 50% 감소, 균일성 향상</td></tr>
+    <tr><td>리튬 플레이팅 온라인 검출</td><td>Formation 중 실시간 모니터링</td><td>불량 조기 발견, 조건 즉시 조정</td></tr>
+    <tr><td>진공 디개싱 최적화</td><td>기존 디개싱 공정 프로토콜 개선</td><td>SEI 품질 향상</td></tr>
+  </tbody></table></div>
+</section>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- CH02 -->
+<!-- ============================================================ -->
+<section class="chapter" id="ch02">
+  <div class="chapter-header">
+    <span class="chap-num">CH 02</span>
+    <h2>저전압 불량 원인 분석 및 선별 방법 (2023–2026)</h2>
+  </div>
+
+  <h3>1. 저전압 불량의 정의</h3>
+  <p>저전압(Low Voltage) 불량은 이차전지가 정상 자가방전율 이상의 전압 강하를 나타내는 현상이다. 주요 원인은 내부 미세 단락(Micro Internal Short Circuit)으로, 자가방전 전류가 <strong>최대 1A</strong>까지 발생할 수 있다.</p>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>USPTO 특허 #11656285 — <a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/11656285" target="_blank">링크</a></li></ol></div>
+
+  <h3>2. 주요 원인 분류</h3>
+  <h4>2.1 금속 이물 (Metal Foreign Particles) <span class="badge badge-red">★ 최우선 원인</span></h4>
+  <ul>
+    <li><strong>Fe, Cu, Cr, Zn</strong> 입자가 제조 공정 중 전극에 혼입</li>
+    <li>양극판 내 금속 이물 → 음극에서 덴드라이트 성장 → 분리막 관통 → 내부단락</li>
+    <li><strong>10μm 이상</strong>의 도전성 입자는 10–40μm 두께 분리막을 관통하여 1000°C 이상 화염 유발 가능</li>
+    <li>구리 입자: 가장 흔한 오염원</li>
+    <li>분리막의 <strong>검은 스팟(Black Spot)</strong>: 금속이물에 의한 내부 단락 흔적</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol>
+    <li>"Particle Contamination in Commercial Lithium-Ion Cells", <em>Batteries</em>, MDPI, 2023 — <a href="https://www.mdpi.com/2313-0105/9/1/9" target="_blank">링크</a></li>
+    <li>"The impact and diagnostic strategies of foreign matter defects in prismatic power batteries", ScienceDirect, 2026 — <a href="https://www.sciencedirect.com/science/article/pii/S2590123026013551" target="_blank">링크</a></li>
+  </ol></div>
+
+  <h4>2.2 함침 불량 (Electrolyte Impregnation Defect)</h4>
+  <ul>
+    <li>미함침 부위에서 불균일 SEI 형성 → 리튬 플레이팅 위험 증가</li>
+    <li>가스 트랩 발생 → 내부 공동(Void) 형성 → 전기화학적 불균일</li>
+  </ul>
+  <h4>2.3 알루미늄 부식 / 전해액 첨가제 / 덴드라이트</h4>
+  <ul>
+    <li>알루미늄 부식: 전기저항 증가 + 자가방전율 상승</li>
+    <li>일부 첨가제: SEI 형성 불균일성 유발, 분해 생성물이 자가방전 촉진</li>
+    <li>리튬 플레이팅 → 덴드라이트 → 분리막 관통 → 내부단락</li>
+  </ul>
+
+  <h3>3. 저전압 불량 선별 방법</h3>
+  <div class="tbl-wrap"><table><thead><tr><th>방법</th><th>소요 시간</th><th>특징</th><th>출처</th></tr></thead><tbody>
+    <tr><td>전통적 7일 방치법</td><td><strong>7일</strong></td><td>충전 후 방치 → 전압 측정. 재고 증가 문제</td><td>기존 산업 관행</td></tr>
+    <tr><td>Formation 중 전압강하 스크리닝</td><td>Formation 동시</td><td>Formation 공정 중 결함 셀 조기 검출. 한국에너지기술평가원 지원</td><td><a href="https://www.sciencedirect.com/science/article/abs/pii/S2352152X25022923" target="_blank">ScienceDirect 2025</a></td></tr>
+    <tr><td>사전 에이징 + 전압강하 측정</td><td>단축</td><td>Formation 전 에이징 → 충전 시간/전압강하로 품질 판정</td><td><a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/11940501" target="_blank">USPTO #11940501</a></td></tr>
+    <tr><td>정규분포 기반 기준값 설정</td><td>단축</td><td>샘플 셀 정규분포 분석 → 기준 전압강하 도출</td><td><a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/12025673" target="_blank">USPTO #12025673</a></td></tr>
+  </tbody></table></div>
+
+  <h3>4. 현행 분석법 한계 및 개선 방향</h3>
+  <pre>현행 프로세스:
+저전압 불량 셀 선별
+→ 셀 분해 (글로브박스 내)
+→ 분리막 육안 검사 (검은 스팟 확인)
+→ SEM/EDS로 스팟 부위 성분 분석
+→ 이물 발생 개소 역추적</pre>
+  <div class="tbl-wrap"><table><thead><tr><th>현행 방법</th><th>개선 기술</th><th>기대 효과</th></tr></thead><tbody>
+    <tr><td>육안 분리막 검사</td><td>X-ray CT / 레이저 초음파</td><td>비파괴, 3D 위치 정보, 자동화</td></tr>
+    <tr><td>SEM/EDS 수동 분석</td><td>자동화 SEM-EDS (HORIBA XGT-9000)</td><td>자동 좌표 기록, 성분 매핑</td></tr>
+    <tr><td>7일 자가방전 측정</td><td>OCV 이완 고속 예측 (6분)</td><td>측정 시간 70배 단축</td></tr>
+    <tr><td>수동 선별</td><td>EIS + 딥러닝 (97.5% 정확도)</td><td>자동화, 조기 검출</td></tr>
+  </tbody></table></div>
+</section>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- CH03 -->
+<!-- ============================================================ -->
+<section class="chapter" id="ch03">
+  <div class="chapter-header">
+    <span class="chap-num">CH 03</span>
+    <h2>비파괴 이물 검사 기술 (2023–2026)</h2>
+  </div>
+
+  <h3>1. X-ray / CT 검사 기술</h3>
+  <h4>1.1 산업용 X-ray CT <span class="badge badge-blue">핵심 기술</span></h4>
+  <ul>
+    <li><strong>원리</strong>: X-ray 투과 영상 다각도 취득 → 3D 재구성</li>
+    <li><strong>검출 가능</strong>: 금속 이물, 전극 정렬 불량, 내부 공동/기포, 함침 상태</li>
+    <li>MetalJet X-ray + 포톤카운팅 검출기: <strong>초당 1셀 인라인 검사</strong> 가능 수준</li>
+    <li>검출 해상도: 소형 샘플 1μm, 셀 수준 최대 10μm</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol>
+    <li>Excillum, "High throughput CT inspection is here", 2024 — <a href="https://www.excillum.com/high-throughput-ct-inspection/" target="_blank">링크</a></li>
+    <li>ESREL 2024, "Analysis Of Battery Cells Via CT" — <a href="https://esrel2024.com/wp-content/uploads/articles/part2/analysis-of-battery-cells-via-computer-tomography-possibilities-and-technical-limits-of-detectability-regarding-their-function-and-safety-critical-failures.pdf" target="_blank">링크</a></li>
+    <li>PMC, "Projection-Angle-Sensor-Assisted X-ray CT for Cylindrical LIBs", 2024 — <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10892775/" target="_blank">링크</a></li>
+  </ol></div>
+
+  <h4>1.2 주요 공급업체</h4>
+  <div class="tbl-wrap"><table><thead><tr><th>업체</th><th>주요 기술</th><th>링크</th></tr></thead><tbody>
+    <tr><td>Excillum (스웨덴)</td><td>MetalJet X-ray, 고속 CT</td><td><a href="https://www.excillum.com/industries-markets/battery/" target="_blank">링크</a></td></tr>
+    <tr><td>VCbattery</td><td>CT 인라인 검사 솔루션</td><td><a href="https://vcbattery.com/solutions/" target="_blank">링크</a></td></tr>
+    <tr><td>Lumafield</td><td>산업용 X-ray CT + AI</td><td><a href="https://www.lumafield.com/article/webinar-advanced-battery-inspection-with-industrial-x-ray-ct" target="_blank">링크</a></td></tr>
+    <tr><td>Matsusada Precision (일본)</td><td>LIB X-ray 검사</td><td><a href="https://www.matsusada.com/application/xs/cell/" target="_blank">링크</a></td></tr>
+  </tbody></table></div>
+
+  <h3>2. 초음파 검사 기술</h3>
+  <h4>2.1 레이저 초음파 비파괴 검사 (비접촉식) <span class="badge badge-orange">최신 기술</span></h4>
+  <ul>
+    <li><strong>원리</strong>: 펄스 레이저로 초음파 생성 → 비접촉 광학 프로브로 수신 → C-스캔 이미징</li>
+    <li>내부 가스 결함 검출 오차율: <strong>2% 이하</strong> (최적 레이저 조건)</li>
+    <li>구리박/분말: 알루미늄보다 검출 감도 높음</li>
+    <li>스캐닝 속도: 100mm/s 이하 권장</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>PMC, "Non-Contact Laser Ultrasound Detection of Internal Gas Defects in LIBs", 2025 — <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11991246/" target="_blank">링크</a></li></ol></div>
+
+  <h4>2.2 접촉식 초음파 / 음향 센서</h4>
+  <ul>
+    <li>초음파 트랜스듀서로 전극 결함, 기포, 이물, 리튬 플레이팅 검출</li>
+    <li><a href="https://www.sciencedirect.com/science/article/abs/pii/S2352152X25007546" target="_blank">ScienceDirect 2025</a> | <a href="https://www.mdpi.com/1996-1073/18/5/1068" target="_blank">Energies MDPI 2025</a></li>
+  </ul>
+
+  <h3>3. 광학/이미징 기반 이물 검사</h3>
+  <h4>3.1 HORIBA XGT-9000 <span class="badge badge-green">SEM/EDS 자동화 대안</span></h4>
+  <ul>
+    <li>분리막 위 이물 성분 자동 검출 및 동정 (Fe, Cu, Cr, Zn 등)</li>
+    <li>이물 크기 계측, 분포 지도 자동 생성, 좌표 자동 기록</li>
+    <li>현행 수동 SEM/EDS 작업의 <strong>자동화 대안</strong></li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>HORIBA Application Note — <a href="https://www.horiba.com/usa/scientific/applications/energy/foreign-particle-analysis-on-a-separator-film-of-lithium-ion-battery/" target="_blank">링크</a></li></ol></div>
+
+  <h3>4. 기술 비교표</h3>
+  <div class="tbl-wrap"><table><thead><tr><th>기술</th><th>검출 대상</th><th>비파괴</th><th>인라인</th><th>해상도</th><th>비용</th></tr></thead><tbody>
+    <tr><td>X-ray CT</td><td>이물, 정렬, 기포</td><td>✅</td><td>✅ 고속 CT</td><td>1–10μm</td><td>높음</td></tr>
+    <tr><td>레이저 초음파</td><td>기포, 이물, 구조결함</td><td>✅</td><td>가능</td><td>수십μm</td><td>중</td></tr>
+    <tr><td>접촉식 초음파</td><td>기포, 이물, 플레이팅</td><td>✅</td><td>가능</td><td>수십μm</td><td>낮음</td></tr>
+    <tr><td>HORIBA XGT</td><td>분리막 이물 성분</td><td>✅</td><td>❌ 후공정</td><td>μm급</td><td>중</td></tr>
+    <tr><td>SEM/EDS (기존)</td><td>이물 성분, 형태</td><td>❌ 파괴</td><td>❌</td><td>nm급</td><td>높음</td></tr>
+  </tbody></table></div>
+</section>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- CH04 -->
+<!-- ============================================================ -->
+<section class="chapter" id="ch04">
+  <div class="chapter-header">
+    <span class="chap-num">CH 04</span>
+    <h2>덴드라이트 검사 및 실시간 모니터링 기법 (2023–2026)</h2>
+  </div>
+
+  <h3>1. 덴드라이트 형성 메커니즘</h3>
+  <p>저온, 고속 충전, 과충전 조건에서 음극 전위가 <strong>0V (vs. Li/Li⁺) 이하</strong>로 내려갈 때 형성. 분리막 관통 → 내부단락 → 저전압 불량 → 열폭주(Thermal Runaway)로 이어질 수 있다.</p>
+
+  <h3>2. In-situ/Operando 특성 분석 기법</h3>
+  <div class="tbl-wrap"><table><thead><tr><th>기법</th><th>특징</th><th>적용 한계</th></tr></thead><tbody>
+    <tr><td>In-situ X-ray (XRD)</td><td>전극 구조 변화 실시간 관찰</td><td>대형 장비, 연구실 수준</td></tr>
+    <tr><td>In-situ Raman</td><td>SEI/덴드라이트 화학 조성 분석</td><td>투명 셀 필요</td></tr>
+    <tr><td>NMR (핵자기공명)</td><td>리튬 분포 3D 이미징</td><td>대형 장비</td></tr>
+    <tr><td>Operando SEM</td><td>덴드라이트 성장 직접 관찰</td><td>실험 셀 필요</td></tr>
+    <tr><td>Neutron 영상</td><td>리튬 분포 비침습 관찰</td><td>대형 시설 필요</td></tr>
+  </tbody></table></div>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>PMC, "Review of Real-Time Monitoring Technologies for Lithium Dendrites", 2024 — <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11085516/" target="_blank">링크</a></li></ol></div>
+
+  <h3>3. 센서 기반 실시간 검출 기법</h3>
+  <h4>3.1 광학섬유 FBG 센서 <span class="badge badge-green">실용성 높음</span></h4>
+  <ul>
+    <li>음극 표면 근처에 경사형 TFBG 센서 삽입 → 덴드라이트 성장에 따른 굴절률 변화 측정</li>
+    <li>셀 동작 방해 없이 삽입 가능, 초감도 측정</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>PMC, "Operando monitoring via tilted FBG sensors", 2024 — <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC10803745/" target="_blank">링크</a></li></ol></div>
+
+  <h4>3.2 전기화학 신호 기반 비침습 검출</h4>
+  <div class="tbl-wrap"><table><thead><tr><th>방법</th><th>원리</th><th>인라인</th><th>출처</th></tr></thead><tbody>
+    <tr><td>전압 이완 기반</td><td>충전 후 이완 특성 분석</td><td>✅</td><td><a href="https://pubs.acs.org/doi/abs/10.1021/acsenergylett.0c00831" target="_blank">ACS Energy Letters</a></td></tr>
+    <tr><td>충전 내부저항 모니터링</td><td>플레이팅 시 저항 단기 감소 신호</td><td>✅</td><td><a href="https://www.sciencedirect.com/science/article/abs/pii/S2352152X24047261" target="_blank">ScienceDirect 2024</a></td></tr>
+    <tr><td>NFRA (비선형 주파수 응답)</td><td>비선형 EIS 기반</td><td>✅</td><td><a href="https://www.sciencedirect.com/science/article/pii/S0378775325011942" target="_blank">J. Power Sources 2025</a></td></tr>
+    <tr><td>비파괴 전기화학 식별</td><td>EIS 패턴 분석</td><td>✅</td><td><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11983349/" target="_blank">PMC 2025</a></td></tr>
+  </tbody></table></div>
+
+  <h3>4. Formation 중 적용 가이드</h3>
+  <pre>[예방]
+1. 음극 전위 실시간 모니터링 → 0V (vs. Li/Li⁺) 이하 방지
+2. Formation 온도·C-rate 최적화 (저온·고전류 회피)
+3. 고속 Formation 시 플레이팅 억제 펄스 삽입
+
+[검출]
+1. 초음파 트랜스듀서: 인라인, 비파괴, 즉시 피드백
+2. 충전 내부저항 변화 모니터링: 소프트웨어만으로 구현 가능
+3. 전압 이완 패턴 분석: 기존 충방전기 데이터 활용</pre>
+</section>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- CH05 -->
+<!-- ============================================================ -->
+<section class="chapter" id="ch05">
+  <div class="chapter-header">
+    <span class="chap-num">CH 05</span>
+    <h2>자가방전 빠른 측정 및 스크리닝 기법 (2023–2026)</h2>
+  </div>
+
+  <h3>1. 자가방전 개요 및 기존 방법의 한계</h3>
+  <ul>
+    <li>고품질 셀: 1개월에 용량 <strong>2% 이하</strong> 자가방전</li>
+    <li>불량 셀: 미세 내부단락으로 자가방전 전류 최대 1A 발생</li>
+    <li><strong>기존: 충전 → 7일 방치 → 전압 측정</strong> → 재고 증가, 장시간 소요</li>
+  </ul>
+
+  <h3>2. 고속 자가방전 측정 기법</h3>
+  <h4>2.1 OCV 이완 고속 예측 모델 <span class="badge badge-orange">★ 핵심 기술</span></h4>
+  <ul>
+    <li>충전 후 OCV 이완 곡선의 초기 구간만 측정 → 수식 모델로 최종 OCV 예측</li>
+    <li><strong>6분 이내</strong> 측정, 오차 <strong>3mV 이하</strong></li>
+    <li>기존 7일 방치 대비 측정 시간 <strong>약 1680배 단축</strong></li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>ScienceDirect, "Precise prediction of OCV in a short time period", 2023 — <a href="https://www.sciencedirect.com/science/article/abs/pii/S0378775322012721" target="_blank">링크</a></li></ol></div>
+
+  <h4>2.2 이완 시간 분리 → 미세 단락 조기 진단</h4>
+  <ul>
+    <li>OCV 이완의 이완 시간(Relaxation Time) 분리로 미세 단락 조기 진단 가능</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol>
+    <li>PMC, "Isolation of relaxation times for nascent short circuit prognosis", 2023 — <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC10182328/" target="_blank">링크</a></li>
+    <li>IOPscience, "Relaxation Effects in Self-Discharge Measurements", 2023 — <a href="https://iopscience.iop.org/article/10.1149/1945-7111/acb669" target="_blank">링크</a></li>
+  </ol></div>
+
+  <h3>3. 측정 방법 비교표</h3>
+  <div class="tbl-wrap"><table><thead><tr><th>방법</th><th>측정 시간</th><th>정확도</th><th>인라인</th><th>특이사항</th></tr></thead><tbody>
+    <tr><td>7일 방치 (기존)</td><td><strong>7일</strong></td><td>높음</td><td>❌</td><td>재고 증가</td></tr>
+    <tr><td>OCV 이완 고속 예측</td><td><strong>6분</strong></td><td>±3mV</td><td>✅</td><td>모델 캘리브레이션 필요</td></tr>
+    <tr><td>EIS 기반 (Ch07 참조)</td><td><strong>15초</strong></td><td>97.5%</td><td>✅</td><td>장비 투자 필요</td></tr>
+    <tr><td>IC 곡선 + CNN</td><td>부분 충전 시간</td><td>높음</td><td>✅</td><td>Formation 중 동시 수행 가능</td></tr>
+    <tr><td>단시간 전류 펄스</td><td>수 분</td><td>높음</td><td>✅</td><td>용량·저항 동시 추정</td></tr>
+  </tbody></table></div>
+
+  <h3>4. 단계별 적용 전략</h3>
+  <pre>[단기 - 소프트웨어/알고리즘]
+→ Formation 충방전기 데이터로 OCV 이완 곡선 분석
+→ 6분 OCV 예측 모델 적용으로 7일 → 6분 단축
+
+[중기 - 장비 추가]
+→ EIS 모듈 추가 (15초 측정)
+→ 이완 시간 분리 분석으로 미세 단락 조기 진단
+
+[장기 - 시스템 통합]
+→ Formation 중 IC 곡선 실시간 생성 + CNN 이상 감지
+→ 자동화된 불량 선별 시스템 구축</pre>
+</section>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- CH06 -->
+<!-- ============================================================ -->
+<section class="chapter" id="ch06">
+  <div class="chapter-header">
+    <span class="chap-num">CH 06</span>
+    <h2>머신러닝·딥러닝 기반 배터리 불량 선별 기법 (2023–2026)</h2>
+  </div>
+
+  <h3>1. ICA / DVA 기반 선별</h3>
+  <ul>
+    <li><strong>IC 곡선</strong>: dQ/dV → 전극 상전이 피크로 배터리 상태 진단</li>
+    <li><strong>DVA</strong>: dV/dQ → 배터리 열화 특성 분석</li>
+    <li>Formation 중 CC 충전 데이터로 IC 곡선 자동 생성 → 이상 피크 감지</li>
+    <li>2025년: 뉴럴네트워크로 동적 충전 조건에서도 ICA/DVA 적용 확장</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol>
+    <li>arXiv, "Battery SOH Estimation and ICA under Dynamic Charging Using NNs", 2025 — <a href="https://arxiv.org/abs/2502.19586" target="_blank">링크</a></li>
+    <li>PMC, "ICA under dynamic load conditions", 2025 — <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12056397/" target="_blank">링크</a></li>
+  </ol></div>
+
+  <h3>2. 이상 탐지 알고리즘 벤치마크 <span class="badge badge-blue">★ 핵심 참고문헌</span></h3>
+  <p>배터리 응용 기준으로 <strong>15가지 알고리즘</strong>을 비교한 오픈소스 벤치마크 (arXiv 2025)</p>
+  <div class="tbl-wrap"><table><thead><tr><th>알고리즘</th><th>분류</th><th>배터리 성능</th><th>특징</th></tr></thead><tbody>
+    <tr><td>SD / MAD</td><td>통계적</td><td>TNR ~99.4%</td><td>미세 이상 탐지 한계</td></tr>
+    <tr><td>Mahalanobis 거리</td><td>거리 기반</td><td>특성 상관 처리</td><td>다변수 최적</td></tr>
+    <tr><td><strong>iForest (Isolation Forest)</strong></td><td>머신러닝</td><td><strong>높은 Recall</strong></td><td>안전 중요 시스템 최적, 비지도</td></tr>
+    <tr><td><strong>PCA + Autoencoder</strong></td><td>딥러닝</td><td><strong>Recall·Precision 균형</strong></td><td>거짓 경보 감소</td></tr>
+    <tr><td>Local Outlier Factor</td><td>머신러닝</td><td>국소 이상 탐지</td><td>군집 내 이상 감지</td></tr>
+  </tbody></table></div>
+  <blockquote><strong>추천 조합</strong>: iForest (높은 Recall) + PCA/Autoencoder (균형). 베이지안 최적화로 저성능 모델 크게 개선 가능. 전이학습(Transfer Learning)은 다른 배터리 화학계 간 성능 향상.</blockquote>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>arXiv, "An Open-Access Benchmark of Statistical and ML Anomaly Detection Methods for Battery Applications", 2025 — <a href="https://arxiv.org/html/2511.01745" target="_blank">링크</a></li></ol></div>
+
+  <h3>3. 딥러닝 기반 불량 감지 주요 연구</h3>
+  <div class="tbl-wrap"><table><thead><tr><th>모델</th><th>내용</th><th>출처</th></tr></thead><tbody>
+    <tr><td>CNN + SDP 하이브리드</td><td>4가지 고장 유형 분류 (과충전, 과방전, 노화, 천공 누액)</td><td><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11723052/" target="_blank">PMC 2025</a></td></tr>
+    <tr><td>그래프 뉴럴네트워크 (GNN)</td><td>전기차 배터리팩 전압 불량 진단</td><td><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12301446/" target="_blank">PMC 2025</a></td></tr>
+    <tr><td>지능형 결함 감지 (IFD)</td><td>ML 기반 리튬이온전지 결함 감지 시스템</td><td><a href="https://www.nature.com/articles/s41598-025-17145-4" target="_blank">Nature Scientific Reports 2025</a></td></tr>
+    <tr><td>단일 사이클 수명 예측</td><td>Anomaly Detection + 딥러닝, 1사이클 데이터로 수명 예측</td><td><a href="https://www.mdpi.com/2313-0105/11/8/288" target="_blank">MDPI Batteries 2025</a></td></tr>
+  </tbody></table></div>
+
+  <h3>4. Formation 공정 데이터 기반 선별 파이프라인 (제안)</h3>
+  <pre>[데이터 수집]
+Formation 충방전기 데이터 (V, I, T, 시간)
+↓
+[전처리]
+IC 곡선 생성 (dQ/dV), DVA 곡선 (dV/dQ), OCV 이완 곡선 추출
+↓
+[특성 추출]
+IC 피크 위치·높이·면적 / 충전 내부저항 / OCV 이완 시간 상수
+↓
+[이상 탐지]
+Isolation Forest: 이상 점수 계산
+Autoencoder: 재구성 오차 계산
+↓
+[분류]
+이상 점수 > 임계값 → 추가 검사 (EIS, 자가방전 측정)
+이상 점수 ≤ 임계값 → 정상 출하</pre>
+</section>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- CH07 -->
+<!-- ============================================================ -->
+<section class="chapter" id="ch07">
+  <div class="chapter-header">
+    <span class="chap-num">CH 07</span>
+    <h2>EIS 기반 내부단락(ISC) 조기 검출 기법 (2023–2026)</h2>
+  </div>
+
+  <h3>1. EIS + 딥러닝 내부단락 조기 검출</h3>
+  <h4>1.1 DNN + EIS 조기 검출 (2023) <span class="badge badge-red">97.5% 정확도</span></h4>
+  <ul>
+    <li>내부단락 검출 평균 정확도: <strong>97.5%</strong></li>
+    <li>정상 배터리 위양성(False Positive): <strong>0건</strong></li>
+    <li>ISC 저항 200Ω ~ 10Ω 범위에서 전체 수명 주기 유효</li>
+    <li>단락 셀: 확산계수, 분극 저항 차이로 ISC 심각도 구분</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol>
+    <li>J. Power Sources 2023 — <a href="https://www.sciencedirect.com/science/article/abs/pii/S0378775323001994" target="_blank">링크</a></li>
+    <li>ML-based early-stage ISC detection, ScienceDirect 2025 — <a href="https://www.sciencedirect.com/science/article/abs/pii/S001346862501998X" target="_blank">링크</a></li>
+  </ol></div>
+
+  <h3>2. 고속 EIS 측정 (2025)</h3>
+  <ul>
+    <li>멀티사인 가진(다중 정현파 동시 인가): <strong>15초</strong> EIS 데이터 취득</li>
+    <li>DRT(완화 시간 분포) 분석으로 ISC에 민감한 주파수 선별 → 측정 시간 단축</li>
+  </ul>
+
+  <h3>3. EIS 파라미터와 저전압 불량 연관성</h3>
+  <div class="tbl-wrap"><table><thead><tr><th>파라미터</th><th>의미</th><th>저전압 불량 연관성</th></tr></thead><tbody>
+    <tr><td>Rct</td><td>계면 반응 저항</td><td>내부단락 시 감소</td></tr>
+    <tr><td>Warburg Impedance</td><td>확산 저항</td><td>함침 불량 시 변화</td></tr>
+    <tr><td>Rs (Bulk Resistance)</td><td>전해액 저항</td><td>전해액 열화 지표</td></tr>
+    <tr><td>CPE</td><td>SEI 특성</td><td>SEI 품질 평가</td></tr>
+    <tr><td>분극 저항</td><td>전극 반응</td><td>ISC 심각도 구분</td></tr>
+  </tbody></table></div>
+
+  <h3>4. Formation 공정 EIS 적용 포인트</h3>
+  <pre>전해액 주입 → 함침 → Pre-charge → Formation 충방전 → 디개싱 → Aging
+
+EIS 적용 포인트:
+- Formation 전  : 함침 상태 평가 (Warburg 분석)
+- Formation 중  : SEI 형성 모니터링, 리튬 플레이팅 검출
+- Formation 후  : 내부단락 검출, SOH 분류
+- Aging 후      : 최종 불량 선별</pre>
+
+  <h3>5. ICA + EIS 복합 진단 전략 (제안)</h3>
+  <pre>[제안 복합 진단 시스템]
+
+Formation 1주기 완료
+↓
+IC 곡선 자동 생성 → 이상 피크 → 1차 필터링
+↓
+의심 셀: 15초 EIS 측정
+↓
+DNN으로 ISC 위험도 점수 계산
+↓
+고위험 셀: 추가 자가방전 측정 (6분 OCV 예측)
+↓
+최종 판정: 정상 / 재검사 / 불량
+
+기대 효과:
+- 7일 자가방전 대기 → 수 시간 이내 완료
+- 인력 개입 최소화
+- 정량적 위험도 점수 체계</pre>
+</section>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- CH08 -->
+<!-- ============================================================ -->
+<section class="chapter" id="ch08">
+  <div class="chapter-header">
+    <span class="chap-num">CH 08</span>
+    <h2>전해액 함침(Impregnation) 불량 원인 및 검출 (2023–2026)</h2>
+  </div>
+
+  <h3>1. 함침 불량이 저전압 불량에 미치는 영향</h3>
+  <ul>
+    <li>미함침 부위에서 불균일 SEI 형성 → 리튬 플레이팅 위험 증가</li>
+    <li>가스 트랩(Gas Entrapment) → 내부 공동(Void) 형성</li>
+    <li>전기화학 반응 불균일 → 국소 열화 촉진</li>
+    <li>Formation 불완전 → 용량 저하 및 사이클 수명 감소</li>
+  </ul>
+
+  <h3>2. 함침 불량 주요 원인</h3>
+  <ul>
+    <li>전극 표면 기공률·토루오시티(Tortuosity)가 함침 속도 결정</li>
+    <li>가스 트랩: 주로 재료 간 전이 부위에서 발생</li>
+    <li>충전 속도, 온도, 진공 조건 부적절 → 미함침 부위 잔류</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol>
+    <li>MDPI Energies, "Investigation of Electrode Surface Structures on Wettability", 2023 — <a href="https://www.mdpi.com/1996-1073/16/15/5640" target="_blank">링크</a></li>
+    <li>Wiley Energy Technology, "Determining Required Electrolyte Wetting Degree to Begin Formation", 2023 — <a href="https://onlinelibrary.wiley.com/doi/abs/10.1002/ente.202200686" target="_blank">링크</a></li>
+    <li>MDPI Batteries, "Systematic Literature Analysis on Electrolyte Filling and Wetting", 2023 — <a href="https://www.mdpi.com/2313-0105/9/3/164" target="_blank">링크</a></li>
+  </ol></div>
+
+  <h3>3. 함침 측정 및 검출 기법</h3>
+  <div class="tbl-wrap"><table><thead><tr><th>기법</th><th>원리</th><th>특징</th></tr></thead><tbody>
+    <tr><td>EIS Warburg 분석</td><td>확산 저항으로 함침 상태 평가</td><td>기존 장비 활용 가능</td></tr>
+    <tr><td>X-ray CT</td><td>내부 기포·미함침 부위 3D 시각화</td><td>비파괴, 고해상도</td></tr>
+    <tr><td>초음파 감쇠 분석</td><td>초음파 신호 변화로 함침 상태 평가</td><td>비파괴, 저비용</td></tr>
+    <tr><td>무게/부피 측정</td><td>함침 전후 무게 변화</td><td>단순, 인라인 어려움</td></tr>
+  </tbody></table></div>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>USPTO #11456493 — <a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/11456493" target="_blank">링크</a></li></ol></div>
+
+  <h3>4. 전공정 관련 불량 원인 (공정 단계별)</h3>
+  <div class="tbl-wrap"><table><thead><tr><th>공정 단계</th><th>불량 원인</th><th>저전압 불량 연관</th></tr></thead><tbody>
+    <tr><td>슬러리 제조</td><td>금속 이물 혼입, 입도 불균일</td><td>이물에 의한 내부단락</td></tr>
+    <tr><td>코팅/건조</td><td>코팅 두께 불균일, 핀홀</td><td>국소 리튬 플레이팅</td></tr>
+    <tr><td>압연 (Calendering)</td><td>활물질 분리, 집전체 손상</td><td>전극 저항 불균일</td></tr>
+    <tr><td>슬리팅</td><td>버(Burr) 발생 → 금속 분진</td><td>이물에 의한 단락</td></tr>
+    <tr><td>와인딩/적층</td><td>전극 정렬 불량</td><td>리튬 석출 과다</td></tr>
+    <tr><td>전해액 주입</td><td>미충진, 거품</td><td>함침 불량</td></tr>
+    <tr><td>함침</td><td>함침 시간 부족, 기포 잔류</td><td>Formation 불완전</td></tr>
+  </tbody></table></div>
+
+  <h3>5. Formation 시작 전 함침 확인 흐름</h3>
+  <pre>[권장 함침 검증 흐름]
+
+전해액 주입 완료
+↓
+함침 시간 경과 (온도·진공 조건 제어)
+↓
+함침도 측정 (EIS Warburg / 무게 측정 / X-ray)
+↓
+기준 충족 여부 판단
+→ 충족  : Formation 시작
+→ 미충족: 추가 함침 시간 부여 또는 불량 처리
+
+[원통형 셀 특수 고려사항]
+- 권취형 구조: 내부 전극 함침이 외부 대비 지연
+- 진공 함침 + 가압 함침 조합 사용
+- 함침 후 충분한 정치(Rest) 시간 확보</pre>
+</section>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- CH09 -->
+<!-- ============================================================ -->
+<section class="chapter" id="ch09">
+  <div class="chapter-header">
+    <span class="chap-num">CH 09</span>
+    <h2>타 산업 불량 선별 기법 — 배터리 활성화공정 응용 (2023–2026)</h2>
+  </div>
+
+  <h3>1. 반도체 업계 기법</h3>
+  <h4>1.1 Scanning Acoustic Microscopy (SAM) <span class="badge badge-blue">★ 주목</span></h4>
+  <ul>
+    <li>반도체: 패키징 결함, 공동(Void), 박리(Delamination) 검출에 광범위 활용</li>
+    <li><strong>50μm 이하 결함 검출 가능</strong> → 배터리 내부 미세 이물 검출에 응용 가능</li>
+    <li>이미 배터리 분야 실패 분석(Failure Analysis)에 사용 중</li>
+  </ul>
+  <h4>1.2 AI + SPC (반도체 제조)</h4>
+  <ul>
+    <li>AI 기반 통계적 공정 관리(SPC) → 배터리 Formation 공정 전압/전류/온도 데이터에 동일 원리 적용 가능</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>IJSRM, "AI-Enabled SPC for Semiconductor Manufacturing", 2024 — <a href="https://ijsrm.net/index.php/ijsrm/article/view/6439" target="_blank">링크</a></li></ol></div>
+
+  <h3>2. 이상값 탐지 알고리즘 (타 산업 → 배터리 이전)</h3>
+  <div class="tbl-wrap"><table><thead><tr><th>알고리즘</th><th>원래 적용 업계</th><th>배터리 이상탐지 성능</th></tr></thead><tbody>
+    <tr><td>Isolation Forest</td><td><strong>금융 사기 탐지</strong></td><td>높은 Recall, 비지도, 불량은 희귀이벤트 → 최적</td></tr>
+    <tr><td>Autoencoder</td><td>이상 감지 일반</td><td>재구성 오차로 비정상 패턴 탐지</td></tr>
+    <tr><td>Mahalanobis 거리</td><td>통계학·품질관리</td><td>다변수 특성 상관 처리</td></tr>
+    <tr><td>PCA</td><td>제조업 일반 SPC</td><td>균형된 Recall·Precision</td></tr>
+    <tr><td>Modified Z-score</td><td>품질관리 전반</td><td>간단한 이상값 플래그</td></tr>
+  </tbody></table></div>
+
+  <h3>3. 항공우주·자동차 업계 NDT 기법</h3>
+  <h4>3.1 Flash Thermography (열화상)</h4>
+  <ul>
+    <li>배터리 파우치 셀 결함 검출에 이미 적용됨</li>
+    <li>열 분포 이미지 분석으로 단락 위치 추정 가능</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>USPTO #11657494 — <a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/11657494" target="_blank">링크</a></li></ol></div>
+  <h4>3.2 MRI 기반 내부 검사</h4>
+  <ul>
+    <li>Inside-Out MRI로 충전 상태 및 결함 비파괴 검사</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>PMC, "In-situ inside-out MRI for LIB inspection" — <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5934497/" target="_blank">링크</a></li></ol></div>
+
+  <h3>4. 제약·식품 업계 기법</h3>
+  <ul>
+    <li><strong>NIR(근적외선) 분광법</strong>: 제약 업계 성분 균일도 검사 → 전극 슬러리 성분/바인더 분포/함수율 인라인 측정에 응용 가능 (일부 배터리 업체 도입 중)</li>
+    <li><strong>THz(테라헤르츠) 이미징</strong>: 식품/제약 내부 이물·층 두께 검출 → 전극 두께 균일도, 분리막 결함 비파괴 검사에 연구 진행 중</li>
+  </ul>
+
+  <h3>5. 적용 로드맵</h3>
+  <pre>[즉시 적용 가능]
+- Isolation Forest: Formation 충방전 데이터 이상 탐지 (소프트웨어만 필요)
+- SPC 관리도: 공정 파라미터 모니터링 자동화
+- Modified Z-score: 전압 이상값 자동 플래그
+
+[단기 (장비 투자)]
+- SAM: 분해 없이 미세 이물 검출
+- Flash Thermography: 단락 위치 열화상 추정
+- 머신비전 AI: 전극 표면 검사 자동화
+
+[중장기 (연구개발 필요)]
+- THz 이미징: 전극 두께 균일도 인라인 측정
+- MRI: 내부 상태 비파괴 검사
+- 전이학습: 타 셀 형태/화학계 모델 재활용</pre>
+</section>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- CH10 -->
+<!-- ============================================================ -->
+<section class="chapter" id="ch10">
+  <div class="chapter-header">
+    <span class="chap-num">CH 10</span>
+    <h2>SEM/EDS 분석 자동화 및 현행 분해 검사 개선 (2023–2026)</h2>
+  </div>
+
+  <h3>1. 현행 파괴 분석 프로세스의 문제점</h3>
+  <pre>저전압 불량 선별 → 셀 분해 (글로브박스) → 분리막 육안 확인 (검은 스팟)
+→ SEM/EDS 이물 성분 분석 → 이물 발생 개소 역추적</pre>
+  <div class="tbl-wrap"><table><thead><tr><th>문제</th><th>영향</th></tr></thead><tbody>
+    <tr><td>육안 검사 의존</td><td>미세 스팟(수십 μm 이하) 누락 가능</td></tr>
+    <tr><td>수동 SEM/EDS 분석</td><td>분석 1건당 수 시간 ~ 수 일 소요</td></tr>
+    <tr><td>파괴 검사</td><td>분해 과정에서 이물 위치 변형, 공기 노출</td></tr>
+    <tr><td>정량화 어려움</td><td>이물 크기·분포 통계 데이터 부족</td></tr>
+    <tr><td>재현성 부족</td><td>분해자에 따라 결과 편차</td></tr>
+  </tbody></table></div>
+
+  <h3>2. SEM-EDS 자동화 기술</h3>
+  <h4>2.1 종합 정량 SEM-EDS 분석 프로세스 (2025)</h4>
+  <ul>
+    <li>자동화된 입자 탐지, 성분 매핑, 크기 분포 통계 생성</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>PMC, "Comprehensive and quantitative SEM-EDS analytical process for LIB electrodes", 2025 — <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11825835/" target="_blank">링크</a></li></ol></div>
+
+  <h4>2.2 HORIBA XGT-9000 <span class="badge badge-orange">★ 현행 수동 SEM/EDS 자동화 대안</span></h4>
+  <ul>
+    <li>분리막 위 이물 성분 자동 검출 및 동정 (Fe, Cu, Cr, Zn, Al)</li>
+    <li>이물 크기 계측 및 분포 지도 자동 생성</li>
+    <li>좌표 자동 기록 → 재분석 재현성 확보</li>
+    <li>분석 시간 대폭 단축, 통계 데이터 자동 생성</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>HORIBA Application Note — <a href="https://www.horiba.com/usa/scientific/applications/energy/foreign-particle-analysis-on-a-separator-film-of-lithium-ion-battery/" target="_blank">링크</a></li></ol></div>
+
+  <h3>3. 현행 파괴 vs 비파괴 대안 비교</h3>
+  <div class="tbl-wrap"><table><thead><tr><th>분석 항목</th><th>현행 방법</th><th>비파괴 대안</th><th>실용성</th></tr></thead><tbody>
+    <tr><td>이물 위치 확인</td><td>분해+육안</td><td>X-ray CT</td><td>✅ 상용화 중</td></tr>
+    <tr><td>이물 성분 분석</td><td>SEM/EDS (분해 후)</td><td>HORIBA XGT (분해 후 자동화)</td><td>✅ 도입 가능</td></tr>
+    <tr><td>이물 크기·분포</td><td>수동 측정</td><td>자동화 SEM-EDS</td><td>✅ 도입 가능</td></tr>
+    <tr><td>내부 단락 위치</td><td>분해+열화상</td><td>레이저 초음파 C-스캔</td><td>✅ 연구 단계</td></tr>
+    <tr><td>분리막 손상 확인</td><td>육안</td><td>X-ray CT (고해상도)</td><td>⚠️ 해상도 한계</td></tr>
+    <tr><td>덴드라이트 확인</td><td>SEM (분해 후)</td><td>In-situ X-ray</td><td>⚠️ 연구실 수준</td></tr>
+  </tbody></table></div>
+
+  <h3>4. 단기 개선 로드맵</h3>
+  <pre>[Phase 1: 기존 파괴 분석 품질 향상]
+- HORIBA XGT-9000 도입: 분리막 이물 자동 좌표 기록 + 성분 자동 분류
+- 자동화 SEM-EDS 소프트웨어 활용으로 분석 시간 단축
+- 글로브박스 에어리스 전송 프로토콜 표준화
+
+[Phase 2: 비파괴 전처리 스크리닝 도입]
+- X-ray CT로 분해 전 이물 위치 사전 파악
+- 레이저 초음파로 기포·공동 사전 스크리닝
+- 분해 대상 셀을 미리 선별 → 파괴 분석 건수 감소
+
+[Phase 3: 완전 비파괴 진단 시스템]
+- 인라인 X-ray CT + AI 이물 자동 분류
+- EIS+DNN으로 Formation 완료 직후 불량 셀 선별
+- 파괴 분석 제로화 목표</pre>
+
+  <h3>5. EDS 원소 분석 대상</h3>
+  <div class="tbl-wrap"><table><thead><tr><th>부위</th><th>주요 원소</th></tr></thead><tbody>
+    <tr><td>양극 (Cathode)</td><td>Co, Ni, Mn, Fe, Al, O 분포</td></tr>
+    <tr><td>음극 (Anode)</td><td>C, Si, 금속 오염물 (Fe, Cu)</td></tr>
+    <tr><td>분리막 이물</td><td>Fe, Cu, Cr, Zn, Ni, Al 등 금속 원소</td></tr>
+  </tbody></table></div>
+  <div class="source-box"><div class="src-title">출처</div><ol>
+    <li>Thermo Fisher, "Elemental Imaging of Battery Materials Using EDS Analysis" — <a href="https://www.thermofisher.com/us/en/home/materials-science/battery-research/technologies/eds-analysis.html" target="_blank">링크</a></li>
+    <li>Scimed, "SEM for Lithium-Ion Battery Materials" — <a href="https://www.scimed.co.uk/education/sem-for-lithium-ion-battery-materials/" target="_blank">링크</a></li>
+    <li>EAG/IRPS 2025, "Failure Analysis of Particle Contamination in Battery" — <a href="https://www.eag.com/wp-content/uploads/2025/04/IRPS-2025-Poster_DanielLiu_w.pdf" target="_blank">링크</a></li>
+  </ol></div>
+</section>
+
+</main>
+
+<!-- SCROLL TO TOP -->
+<button id="totop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="맨 위로">↑</button>
+
+<script>
+  // Active sidebar link on scroll
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('#sidebar nav a');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => {
+      if (window.scrollY >= s.offsetTop - 80) current = s.getAttribute('id');
+    });
+    navLinks.forEach(a => {
+      a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+    });
+  });
+</script>
+</body>
+</html>

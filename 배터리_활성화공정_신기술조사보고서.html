@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>리튬이차전지 활성화공정 신기술 조사 보고서 (2023–2026)</title>
+<title>리튬이차전지 활성화공정 신기술 조사 보고서 (2020–2026)</title>
 <style>
   :root {
     --primary: #1a4a8c;
@@ -180,7 +180,7 @@
 
 <!-- SIDEBAR -->
 <nav id="sidebar">
-  <div class="logo">⚡ 배터리 활성화공정<br>신기술 조사 보고서<span>2023–2026 | 원통형 셀 중심</span></div>
+  <div class="logo">⚡ 배터리 활성화공정<br>신기술 조사 보고서<span>2020–2026 | 원통형 셀 중심</span></div>
   <nav>
     <div class="sec-title">개요</div>
     <a href="#index">📋 종합 요약 · INDEX</a>
@@ -195,6 +195,11 @@
     <a href="#ch08">08 함침 불량 · 전해액</a>
     <a href="#ch09">09 타 산업 선별 기법</a>
     <a href="#ch10">10 SEM/EDS 분석 개선</a>
+    <div class="sec-title">2020–2023 보완 연구</div>
+    <a href="#ch11">11 Formation 신기술 2020-23</a>
+    <a href="#ch12">12 저전압불량·이물 2020-23</a>
+    <a href="#ch13">13 Li플레이팅·자가방전·초음파</a>
+    <a href="#ch14">14 ML 수명예측·이상탐지</a>
   </nav>
 </nav>
 
@@ -206,7 +211,7 @@
   <h1>리튬이차전지 활성화공정 신기술 조사 보고서</h1>
   <p style="opacity:.85;font-size:14px;margin-top:8px;">저전압 불량 예방·선별 방법론 및 비파괴 검사 신기술 발굴</p>
   <div class="meta">
-    <span>조사 기간: 2023–2026</span>
+    <span>조사 기간: 2020–2026</span>
     <span>작성일: 2026-05-27</span>
     <span>대상 셀: 원통형(Cylindrical)</span>
     <span>출처 검증 완료</span>
@@ -941,6 +946,327 @@ DNN으로 ISC 위험도 점수 계산
     <li>Thermo Fisher, "Elemental Imaging of Battery Materials Using EDS Analysis" — <a href="https://www.thermofisher.com/us/en/home/materials-science/battery-research/technologies/eds-analysis.html" target="_blank">링크</a></li>
     <li>Scimed, "SEM for Lithium-Ion Battery Materials" — <a href="https://www.scimed.co.uk/education/sem-for-lithium-ion-battery-materials/" target="_blank">링크</a></li>
     <li>EAG/IRPS 2025, "Failure Analysis of Particle Contamination in Battery" — <a href="https://www.eag.com/wp-content/uploads/2025/04/IRPS-2025-Poster_DanielLiu_w.pdf" target="_blank">링크</a></li>
+  </ol></div>
+</section>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- CH11 -->
+<!-- ============================================================ -->
+<section class="chapter" id="ch11">
+  <div class="chapter-header">
+    <span class="chap-num">CH 11</span>
+    <h2>활성화(Formation) 공정 신기술 — 2020–2023년</h2>
+  </div>
+
+  <h3>1. Formation 온도 최적화 (2020)</h3>
+  <p>Formation 온도와 컨디셔닝 온도의 조합이 사이클 수명에 미치는 영향을 체계적으로 분석한 연구.</p>
+  <h4>핵심 발견</h4>
+  <ul>
+    <li>상온 Formation → <strong>5°C 컨디셔닝</strong>: 가장 긴 사이클 수명</li>
+    <li>5°C Formation → <strong>45°C 컨디셔닝</strong>: 가장 긴 사이클 수명</li>
+    <li>Formation과 컨디셔닝 온도는 <strong>독립적으로 최적화</strong>되어야 함</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"Optimisation of Formation and Conditioning Protocols for Lithium-Ion Electric Vehicle Batteries", <em>Batteries &amp; Supercaps</em>, Wiley, 2020 — <a href="https://chemistry-europe.onlinelibrary.wiley.com/doi/10.1002/batt.202000048" target="_blank">링크</a></li></ol></div>
+
+  <h3>2. Formation 데이터로 수명 즉시 예측 (2021, Joule)</h3>
+  <p><strong>핵심 발견</strong>: 저 SoC 조건에서의 셀 저항이 쿨롬 효율보다 강력한 수명 예측 지표 — 수 초 이내 측정 가능, 추가 설비 불필요.</p>
+  <ul>
+    <li>기존 Formation 충방전기 데이터만으로 구현 가능</li>
+    <li>Formation 직후 인라인 측정으로 수명 조기 예측</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"Predicting the impact of formation protocols on battery lifetime immediately after manufacturing", <em>Joule (Cell Press)</em>, 2021 — <a href="https://www.sciencedirect.com/science/article/pii/S2542435121004438" target="_blank">링크</a></li></ol></div>
+
+  <h3>3. DVA 기반 제조 공정 관리 (2023) <span class="badge badge-orange">★ 핵심</span></h3>
+  <p>Formation 중 수집된 전압 곡선을 DVA(dV/dQ)로 분해 → 양극·음극 전위 곡선 분리 → 제조 지표 추출.</p>
+  <h4>추출 가능 지표</h4>
+  <ul>
+    <li>양극/음극 전극 용량</li>
+    <li>Formation 중 리튬 소비량 (SEI 형성 품질)</li>
+    <li>실용 음극/양극 비율 (NPR)</li>
+    <li>리튬 플레이팅 안전 마진</li>
+  </ul>
+  <h4>실제 케이스 스터디 결과</h4>
+  <ul>
+    <li>특정 배치에서 양극 용량이 기대값보다 <strong>16% 높게</strong> 측정 → 코팅 공정 편차 발견 (전체 셀 용량 검사로는 검출 불가)</li>
+    <li>오래된 배치에서 새 배치 대비 <strong>3배 많은 리튬 소비</strong> → 전해액 품질/프로토콜 문제 식별</li>
+    <li>NPR 지표로 리튬 플레이팅 위험 배치 사전 식별</li>
+  </ul>
+  <blockquote><strong>장점</strong>: Formation 공정에서 이미 수집되는 전압 데이터 활용 → 추가 설비 투자 불필요</blockquote>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"Differential voltage analysis for battery manufacturing process control", <em>Frontiers in Energy Research</em>, 2023 — <a href="https://www.frontiersin.org/journals/energy-research/articles/10.3389/fenrg.2023.1087269/full" target="_blank">링크</a></li></ol></div>
+
+  <h3>4. SEI 성장 수치 모델링 (2023)</h3>
+  <ul>
+    <li>제1 충전 사이클 쿨롬 효율 약 82.5% → 제2 사이클 97.5%로 급상승 → 반응 제한 SEI 성장 기전 규명</li>
+    <li>기존 SEI 모델들이 제1 Formation 사이클의 낮은 쿨롬 효율을 정확히 재현 못하는 문제 → 개선 모델 제시</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"Modeling Battery Formation: Boosted SEI Growth, Multi-Species Reactions, and Irreversible Expansion", <em>IOPscience</em>, 2023 — <a href="https://iopscience.iop.org/article/10.1149/1945-7111/aceffe" target="_blank">링크</a></li></ol></div>
+
+  <h3>5. 고속 Formation 프로토콜 (2022)</h3>
+  <ul>
+    <li>고속 Formation으로 시간 <strong>38배 단축</strong>, 사이클 성능 동등 또는 향상</li>
+    <li>높은 Formation 전류 → 동기화된 SEI 성장 촉진 → SEI 균일성 향상</li>
+    <li><em>시사점</em>: 고전류 Formation이 단순 시간 단축뿐 아니라 SEI 품질 향상도 가능</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"High-rate formation protocol enables a high ionic conductivity SEI for sodium-ion batteries", <em>J. Power Sources</em>, 2022 — <a href="https://www.sciencedirect.com/science/article/abs/pii/S0378775322012757" target="_blank">링크</a></li></ol></div>
+
+  <h3>6. 조기 DCIR + ML 수명 예측 (2024)</h3>
+  <div class="tbl-wrap"><table><thead><tr><th>입력 데이터</th><th>예측 오차</th></tr></thead><tbody>
+    <tr><td>전압·용량 특성만</td><td>416 사이클</td></tr>
+    <tr><td>DCIR(직류 내부저항) 추가</td><td><strong>141 사이클</strong></td></tr>
+  </tbody></table></div>
+  <p>제조사 3곳 57개 셀에 적용 → 제조사 간 일반화 성공, Elastic Net 선형 회귀 모델 사용.</p>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"Early-Cycle Internal Impedance Enables ML-Based Battery Cycle Life Predictions Across Manufacturers", <em>arXiv</em>, 2024 — <a href="https://arxiv.org/html/2410.05326v1" target="_blank">링크</a></li></ol></div>
+
+  <h3>7. 활성화공정 적용 시사점 종합</h3>
+  <div class="tbl-wrap"><table><thead><tr><th>연구</th><th>핵심 발견</th><th>활성화공정 적용</th></tr></thead><tbody>
+    <tr><td>Formation 온도 최적화 (2020)</td><td>온도 조합에 따라 수명 크게 차이</td><td>Formation·Aging 온도 프로토콜 재검토</td></tr>
+    <tr><td>저항 기반 수명 예측 (2021)</td><td>수 초 저항 측정으로 수명 예측</td><td>Formation 직후 인라인 저항 측정 도입</td></tr>
+    <tr><td>DVA 공정 관리 (2023)</td><td>Formation 전압 데이터로 전극 이상 탐지</td><td>기존 충방전기 데이터로 공정 이상 감지</td></tr>
+    <tr><td>고속 Formation (2022)</td><td>38배 단축 + SEI 품질 향상</td><td>고전류 Formation 파일럿 검토</td></tr>
+    <tr><td>DCIR + ML (2024)</td><td>조기 저항으로 수명 조기 예측</td><td>제조사/공정 변경 시 모델 재사용</td></tr>
+  </tbody></table></div>
+</section>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- CH12 -->
+<!-- ============================================================ -->
+<section class="chapter" id="ch12">
+  <div class="chapter-header">
+    <span class="chap-num">CH 12</span>
+    <h2>저전압 불량 · 금속 이물 · 내부단락 — 2020–2023년</h2>
+  </div>
+
+  <h3>1. 구리 입자 오염 → 내부단락 메커니즘 (2022) <span class="badge badge-red">★ 핵심</span></h3>
+  <h4>구리 입자 용해-석출 메커니즘</h4>
+  <ul>
+    <li>Cu의 vs. Li/Li⁺ 용해 전위: <strong>약 3.4–3.5V</strong> — 양극 작동 전위 범위에 포함 → 양극에서 Cu 입자 용해</li>
+    <li>용해된 Cu²⁺/Cu⁺ 이온이 전해액을 통해 이동 → <strong>음극에서 Cu 덴드라이트 석출</strong></li>
+    <li>덴드라이트가 분리막 관통 → 내부단락 발생</li>
+  </ul>
+  <h4>ISC 위험도 분류 (위험 순서)</h4>
+  <pre>Al-An (알루미늄 집전체-음극 접촉)  → 가장 위험: 열폭주 직결
+Al-Cu → 높은 위험
+Ca-Cu → 중간 위험
+Ca-An (양극 활물질-음극 접촉) → 상대적으로 낮은 위험</pre>
+  <h4>단락 유형</h4>
+  <ul>
+    <li><strong>Soft ISC</strong>: C/3.7 ~ C/4480 범위 단락 전류 → 완만한 저전압 현상</li>
+    <li><strong>Hard ISC</strong>: 더 큰 전류, 즉각 열폭주 위험</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"A comprehensive research on internal short circuits caused by copper particle contaminants on cathode in lithium-ion batteries", <em>J. Energy Storage</em>, 2022 — <a href="https://www.sciencedirect.com/science/article/abs/pii/S2590116822000297" target="_blank">링크</a></li></ol></div>
+
+  <h3>2. 과방전에 의한 구리 집전체 용해 (2021)</h3>
+  <ul>
+    <li>과방전(-0.5V 이하) → 음극 집전체 Cu 용해 → 양극 Cu 석출</li>
+    <li>과방전 셀: <strong>14 사이클 후</strong>에만 내부단락으로 실패 → 잠재적 저전압 불량</li>
+    <li>정상적으로 보이다가 이후 사이클에서 갑자기 저전압 불량 발생</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"Studies on the deposition of copper in lithium-ion batteries during the deep discharge process", <em>Scientific Reports</em>, 2021 — <a href="https://www.nature.com/articles/s41598-021-85575-x" target="_blank">링크</a></li></ol></div>
+
+  <h3>3. 금속 이물 오염 위험성 평가 (2023)</h3>
+  <ul>
+    <li>10μm 이상 도전성 입자: 분리막 관통 → 내부단락 → 열폭주</li>
+    <li>Cu 입자가 가장 흔한 오염원</li>
+    <li>다양한 ISC 유발 방법으로 실제 오염에 의한 ISC 재현</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"Particle Contamination in Commercial Lithium-Ion Cells—Risk Assessment with Focus on Internal Short Circuits", <em>MDPI Batteries</em>, 2023 — <a href="https://www.mdpi.com/2313-0105/9/1/9" target="_blank">링크</a></li></ol></div>
+
+  <h3>4. 머신러닝 기반 내부단락 검출 (2020)</h3>
+  <ul>
+    <li>전류·전압·온도 데이터 → 지도 학습 ML 모델로 내부단락 분류</li>
+    <li>기계적 남용(못 관통) 전후 데이터 특성 추출 → 단락 감지</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"Internal short circuit detection in Li-ion batteries using supervised machine learning", <em>Nature Scientific Reports</em>, 2020 — <a href="https://www.nature.com/articles/s41598-020-58021-7" target="_blank">링크</a></li></ol></div>
+
+  <h3>5. Few-Shot Learning 비정상 배터리 검출 (2021)</h3>
+  <p>1사이클 노화 데이터 + Few-Shot Learning → 비정상 배터리 검출 (215개 상용 리튬이온전지 검증)</p>
+  <div class="tbl-wrap"><table><thead><tr><th>지표</th><th>성능</th></tr></thead><tbody>
+    <tr><td>비정상 배터리 검출률 (Recall)</td><td><strong>100%</strong></td></tr>
+    <tr><td>거짓 경보율 (False Alarm Rate)</td><td><strong>3.8%</strong></td></tr>
+  </tbody></table></div>
+  <blockquote>Formation 데이터(제1~2 사이클)를 이용하여 출하 전 비정상 셀 조기 선별 가능</blockquote>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"Detecting Abnormality of Battery Lifetime from First-Cycle Data Using Few-Shot Learning", <em>PMC</em>, 2022 — <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC10853708/" target="_blank">링크</a></li></ol></div>
+
+  <h3>6. Severson 2019 — Formation 수명 예측 기반 논문</h3>
+  <ul>
+    <li>LFP/흑연 셀 124개 조기 사이클 방전 전압 곡선 → ML 수명 예측</li>
+    <li>핵심 피처: ΔQ₁₀₀₋₁₀ (100번째 vs 10번째 사이클 용량-전압 곡선 분산)</li>
+    <li>성능: <strong>RMSE 9.1%</strong> (테스트 세트)</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"Data-driven prediction of battery cycle life before capacity degradation", <em>Nature Energy</em>, 2019 — <a href="https://collaborate.princeton.edu/en/publications/data-driven-prediction-of-battery-cycle-life-before-capacity-degr" target="_blank">링크</a></li></ol></div>
+</section>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- CH13 -->
+<!-- ============================================================ -->
+<section class="chapter" id="ch13">
+  <div class="chapter-header">
+    <span class="chap-num">CH 13</span>
+    <h2>리튬 플레이팅 · 자가방전 · 초음파 모니터링 — 2020–2023년</h2>
+  </div>
+
+  <h3>1. 차압 감지법 리튬 플레이팅 온보드 조기 검출 (2022) <span class="badge badge-orange">★★★</span></h3>
+  <p><strong>방법</strong>: 배터리 압력 변화율 per 충전량(dP/dQ) 측정</p>
+  <h4>원리</h4>
+  <ul>
+    <li>리튬이온 흑연 삽입(Intercalation): 결정 내부 수용 → 상대적으로 작은 압력 변화</li>
+    <li>리튬 플레이팅: 음극 표면에 금속 리튬 석출 → 단위 충전량 대비 <strong>압력 변화 급증</strong></li>
+    <li>dP/dQ 임계값 초과로 플레이팅 <strong>핵생성 단계</strong>에서 조기 검출</li>
+  </ul>
+  <div class="tbl-wrap"><table><thead><tr><th>성능 지표</th><th>결과</th></tr></thead><tbody>
+    <tr><td>플레이팅 검출 SoC</td><td><strong>8.1%</strong> 시점에서 검출 가능</td></tr>
+    <tr><td>구현 방법</td><td>셀 내부 구조 수정 없이 외부 압력 센서만으로 구현</td></tr>
+    <tr><td>BMS 연동</td><td>0°C 저온 충전 중 플레이팅 감지 → 자동 충전 전류 감소</td></tr>
+  </tbody></table></div>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"Onboard early detection and mitigation of lithium plating in fast-charging batteries", <em>Nature Communications</em>, 2022 — <a href="https://www.nature.com/articles/s41467-022-33486-4" target="_blank">링크</a></li></ol></div>
+
+  <h3>2. 전압 이완 기반 리튬 플레이팅 검출 (2020)</h3>
+  <p><strong>방법</strong>: 충전 완료 직후 전압 이완(Relaxation) 프로파일 분석</p>
+  <ul>
+    <li>정상 충전 후: 전압 이완 곡선이 완만하고 예측 가능</li>
+    <li>리튬 플레이팅 발생 시: 이완 곡선에 특징적인 <strong>전위 최솟값(Minimum)</strong> 나타남 → 리튬 재삽입(Re-intercalation) 신호</li>
+    <li><em>Formation 적용</em>: 충방전기 전압 데이터만으로 소프트웨어적으로 구현 가능</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"Detecting the Onset of Lithium Plating and Monitoring Fast Charging Performance with Voltage Relaxation", <em>ACS Energy Letters</em>, 2020 — <a href="https://pubs.acs.org/doi/abs/10.1021/acsenergylett.0c00831" target="_blank">링크</a></li></ol></div>
+
+  <h3>3. 자가방전 고속 측정법 (2022)</h3>
+  <h4>3.1 OCV 기반 자가방전율 측정</h4>
+  <ul>
+    <li>짧은 휴지 기간의 OCV 변화 분석</li>
+    <li>온도 계수(Temperature Coefficient of Voltage)가 작은 <strong>SoC 70% 조건</strong>에서 측정 → 온도 영향 최소화</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol>
+    <li>"An expeditious and simple scheme for measuring self-discharge rate of lithium batteries", <em>Wiley IJER</em>, 2022 — <a href="https://onlinelibrary.wiley.com/doi/10.1002/er.8293" target="_blank">링크</a></li>
+    <li>"Research on a fast detection method of self-discharge of lithium battery", <em>J. Energy Storage</em>, 2022 — <a href="https://www.sciencedirect.com/science/article/abs/pii/S2352152X22014232" target="_blank">링크</a></li>
+  </ol></div>
+
+  <h3>4. 초음파 SOC·SOH 상관관계 모니터링 (2020–2022) <span class="badge badge-blue">★</span></h3>
+  <p><strong>원리</strong>: 초음파 펄스 배터리 투과 → 비행시간(TOF, Time of Flight) 측정</p>
+  <div class="tbl-wrap"><table><thead><tr><th>측정 상관관계</th><th>결과</th></tr></thead><tbody>
+    <tr><td>TOF vs SOC</td><td>선형 관계 확인</td></tr>
+    <tr><td>TOF vs SOH</td><td>선형 관계 확인</td></tr>
+    <tr><td>측정 방식</td><td>Through-Transmission(투과형), Pulse-Echo(반사형)</td></tr>
+  </tbody></table></div>
+  <blockquote>압전 트랜스듀서를 배터리 외부에 부착 → 비파괴·비침습·실시간 측정</blockquote>
+  <div class="source-box"><div class="src-title">출처</div><ol>
+    <li>"Acoustic Emission Detection and Analysis Method for Health Status of Lithium Ion Batteries", <em>PMC</em>, 2021 — <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7864529/" target="_blank">링크</a></li>
+    <li>USPTO 특허 #11527783 "Battery state monitoring using ultrasonic guided waves" — <a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/11527783" target="_blank">링크</a></li>
+  </ol></div>
+
+  <h3>5. FBG 광섬유 덴드라이트 모니터링 (2024, Light: Science &amp; Applications)</h3>
+  <ul>
+    <li>TFBG 센서를 전극 근처에 삽입 → <strong>나노스케일 계면의 물질 전달 동역학</strong> 실시간 모니터링</li>
+    <li>덴드라이트 성장 패턴 조기 감지 가능</li>
+    <li>셀 동작 방해 없음 (IF ~20)</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"TFBG sensors for dendrite monitoring", <em>Light: Science &amp; Applications</em> (Nature Group), 2024 — <a href="https://www.nature.com/articles/s41377-023-01346-5" target="_blank">링크</a></li></ol></div>
+
+  <h3>6. 전해액 함침 품질 간이 전기화학 측정법 (2023)</h3>
+  <ul>
+    <li>직류(DC) 기반 방법: EIS 장비 불필요 → <strong>표준 배터리 사이클러로 측정 가능</strong></li>
+    <li>Formation 전 함침도를 인라인 측정할 수 있는 저비용 방법</li>
+    <li>압력 보조 함침으로 함침 시간을 <strong>1시간 이내로 단축</strong> 가능</li>
+    <li>레이저 전극 구조화(Laser Structuring)로 함침 시간 <strong>10배 이상 단축</strong> 가능성</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"Simplified Electrochemical Approaches for Quality Determination of the Wetting Process in Lithium-Ion Cell Production", <em>Energy Technology</em>, Wiley, 2023 — <a href="https://onlinelibrary.wiley.com/doi/full/10.1002/ente.202201004" target="_blank">링크</a></li></ol></div>
+</section>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- CH14 -->
+<!-- ============================================================ -->
+<section class="chapter" id="ch14">
+  <div class="chapter-header">
+    <span class="chap-num">CH 14</span>
+    <h2>머신러닝 수명 예측 · 이상탐지 — 2020–2023년</h2>
+  </div>
+
+  <h3>1. Severson 2019 — ML 수명 예측 업계 기준 논문</h3>
+  <p>LFP/흑연 셀 124개, 조기 사이클(100 사이클 이전) 방전 전압 곡선 → 수명 예측</p>
+  <ul>
+    <li><strong>핵심 피처</strong>: ΔQ₁₀₀₋₁₀ — 100번째 vs. 10번째 사이클 용량-전압 곡선의 분산(Variance)</li>
+    <li><strong>성능</strong>: RMSE 9.1% (150~2300 사이클 범위)</li>
+    <li><strong>의의</strong>: Formation 이후 초기 충방전 데이터만으로 수명 조기 예측 가능성 입증</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"Data-driven prediction of battery cycle life before capacity degradation", <em>Nature Energy</em>, 2019 — <a href="https://collaborate.princeton.edu/en/publications/data-driven-prediction-of-battery-cycle-life-before-capacity-degr" target="_blank">링크</a></li></ol></div>
+
+  <h3>2. 딥러닝 기반 1사이클 수명 예측 (2021)</h3>
+  <ul>
+    <li>DNN(심층 신경망)으로 1 사이클 충방전 데이터만 사용 → 수명 및 전압 예측</li>
+    <li>Formation 완료 직후 1 사이클로 수명 분류 가능</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"Deep neural network battery life and voltage prediction by using data of one cycle only", <em>Applied Energy</em>, 2021 — <a href="https://www.sciencedirect.com/science/article/abs/pii/S0306261921014112" target="_blank">링크</a></li></ol></div>
+
+  <h3>3. BatteryML — 배터리 ML 오픈소스 플랫폼 (2023)</h3>
+  <ul>
+    <li>배터리 열화에 대한 ML 적용을 위한 통합 오픈소스 플랫폼</li>
+    <li>다양한 데이터셋, 피처 추출, 모델 훈련·평가 포함</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"BatteryML: An Open-source Platform for Machine Learning on Battery Degradation", <em>arXiv</em>, 2023 — <a href="https://arxiv.org/html/2310.14714v4" target="_blank">링크</a></li></ol></div>
+
+  <h3>4. Few-Shot Learning 비정상 배터리 조기 검출 (2021) <span class="badge badge-orange">★★★</span></h3>
+  <p><strong>핵심</strong>: 제1사이클 노화 데이터 + Few-Shot Learning → 비정상 배터리 검출 (215개 상용 리튬이온전지)</p>
+  <div class="tbl-wrap"><table><thead><tr><th>지표</th><th>성능</th></tr></thead><tbody>
+    <tr><td>비정상 배터리 검출률 (Recall)</td><td><strong>100%</strong></td></tr>
+    <tr><td>거짓 경보율 (FAR)</td><td><strong>3.8%</strong></td></tr>
+    <tr><td>Formation 적용</td><td>Formation 1주기 완료 직후 이상 셀 선별 가능</td></tr>
+  </tbody></table></div>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"Detecting Abnormality of Battery Lifetime from First-Cycle Data Using Few-Shot Learning", <em>PMC</em>, 2022 — <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC10853708/" target="_blank">링크</a></li></ol></div>
+
+  <h3>5. ICA IC 곡선 재구성 — 비정전류 조건 (2021)</h3>
+  <ul>
+    <li>기존 ICA는 정전류(CC) 조건 필요 → 실제 운용 데이터 적용 어려움</li>
+    <li>전류 변화 프로파일에서 IC 곡선 재구성하는 방법 제시</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"Reconstruction of the incremental capacity trajectories from current-varying profiles for lithium-ion batteries", <em>PMC</em>, 2021 — <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8487032/" target="_blank">링크</a></li></ol></div>
+
+  <h3>6. Markov + Isolation Forest — 배터리 이상 검출 (2025)</h3>
+  <ul>
+    <li>Markov 제약 Isolation Forest: 시계열 연속성 반영 + Isolation Forest 결합</li>
+    <li>태양광-그리드 배터리의 조기 이상 검출</li>
+    <li><em>Formation 시사점</em>: Formation 충방전 시계열에 시간적 연속성 반영 가능</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"Markov-Constrained Isolation Forest for Early Detection of Battery Anomalies", <em>Mathematics</em>, MDPI, 2025 — <a href="https://www.mdpi.com/2227-7390/14/7/1192" target="_blank">링크</a></li></ol></div>
+
+  <h3>7. 이상탐지 방법 종합 비교표 (2020–2025)</h3>
+  <div class="tbl-wrap"><table><thead><tr><th>연구/방법</th><th>연도</th><th>입력 데이터</th><th>핵심 알고리즘</th><th>성능</th></tr></thead><tbody>
+    <tr><td>Severson 수명 예측</td><td>2019</td><td>조기 방전 전압 곡선</td><td>선형 회귀</td><td>RMSE 9.1%</td></tr>
+    <tr><td>1사이클 DNN</td><td>2021</td><td>1 사이클 충방전</td><td>DNN</td><td>수명+전압 예측</td></tr>
+    <tr><td>Few-Shot 비정상 탐지</td><td>2021</td><td>1사이클 노화 데이터</td><td>Few-Shot Learning</td><td>Recall 100%, FAR 3.8%</td></tr>
+    <tr><td>DCIR 기반 예측</td><td>2024</td><td>조기 직류 내부저항</td><td>Elastic Net</td><td>오차 141 사이클</td></tr>
+    <tr><td>이상탐지 벤치마크</td><td>2025</td><td>충방전 시계열</td><td>15종 알고리즘</td><td>iForest 최고 Recall</td></tr>
+    <tr><td>Markov+iForest</td><td>2025</td><td>배터리 시계열</td><td>Markov+iForest</td><td>조기 이상 검출</td></tr>
+  </tbody></table></div>
+
+  <h3>8. Formation 파이프라인 제안 (ML 기반)</h3>
+  <pre>[Formation 사이클 진행]
+    │
+    ▼
+[1사이클 완료 즉시]
+    ├── Few-Shot Learning: 비정상 셀 선별 (Recall 100%, FAR 3.8%)
+    ├── Isolation Forest: 실시간 이상탐지 (시계열)
+    └── DVA/ICA: 전극 용량·NPR·Li 소비량 추출
+    │
+    ▼
+[Formation 완료 후]
+    ├── DCIR 측정 → ML 수명 예측 (오차 141 사이클)
+    ├── EIS + DNN → 내부단락 스크리닝 (정확도 97.5%)
+    └── OCV 이완 6분 예측 → 자가방전 스크리닝</pre>
+
+  <div class="source-box"><div class="src-title">출처 목록</div><ol>
+    <li><em>Nature Energy</em> 2019 — Severson 수명 예측: <a href="https://collaborate.princeton.edu/en/publications/data-driven-prediction-of-battery-cycle-life-before-capacity-degr" target="_blank">링크</a></li>
+    <li><em>Applied Energy</em> 2021 — 1사이클 DNN: <a href="https://www.sciencedirect.com/science/article/abs/pii/S0306261921014112" target="_blank">링크</a></li>
+    <li><em>PMC</em> 2022 — Few-Shot Learning 비정상 탐지: <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC10853708/" target="_blank">링크</a></li>
+    <li><em>arXiv</em> 2023 — BatteryML: <a href="https://arxiv.org/html/2310.14714v4" target="_blank">링크</a></li>
+    <li><em>PMC</em> 2021 — IC 곡선 재구성: <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8487032/" target="_blank">링크</a></li>
+    <li><em>MDPI Mathematics</em> 2025 — Markov+Isolation Forest: <a href="https://www.mdpi.com/2227-7390/14/7/1192" target="_blank">링크</a></li>
   </ol></div>
 </section>
 

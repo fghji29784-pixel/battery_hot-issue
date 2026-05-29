@@ -200,6 +200,8 @@
     <a href="#ch12">12 저전압불량·이물 2020-23</a>
     <a href="#ch13">13 Li플레이팅·자가방전·초음파</a>
     <a href="#ch14">14 ML 수명예측·이상탐지</a>
+    <div class="sec-title">프로젝트 전용</div>
+    <a href="#ch15">15 저전압 양품화 프로젝트</a>
   </nav>
 </nav>
 
@@ -1267,6 +1269,153 @@ Ca-An (양극 활물질-음극 접촉) → 상대적으로 낮은 위험</pre>
     <li><em>arXiv</em> 2023 — BatteryML: <a href="https://arxiv.org/html/2310.14714v4" target="_blank">링크</a></li>
     <li><em>PMC</em> 2021 — IC 곡선 재구성: <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8487032/" target="_blank">링크</a></li>
     <li><em>MDPI Mathematics</em> 2025 — Markov+Isolation Forest: <a href="https://www.mdpi.com/2227-7390/14/7/1192" target="_blank">링크</a></li>
+  </ol></div>
+</section>
+
+<hr>
+
+<!-- ============================================================ -->
+<!-- CH15 -->
+<!-- ============================================================ -->
+<section class="chapter" id="ch15">
+  <div class="chapter-header">
+    <span class="chap-num">CH 15</span>
+    <h2>저전압 양품화 프로젝트 — 관련 문헌 종합 조사</h2>
+  </div>
+
+  <div class="warn-box">
+    <div class="warn-title">⚡ 핵심 결론 — 먼저 읽기</div>
+    <ul>
+      <li><strong>금속이물(Cu, Fe) 기인 ISC</strong>: 충방전으로 재용해 <strong>불가능 — 비가역적(Irreversible)</strong></li>
+      <li><strong>리튬 플레이팅 기인 ISC</strong>: 방전상태 보관·전기장 이완으로 <strong>부분 회복 가능</strong></li>
+      <li><strong>함침 불량 기인 저전압</strong>: 충방전 반복으로 <strong>회복 가능성 있음</strong></li>
+    </ul>
+    <p style="margin-top:8px;color:#7a3a00;">→ "저전압 양품화"의 실효성은 <strong>불량 원인이 무엇인가</strong>에 따라 완전히 달라짐</p>
+  </div>
+
+  <h3>1. 저전압 불량 → 미세쇼트 발생 단계별 메커니즘</h3>
+  <pre>[1단계] 금속이물 유입
+         → Cu 절단 스크랩, 설비 마모, 용접 슬래그, 원자재 불순물
+
+[2단계] 양극에서 이물 용해
+         → Cu 용해 전위: 약 3.4–3.5V vs. Li/Li+ (양극 작동 전위 범위 포함)
+         → Cu²⁺/Cu⁺ 이온이 전해액에 녹아 이동 시작
+
+[3단계] 음극에서 덴드라이트 석출
+         → 음극 저전위에서 Cu²⁺ 환원 → Cu 덴드라이트로 성장
+         → 성장 속도: 인가 전류, 온도, 이물 크기에 의존
+
+[4단계] 분리막 관통 → 내부단락(ISC) 발생
+         → Soft ISC: C/3.7~C/4480 단락 전류 → 완만한 저전압
+         → Hard ISC: 즉각 열폭주 위험</pre>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"A comprehensive research on internal short circuits caused by copper particle contaminants on cathode in lithium-ion batteries", <em>J. Energy Storage</em>, 2022 — <a href="https://www.sciencedirect.com/science/article/abs/pii/S2590116822000297" target="_blank">링크</a></li></ol></div>
+
+  <h3>2. ISC 위험도 분류 및 Soft vs. Hard ISC 비교</h3>
+  <div class="tbl-wrap"><table><thead><tr><th>단락 접촉 유형</th><th>위험도</th><th>비고</th></tr></thead><tbody>
+    <tr><td>Al집전체 – 음극 (Al-An)</td><td>★★★★★ 최고</td><td>열폭주 직결</td></tr>
+    <tr><td>Al집전체 – Cu집전체 (Al-Cu)</td><td>★★★★ 높음</td><td>—</td></tr>
+    <tr><td>양극활물질 – Cu집전체 (Ca-Cu)</td><td>★★★ 중간</td><td>—</td></tr>
+    <tr><td>양극활물질 – 음극 (Ca-An)</td><td>★★ 낮음</td><td>상대적으로 낮은 위험</td></tr>
+  </tbody></table></div>
+
+  <div class="tbl-wrap"><table><thead><tr><th>항목</th><th>Soft ISC</th><th>Hard ISC</th></tr></thead><tbody>
+    <tr><td>단락 저항</td><td>수kΩ~수백Ω (높음)</td><td>수Ω 이하 (낮음)</td></tr>
+    <tr><td>발열</td><td>완만</td><td>급격</td></tr>
+    <tr><td>전압 변화</td><td>서서히 저하 (저전압 불량)</td><td>급격 저하</td></tr>
+    <tr><td>가역성</td><td><strong>조건부 가역적</strong> (Li 기인 시)</td><td>비가역적</td></tr>
+    <tr><td>열폭주 위험</td><td>낮음 (방치 시 Hard로 전환)</td><td>높음</td></tr>
+  </tbody></table></div>
+  <div class="source-box"><div class="src-title">출처</div><ol>
+    <li>"Insights into soft short circuit-based degradation of lithium metal batteries", <em>Faraday Discussions</em>, RSC, 2024 — <a href="https://pubs.rsc.org/en/content/articlehtml/2024/fd/d3fd00101f" target="_blank">링크</a></li>
+    <li>"Toward Deciphering: Soft Short Circuit Versus Hard Short Circuit?", <em>Advanced Energy Materials</em>, Wiley, 2025 — <a href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/aenm.202500275" target="_blank">링크</a></li>
+  </ol></div>
+
+  <h3>3. 덴드라이트 재용해 — 충방전에 의한 회복 가능성</h3>
+
+  <h4>❌ 금속 덴드라이트(Cu, Fe) — 재용해 불가능 (Irreversible)</h4>
+  <blockquote>"The process can be reversed <strong>as long as the dissolved copper (SOC &gt; −12%) has not yet been deposited on the cathode.</strong>" — 즉, 양극에 Cu가 석출된 이후에는 가역 불가능</blockquote>
+  <ul>
+    <li>과방전 후 Cu 석출된 셀: <strong>14 사이클 후 내부단락으로 최종 실패</strong> — 충방전에 의한 회복 없음</li>
+    <li>2.5 mol% Cu 오염 시 5C 방전 용량: <strong>85.2 mAh/g으로 급감 (~63% 손실)</strong></li>
+    <li>한 번 형성된 Cu 덴드라이트는 분리막에 물리적으로 박혀 있어 전압 인가로 제거 불가</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"Studies on the deposition of copper in lithium-ion batteries during the deep discharge process", <em>Scientific Reports</em>, 2021 — <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7973563/" target="_blank">링크</a></li></ol></div>
+
+  <h4>⚠️ 리튬 덴드라이트 — 조건부 부분 회복 가능</h4>
+  <div class="tbl-wrap"><table><thead><tr><th>방법</th><th>효과</th><th>적용 조건</th><th>출처</th></tr></thead><tbody>
+    <tr><td>방전 상태 보관 (Calendar Aging)</td><td>89% 용량 회복 (35일, 25°C) / 97% 회복 (7일, 45°C)</td><td>0% SOC 방전 후 보관</td><td>Nature 2023</td></tr>
+    <tr><td>고속 방전 (Fast Discharge)</td><td>고립 Li 재연결 → 유효 용량 회복</td><td>방전 시작 시 고전류 단시간</td><td>Cell/Trends 2022</td></tr>
+    <tr><td>전기장 이완 (Electric Field Relaxation)</td><td>3C 충전 용량유지율 80%→95%</td><td>충전 직후 이완 시간 부여</td><td>Nature Comm. 2025</td></tr>
+  </tbody></table></div>
+
+  <h4>Soft ISC 가역성 임계점</h4>
+  <ul>
+    <li><strong>가역 조건</strong>: 임계 전류밀도 이하 → 주기적 임피던스 회복 이벤트 발생</li>
+    <li><strong>비가역 임계</strong>: 임계 전류밀도 초과 시 17–25시간 후 Hard ISC로 전환 (영구 단락)</li>
+    <li>임피던스 최종값: 약 <strong>10 Ω cm²</strong> 수준으로 안정화 후 Hard short 전환</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol>
+    <li>Nature, "Recovery of isolated lithium through discharged state calendar ageing", 2023 — <a href="https://www.nature.com/articles/s41586-023-06992-8" target="_blank">링크</a></li>
+    <li>Nature Communications, "Manipulation of lithium dendrites via electric field relaxation", 2025 — <a href="https://www.nature.com/articles/s41467-025-58818-y" target="_blank">링크</a></li>
+  </ol></div>
+
+  <h3>4. 금속 성분별 덴드라이트 특성 비교</h3>
+  <div class="tbl-wrap"><table><thead><tr><th>금속</th><th>용해 전위 (vs Li/Li+)</th><th>형성 경로</th><th>재용해 가능성</th><th>위험도</th></tr></thead><tbody>
+    <tr><td><strong>Cu (구리)</strong></td><td>~3.4–3.5 V</td><td>양극 Cu 이물 용해 / 과방전 시 음극 집전체 용해</td><td style="color:#991b1b;font-weight:700;">불가능</td><td>★★★★★ 가장 흔한 오염원</td></tr>
+    <tr><td><strong>Fe (철)</strong></td><td>~2.6–3.0 V (추정)</td><td>설비 마모 이물, 이온 오염</td><td style="color:#991b1b;font-weight:700;">불가능</td><td>★★★★ 분리막 직접 관통 가능</td></tr>
+    <tr><td><strong>Cr (크롬)</strong></td><td>수동태 전위 이상 (활성 용해)</td><td>스테인리스 설비 마모</td><td style="color:#9a3412;">제한적</td><td>★★★</td></tr>
+    <tr><td><strong>Al (알루미늄)</strong></td><td>~3.0 V (양극 집전체 영역)</td><td>양극 집전체 알루미늄 부식</td><td style="color:#991b1b;font-weight:700;">불가능</td><td>★★★ (Al-An 접촉 시 최고 위험)</td></tr>
+    <tr><td><strong>Li (리튬)</strong></td><td>~0 V (음극 작동 전위)</td><td>고속 충전, 저온 충전, 과충전</td><td style="color:#166534;font-weight:700;">부분 가능</td><td>★★★ (플레이팅 위험)</td></tr>
+  </tbody></table></div>
+
+  <h3>5. 관련 특허 요약</h3>
+  <div class="tbl-wrap"><table><thead><tr><th>특허번호</th><th>방법</th><th>주요 효과</th><th>대상 결함</th></tr></thead><tbody>
+    <tr><td><a href="https://patents.google.com/patent/US20150091530A1/en" target="_blank">US20150091530A1</a></td><td>심방전 컨디셔닝 (2.0V 이하, 24–120시간 보관)</td><td>용량 109.6% 회복, 저온 저항 28.6% 감소</td><td>SEI 축적, Li 이온 분포 불균일 (주로 노화)</td></tr>
+    <tr><td><a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/8968896" target="_blank">US8968896</a></td><td>ISC 감지 → 필라멘트 파단 메쉬로 물리적 단락 차단</td><td>ISC 완화</td><td>ISC 형성 후 확산 방지</td></tr>
+    <tr><td><a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/12149119" target="_blank">US12149119</a></td><td>배터리 시스템 내 저감 충전 전류 공급 경로 통합</td><td>저전압 셀 점진적 회복</td><td>저전압 불량 셀 시스템 레벨 관리</td></tr>
+    <tr><td><a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/10418668" target="_blank">US10418668</a></td><td>킬레이팅 에이전트 0.1–5 wt% 전해액 첨가</td><td>Cu²⁺, Fe²⁺ 음극 석출 억제</td><td>금속이물 기인 ISC 예방</td></tr>
+  </tbody></table></div>
+
+  <h3>6. 원인별 양품화 가능성 판단</h3>
+  <pre>[저전압 불량 원인 분류]
+│
+├── A. 금속이물(Cu, Fe 덴드라이트) 기인 ISC
+│   └── ❌ 충방전 재활성화로 회복 불가능
+│       → 덴드라이트는 물리적·전기화학적으로 제거 불가
+│       → 사이클 거듭할수록 ISC 악화 가능성
+│
+├── B. 리튬 플레이팅 기인 Soft ISC
+│   └── ⚠️ 조건부 부분 회복 가능
+│       → 방전 상태 보관 (0% SOC, 1h+) → 고립 Li 재연결
+│       → 저전류율 재충전 → Dead Li 최소화
+│       → 완전 회복 어렵고 Dead Li는 영구 손실
+│
+└── C. 함침 불량 기인 저전압
+    └── ✅ 충방전 반복으로 회복 가능성 있음
+        → 전해액 서서히 침투 → 이온 이동 경로 개선
+        → 낮은 전류율 충방전이 유리</pre>
+
+  <h3>7. 추가 조사 추천 주제</h3>
+  <div class="tbl-wrap"><table><thead><tr><th>우선순위</th><th>주제</th><th>이유</th></tr></thead><tbody>
+    <tr><td><span class="badge badge-red">최우선</span></td><td>저전압 불량 원인 구분 전기화학법</td><td>금속이물 ISC vs. Li 플레이팅 ISC vs. 함침불량을 충방전기 데이터만으로 구분 — 이 없으면 양품화 대상 선별 불가</td></tr>
+    <tr><td><span class="badge badge-red">최우선</span></td><td>함침 불량 기인 저전압의 재활성화 문헌</td><td>이 원인이 양품화 성공 가능성이 가장 높음 — 구체적 프로토콜 데이터 필요</td></tr>
+    <tr><td><span class="badge badge-orange">중요</span></td><td>Cu 덴드라이트 고온 처리(60–80°C) 가능성</td><td>고온이 Cu 덴드라이트 형태·전기적 단락에 영향을 미치는지 — 문헌 매우 부족, 실험 접근 필요</td></tr>
+    <tr><td><span class="badge badge-orange">중요</span></td><td>Fe, Cr 금속 성분별 용해·석출 전위 정밀 데이터</td><td>LiPF₆/EC:DMC 조건에서 정확한 전기화학적 거동 — Cu 외 금속의 상세 데이터 부족</td></tr>
+    <tr><td><span class="badge badge-orange">중요</span></td><td>Soft ISC 진행 속도와 자가방전 상관관계</td><td>원통형 셀에서 Soft→Hard ISC 전환 시간, 온도 의존성 데이터</td></tr>
+    <tr><td><span class="badge badge-blue">참고</span></td><td>재활성화 전후 X-ray CT 비교</td><td>덴드라이트 물리적 변화 비파괴 확인 방법</td></tr>
+    <tr><td><span class="badge badge-blue">참고</span></td><td>재활성화 셀의 안전성 평가 방법</td><td>양품화 후 열폭주 위험성 평가 기준 — 못관통, 가속 열량계</td></tr>
+  </tbody></table></div>
+
+  <div class="source-box"><div class="src-title">핵심 출처 목록</div><ol>
+    <li>J. Energy Storage 2022 — Cu ISC 메커니즘: <a href="https://www.sciencedirect.com/science/article/abs/pii/S2590116822000297" target="_blank">링크</a></li>
+    <li>Scientific Reports 2021 — Cu 심방전 석출: <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7973563/" target="_blank">링크</a></li>
+    <li>Faraday Discussions 2024 — Soft ISC 가역성: <a href="https://pubs.rsc.org/en/content/articlehtml/2024/fd/d3fd00101f" target="_blank">링크</a></li>
+    <li>Nature 2023 — 방전상태 보관 고립 Li 회복: <a href="https://www.nature.com/articles/s41586-023-06992-8" target="_blank">링크</a></li>
+    <li>Trends in Chemistry 2022 — 고속방전 Li 재연결: <a href="https://www.sciencedirect.com/science/article/abs/pii/S2589597422001939" target="_blank">링크</a></li>
+    <li>Nature Comm. 2025 — 전기장 이완 덴드라이트 관리: <a href="https://www.nature.com/articles/s41467-025-58818-y" target="_blank">링크</a></li>
+    <li>IOPscience 2020 — LFP/Graphite 셀 용량 회복 효과: <a href="https://iopscience.iop.org/article/10.1149/1945-7111/ab7900" target="_blank">링크</a></li>
+    <li>Google Patents US20150091530A1 — 심방전 컨디셔닝: <a href="https://patents.google.com/patent/US20150091530A1/en" target="_blank">링크</a></li>
+    <li>USPTO US10418668 — 금속 오염 억제 전해액: <a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/10418668" target="_blank">링크</a></li>
   </ol></div>
 </section>
 

@@ -202,6 +202,7 @@
     <a href="#ch14">14 ML 수명예측·이상탐지</a>
     <div class="sec-title">프로젝트 전용</div>
     <a href="#ch15">15 저전압 양품화 프로젝트</a>
+    <a href="#ch16">16 Kuwabara 지지·반박 검증</a>
   </nav>
 </nav>
 
@@ -1484,6 +1485,125 @@ Ca-An (양극 활물질-음극 접촉) → 상대적으로 낮은 위험</pre>
     <li>IOPscience 2020 — LFP/Graphite 셀 용량 회복 효과: <a href="https://iopscience.iop.org/article/10.1149/1945-7111/ab7900" target="_blank">링크</a></li>
     <li>Google Patents US20150091530A1 — 심방전 컨디셔닝: <a href="https://patents.google.com/patent/US20150091530A1/en" target="_blank">링크</a></li>
     <li>USPTO US10418668 — 금속 오염 억제 전해액: <a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/10418668" target="_blank">링크</a></li>
+  </ol></div>
+</section>
+
+<section class="chapter" id="ch16">
+  <div class="chapter-header">
+    <span class="chap-num">CH 16</span>
+    <h2>Kuwabara 2017 지지·반박 검증 — 추가 문헌 종합</h2>
+  </div>
+
+  <div class="warn-box">
+    <div class="warn-title">⚡ 핵심 요약</div>
+    <ul>
+      <li>✅ <strong>지지</strong>: Science 2018 (Li 덴드라이트 자기발열 치유) / Cell Reports Physical Science 2025 (ISC 외부 유도 회복) — "덴드라이트 회복 불가" 통념 반박하는 독립 문헌 다수 존재</li>
+      <li>⚠️ <strong>부분 반박</strong>: Lee et al. 2024 (Electrochimica Acta) — <strong>과방전 경로에서 고전류 재충전은 ISC를 오히려 악화</strong>. Toyota 프로토콜 적용 전 원인 경로 구분이 필수</li>
+      <li>🔬 <strong>메커니즘 제한</strong>: Hendricks 2020 (JES) — 과방전 기인 Cu는 비전도성 산화물(Cu₂O, Cu(OH)₂), Kuwabara의 경로 A(금속 Cu⁰)와 화학적으로 다름</li>
+    </ul>
+    <p style="color:#7a3a00;margin-top:8px;"><strong>결론: Kuwabara 2017을 직접 반박하는 후속 연구는 미발견. 그러나 적용 경로(A vs B) 혼동 위험이 가장 큰 현장 문제</strong></p>
+  </div>
+
+  <h3>1. 지지 문헌</h3>
+
+  <h4>① Li et al. 2018 (Science) — Li 덴드라이트 자기발열 치유 ★★★</h4>
+  <div class="tbl-wrap"><table><thead><tr><th>항목</th><th>내용</th></tr></thead><tbody>
+    <tr><td>논문</td><td>"Self-heating–induced healing of lithium dendrites"</td></tr>
+    <tr><td>게재지</td><td><em>Science</em>, 2018, 359(6383), 1513–1516</td></tr>
+    <tr><td>기관</td><td>Stanford Univ. / Rensselaer Polytechnic Institute (Cui 그룹)</td></tr>
+    <tr><td>핵심 발견</td><td>전류밀도 <strong>~9 mA/cm² 이상</strong> → Joule 자기발열 → Li 표면 확산 → 덴드라이트 돌기 평활화(치유)</td></tr>
+    <tr><td>Kuwabara와 관계</td><td>"덴드라이트 불가역" 통념 반박. Toyota 고전류 재충전 효과의 이론적 지지 가능. 단, Li 덴드라이트에만 실증</td></tr>
+  </tbody></table></div>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"Self-heating–induced healing of lithium dendrites", <em>Science</em>, 2018 — <a href="https://www.science.org/doi/10.1126/science.aap8787" target="_blank">링크</a></li><li>ACS Energy Letters 2019, "Prospect of Thermal Shock Induced Healing of Lithium Dendrite" — <a href="https://pubs.acs.org/doi/10.1021/acsenergylett.9b00433" target="_blank">링크</a></li></ol></div>
+
+  <h4>② Cell Reports Physical Science 2025 — ISC 외부 유도 회복 ★★★</h4>
+  <div class="tbl-wrap"><table><thead><tr><th>회복 방법</th><th>메커니즘</th><th>결과</th></tr></thead><tbody>
+    <tr><td>기계적 어뷰즈 후 반복 충방전</td><td>크랙 전파 → 전자 이동 경로 차단</td><td>쿨롱 효율 62% → 93%, 이완 전압 2.00 → 2.58V</td></tr>
+    <tr><td>외부 진동(electrical abuse)</td><td>진동이 덴드라이트 물리적 파단</td><td>보다 근본적인 ISC 원인 제거</td></tr>
+  </tbody></table></div>
+  <p>→ ISC가 일단 형성된 후에도 외부 방법으로 회복 가능하다는 2025년 최신 입증</p>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>"Strategy and mechanism for external-induced recovery of lithium-ion battery internal short circuit", <em>Cell Reports Physical Science</em>, 2025 — <a href="https://www.sciencedirect.com/science/article/pii/S2666386425004357" target="_blank">링크</a></li></ol></div>
+
+  <h4>③ Hogrefe et al. 2022 (J. Power Sources) — Li 덴드라이트 Soft short 자기치유 직접 관찰 ★★</h4>
+  <ul>
+    <li>단면 in-situ 광학현미경으로 graphite/LFP, graphite/NMC622 셀에서 Li 덴드라이트 ISC 직접 관찰</li>
+    <li><strong>Soft short의 self-healing 현상 관찰</strong> — 전압 스파이크가 마이크로쇼트와 연관, ISC 후 일부 자기치유 발생</li>
+  </ul>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>Hogrefe C. et al., "Direct observation of internal short circuits by lithium dendrites in cross-sectional Li-ion in situ full cells", <em>J. Power Sources</em>, 556, 232391, 2022 — <a href="https://www.sciencedirect.com/science/article/pii/S0378775322013684" target="_blank">링크</a></li></ol></div>
+
+  <h3>2. 반박/제한 문헌</h3>
+
+  <h4>⚠️ Lee et al. 2024 (Electrochimica Acta) — 고전류 재충전이 과방전 ISC 악화 ★★★ [가장 강력한 반박]</h4>
+  <div style="background:#fef2f2;border-left:4px solid #dc2626;padding:12px;margin:12px 0;border-radius:4px;">
+    <strong>핵심 경고:</strong> "High-rate charging immediately after overdischarge may <strong>exacerbate</strong> the internal short circuit and self-discharge owing to Cu-bridge formation."<br>
+    → 과방전 직후 고율 충전은 Cu 브릿지 형성으로 ISC와 자가방전을 <strong>악화</strong>시킬 수 있음
+  </div>
+  <div class="tbl-wrap"><table><thead><tr><th>항목</th><th>Toyota JP 2014-22217 A</th><th>Lee et al. 2024</th></tr></thead><tbody>
+    <tr><td>재충전 전류</td><td>초기의 1.5~5배 (고전류)</td><td style="color:#dc2626;">고율 충전 = ISC 악화</td></tr>
+    <tr><td>대상 경로</td><td><strong>경로 A</strong> (양극 Cu 이물 오염)</td><td><strong>경로 B</strong> (과방전 기인)</td></tr>
+    <tr><td>결과</td><td>4/4 회복 성공</td><td>과방전 셀에서 Cu-bridge 형성 촉진</td></tr>
+    <tr><td>충돌 여부</td><td colspan="2">적용 경로가 다름. 그러나 현장에서 경로 혼동 시 위험 발생 가능</td></tr>
+  </tbody></table></div>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>Lee G-E., Min Y-J., Shin H-C., "Assessment of internal short-circuit risks in overdischarged lithium batteries under various charging conditions", <em>Electrochimica Acta</em>, 512, 145449, 2024 — <a href="https://www.sciencedirect.com/science/article/abs/pii/S0013468624016852" target="_blank">링크</a></li></ol></div>
+
+  <h4>🔬 Hendricks et al. 2020 (JES) — 과방전 Cu는 비전도성 산화물 형태 ★★</h4>
+  <div class="tbl-wrap"><table><thead><tr><th>항목</th><th>경로 A — Kuwabara 2017</th><th>경로 B — Hendricks 2020</th></tr></thead><tbody>
+    <tr><td>Cu 유입</td><td>양극 금속이물 (Cu⁰ 고체)</td><td>과방전 → 음극 Cu 집전체 용해</td></tr>
+    <tr><td>Cu 화학종</td><td><strong>Cu⁰ (금속, 전도성)</strong></td><td><strong>Cu₂O + Cu(OH)₂ (비전도성, 87%)</strong></td></tr>
+    <tr><td>Hard ISC 위험</td><td>즉각적 (금속 Cu⁰ 덴드라이트)</td><td>낮음 (비전도성 형태)</td></tr>
+    <tr><td>재충전 후</td><td>—</td><td>가속 용량 감퇴 (즉각 실패 아님)</td></tr>
+  </tbody></table></div>
+  <p>→ Kuwabara 2017의 CV 충전 재용해 메커니즘은 금속 Cu⁰를 전제. 과방전 경로의 비전도성 Cu에는 다른 메커니즘 필요</p>
+  <div class="source-box"><div class="src-title">출처</div><ol><li>Hendricks C.E. et al. (Naval Surface Warfare Center), "Copper Dissolution in Overdischarged Lithium-ion Cells: XPS and XAFS Analysis", <em>J. Electrochem. Soc.</em>, 167(9) 090501, 2020 — <a href="https://iopscience.iop.org/article/10.1149/1945-7111/ab697a" target="_blank">링크</a></li></ol></div>
+
+  <h3>3. 유사 제조 공정 특허</h3>
+  <div class="tbl-wrap"><table><thead><tr><th>특허</th><th>방법</th><th>회복 여부</th><th>핵심 조건</th></tr></thead><tbody>
+    <tr style="background:#f0fdf4;"><td><strong>JP 2014-22217 A</strong> (Toyota)</td><td>재충방전 반복 (1.5~5배 전류)</td><td>✅ 회복 (4/4 성공)</td><td>SOC ≤ 20% 방전 선행, 최대 6회</td></tr>
+    <tr style="background:#f0fdf4;"><td><strong>US 12148892</strong></td><td>75~100°C 열처리 1~6시간</td><td>✅ 회복 (열처리)</td><td>완전 방전 상태에서 처리</td></tr>
+    <tr><td><a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/9157964" target="_blank">US9157964</a> (Toyota)</td><td>자가방전 검사 → 단락 저항 계산</td><td>❌ 검출·탈락만</td><td>등가회로 기반 정밀 불량 판정</td></tr>
+    <tr><td><a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/11355783" target="_blank">US11355783</a> (AESC)</td><td>저온 충전(-20~15°C) + 미세쇼트 검출</td><td>❌ 검출·탈락만</td><td>저온/고점도에서 이물 조기 발현</td></tr>
+    <tr><td><a href="https://patents.google.com/patent/US20210199725A1/en" target="_blank">US20210199725A1</a> (StoreDot)</td><td>심방전 후 저전류 재충전</td><td>⚠️ 부분 회복</td><td>팩 운용 중 결함 셀 격리 처리</td></tr>
+  </tbody></table></div>
+
+  <h3>4. Kuwabara 2017 실험적 한계 (자체 비판)</h3>
+  <div class="tbl-wrap"><table><thead><tr><th>한계</th><th>내용</th><th>현장 영향</th></tr></thead><tbody>
+    <tr><td>실험 규모</td><td>15 μm Cu 호일 조각 — 실제 이물 입자와 크기·형태 다를 수 있음</td><td>중간</td></tr>
+    <tr><td>광학셀</td><td>공초점 현미경 관찰용 특수셀 — 실제 원통형 셀과 기하학 다름</td><td>높음</td></tr>
+    <tr><td>장기 안전성</td><td>CV 충전 후 장기 사이클 데이터 없음 — 재용해 Cu 잔류·재석출 위험</td><td>높음</td></tr>
+    <tr><td>독립 재현</td><td>단일 기관(Honda R&amp;D) — 독립적 재현 결과 미발표</td><td>중간</td></tr>
+    <tr><td>CV 충전 시간</td><td>~300분 — 실제 제조 사이클 타임에 과도</td><td>높음 (공정 적용 시)</td></tr>
+    <tr><td>온도 조건</td><td>23°C에서만 검증 — 저온·고온 미검증</td><td>낮음~중간</td></tr>
+  </tbody></table></div>
+
+  <h3>5. 현장 적용 시 가장 중요한 판단 기준</h3>
+  <pre style="background:#1e293b;color:#e2e8f0;padding:16px;border-radius:8px;font-size:0.85em;">
+저전압 불량 셀 발생
+│
+├── Formation 충방전 로그에서 과방전(3.0V 미만) 이력 확인
+│   │
+│   ├── 이력 있음 → 경로 B 의심 → Toyota 고전류 프로토콜 적용 금지
+│   │                             → Lee 2024: 오히려 ISC 악화 위험
+│   │
+│   └── 이력 없음 → 경로 A 가능성 → Kuwabara/Toyota 프로토콜 적용 가능
+│
+└── EIS + 자가방전 패턴으로 추가 확인
+    ├── 완만한 OCV 강하 + 수kΩ ISC 저항 → Soft ISC → 경로 A 가능성
+    └── 급격한 OCV 강하 + 낮은 ISC 저항 → Hard ISC or 경로 B → 프로토콜 적용 주의
+  </pre>
+
+  <div class="source-box"><div class="src-title">핵심 출처 목록</div><ol>
+    <li>Science 2018, Li G. et al. — Li 덴드라이트 자기발열 치유: <a href="https://www.science.org/doi/10.1126/science.aap8787" target="_blank">링크</a></li>
+    <li>Cell Reports Physical Science 2025 — ISC 외부 유도 회복: <a href="https://www.sciencedirect.com/science/article/pii/S2666386425004357" target="_blank">링크</a></li>
+    <li>J. Power Sources 2022, Hogrefe et al. — Li 덴드라이트 ISC 직접 관찰: <a href="https://www.sciencedirect.com/science/article/pii/S0378775322013684" target="_blank">링크</a></li>
+    <li>Electrochimica Acta 2024, Lee et al. — 과방전 ISC 고전류 재충전 악화: <a href="https://www.sciencedirect.com/science/article/abs/pii/S0013468624016852" target="_blank">링크</a></li>
+    <li>J. Electrochem. Soc. 2020, Hendricks et al. — 과방전 Cu XPS/XAFS 분석: <a href="https://iopscience.iop.org/article/10.1149/1945-7111/ab697a" target="_blank">링크</a></li>
+    <li>J. Electrochem. Soc. 2018, Fear et al. — 과방전 극한 Cu 용해: <a href="https://www.semanticscholar.org/paper/Elucidating-Copper-Dissolution-Phenomenon-in-Li-Ion-Fear-Juarez-Robles/2a7fce88de0c3d32ea352d3362c5885bb576db9c" target="_blank">링크</a></li>
+    <li>Scientific Reports 2016, Guo et al. — 과방전 ISC 비가역: <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC4957210/" target="_blank">링크</a></li>
+    <li>Adv. Materials Technologies 2024, Dayani et al. — 과방전 Cu 시냅트론 CT: <a href="https://advanced.onlinelibrary.wiley.com/doi/full/10.1002/admt.202301246" target="_blank">링크</a></li>
+    <li>USPTO US12148892 — 열처리 배터리 회복: <a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/12148892" target="_blank">링크</a></li>
+    <li>USPTO US9157964, Toyota — 미세쇼트 검출 제조법: <a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/9157964" target="_blank">링크</a></li>
+    <li>USPTO US11355783, AESC — 저온 충전 미세쇼트 검출: <a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/11355783" target="_blank">링크</a></li>
+    <li>Google Patents US20210199725A1, StoreDot — 심방전 결함 셀 회복: <a href="https://patents.google.com/patent/US20210199725A1/en" target="_blank">링크</a></li>
   </ol></div>
 </section>
 

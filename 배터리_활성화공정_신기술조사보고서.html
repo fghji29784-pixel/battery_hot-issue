@@ -1374,7 +1374,7 @@ Ca-An (양극 활물질-음극 접촉) → 상대적으로 낮은 위험</pre>
 
   <h4>⚠️ 리튬 덴드라이트 — 조건부 부분 회복 가능</h4>
   <div class="tbl-wrap"><table><thead><tr><th>방법</th><th>효과</th><th>적용 조건</th><th>출처</th></tr></thead><tbody>
-    <tr><td>방전 상태 보관 (Calendar Aging)</td><td>89% 용량 회복 (35일, 25°C) / 97% 회복 (7일, 45°C)</td><td>0% SOC 방전 후 보관</td><td>Nature 2023</td></tr>
+    <tr><td>방전 상태 보관 (Calendar Aging)</td><td>89% 용량 회복 (35일, 25°C) / 97% 회복 (7일, 45°C)<br><span style="color:#dc2626;font-size:0.82em;">⚠️ Li metal battery 조건 수치 — graphite 셀 별도 검증 필요</span></td><td>0% SOC 방전 후 보관</td><td>Nature <strong>2024</strong><br><span style="font-size:0.82em;">Vol.626, pp.306–312</span></td></tr>
     <tr><td>고속 방전 (Fast Discharge)</td><td>고립 Li 재연결 → 유효 용량 회복</td><td>방전 시작 시 고전류 단시간</td><td>Cell/Trends 2022</td></tr>
     <tr><td>전기장 이완 (Electric Field Relaxation)</td><td>3C 충전 용량유지율 80%→95%</td><td>충전 직후 이완 시간 부여</td><td>Nature Comm. 2025</td></tr>
   </tbody></table></div>
@@ -1385,8 +1385,11 @@ Ca-An (양극 활물질-음극 접촉) → 상대적으로 낮은 위험</pre>
     <li><strong>비가역 임계</strong>: 임계 전류밀도 초과 시 17–25시간 후 Hard ISC로 전환 (영구 단락)</li>
     <li>임피던스 최종값: 약 <strong>10 Ω cm²</strong> 수준으로 안정화 후 Hard short 전환</li>
   </ul>
+  <div style="background:#fef3c7;border-left:3px solid #d97706;padding:8px 12px;margin:8px 0;border-radius:3px;font-size:0.88em;">
+    ⚠️ <strong>주의 (2026-05-29 검증)</strong>: 위 17–25시간 전환 시간은 <strong>Li metal battery (리튬 금속 음극) 실험 조건</strong>에서 도출된 수치. Graphite 음극 Li-ion 셀, 특히 금속이물(Cu) 기인 Soft ISC에서의 전환 시간은 별도 검증 필요.
+  </div>
   <div class="source-box"><div class="src-title">출처</div><ol>
-    <li>Nature, "Recovery of isolated lithium through discharged state calendar ageing", 2023 — <a href="https://www.nature.com/articles/s41586-023-06992-8" target="_blank">링크</a></li>
+    <li>Nature, "Recovery of isolated lithium through discharged state calendar ageing", <strong>2024 (Vol. 626, pp. 306–312)</strong> ⚠️ Li metal battery 조건 — <a href="https://www.nature.com/articles/s41586-023-06992-8" target="_blank">링크</a></li>
     <li>Nature Communications, "Manipulation of lithium dendrites via electric field relaxation", 2025 — <a href="https://www.nature.com/articles/s41467-025-58818-y" target="_blank">링크</a></li>
   </ol></div>
 
@@ -1437,7 +1440,7 @@ Ca-An (양극 활물질-음극 접촉) → 상대적으로 낮은 위험</pre>
 ├── B. 리튬 플레이팅 기인 Soft ISC
 │   └── ⚠️ 조건부 부분 회복 가능
 │       → 방전 상태 보관 (0% SOC, 1h+) → 고립 Li 재연결
-│       → 45°C 7일 보관 시 97% 용량 회복 (Nature 2023)
+│       → 45°C 7일 보관 시 97% 용량 회복 (Nature 2024, Li metal battery 조건)
 │       → 완전 회복 어렵고 Dead Li는 영구 손실
 │
 └── C. 함침 불량 기인 저전압
@@ -1479,7 +1482,7 @@ Ca-An (양극 활물질-음극 접촉) → 상대적으로 낮은 위험</pre>
     <li>J. Energy Storage 2022 — Cu ISC 메커니즘: <a href="https://www.sciencedirect.com/science/article/abs/pii/S2590116822000297" target="_blank">링크</a></li>
     <li>Scientific Reports 2021 — Cu 심방전 석출 (경로 B): <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7973563/" target="_blank">링크</a></li>
     <li>Faraday Discussions 2024 — Soft ISC 가역성: <a href="https://pubs.rsc.org/en/content/articlehtml/2024/fd/d3fd00101f" target="_blank">링크</a></li>
-    <li>Nature 2023 — 방전상태 보관 고립 Li 회복: <a href="https://www.nature.com/articles/s41586-023-06992-8" target="_blank">링크</a></li>
+    <li>Nature <strong>2024</strong> (Vol. 626, pp. 306–312) — 방전상태 보관 고립 Li 회복 ⚠️ Li metal battery 조건: <a href="https://www.nature.com/articles/s41586-023-06992-8" target="_blank">링크</a></li>
     <li>Trends in Chemistry 2022 — 고속방전 Li 재연결: <a href="https://www.sciencedirect.com/science/article/abs/pii/S2589597422001939" target="_blank">링크</a></li>
     <li>Nature Comm. 2025 — 전기장 이완 덴드라이트 관리: <a href="https://www.nature.com/articles/s41467-025-58818-y" target="_blank">링크</a></li>
     <li>IOPscience 2020 — LFP/Graphite 셀 용량 회복 효과: <a href="https://iopscience.iop.org/article/10.1149/1945-7111/ab7900" target="_blank">링크</a></li>
@@ -1510,7 +1513,7 @@ Ca-An (양극 활물질-음극 접촉) → 상대적으로 낮은 위험</pre>
   <div class="tbl-wrap"><table><thead><tr><th>항목</th><th>내용</th></tr></thead><tbody>
     <tr><td>논문</td><td>"Self-heating–induced healing of lithium dendrites"</td></tr>
     <tr><td>게재지</td><td><em>Science</em>, 2018, 359(6383), 1513–1516</td></tr>
-    <tr><td>기관</td><td>Stanford Univ. / Rensselaer Polytechnic Institute (Cui 그룹)</td></tr>
+    <tr><td>기관</td><td><strong>Rensselaer Polytechnic Institute (RPI)</strong>, PI: Nikhil Koratkar 그룹<br><span style="color:#dc2626;font-size:0.85em;">⚠️ Stanford Univ. / Y. Cui 그룹 아님 — 오기 수정 (2026-05-29)</span></td></tr>
     <tr><td>핵심 발견</td><td>전류밀도 <strong>~9 mA/cm² 이상</strong> → Joule 자기발열 → Li 표면 확산 → 덴드라이트 돌기 평활화(치유)</td></tr>
     <tr><td>Kuwabara와 관계</td><td>"덴드라이트 불가역" 통념 반박. Toyota 고전류 재충전 효과의 이론적 지지 가능. 단, Li 덴드라이트에만 실증</td></tr>
   </tbody></table></div>

@@ -107,8 +107,8 @@
 - 2019: Severson Nature Energy 수명예측 기반 논문
 - 2020: Li 플레이팅 전압이완 검출, ML 내부단락 검출, Formation 온도 최적화
 - 2021: 1사이클 DNN 수명예측, Few-Shot Learning 비정상 탐지, 초음파 SOH
-- 2022: dP/dQ Li 플레이팅 검출(Nature Comm), 구리 오염 ISC 메커니즘, 고속 Formation
-- 2023: 자가방전 고속 측정, EIS 내부단락, 함침 문헌, DVA 공정관리, BatteryML
-- 2024: X-ray CT 고속화, ICA/DVA 동적 조건, DCIR+ML 수명예측
-- 2025: EIS+ML 개선, 리튬 플레이팅 비파괴 검출, 이상탐지 벤치마크
+- 2022: dP/dQ Li 플레이팅 검출(Nature Comm), 구리 오염 ISC 메커니즘, 고속 Formation, SVM 자가방전 예측(★신규)
+- 2023: 자가방전 고속 측정, EIS 내부단락, 함침 문헌, DVA 공정관리(Weng★신규), BatteryML
+- 2024: X-ray CT 고속화, ICA/DVA 동적 조건, DCIR+ML 수명예측, 30초 이완전압 OCV 예측(Ko★신규), 에이징 단기 테스트 장기 예측(Paarmann★신규)
+- 2025: EIS+ML 개선, 리튬 플레이팅 비파괴 검출, 이상탐지 벤치마크, Formation 데이터 DL 불량검출(Yue★신규), Formation Q(V) 수명예측(Rhyu/Joule★신규)
 - 2026: SEI 광학 직접 관찰(PNAS), 함침 관련 크랙 전해액 연구

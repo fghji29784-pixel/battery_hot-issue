@@ -3,1164 +3,1034 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OCV 고속 예측 기술 조사 — Zhou et al. 2023</title>
+<title>OCV 고속 예측 기술 — Zhou et al. 2023</title>
 <style>
+/* ── 리셋 & 기반 ── */
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:#0f1117;color:#e8eaf0;overflow:hidden;}
-.slide{display:none;width:100vw;height:100vh;padding:40px 60px;position:relative;flex-direction:column;justify-content:center;}
+html,body{width:100%;height:100%;overflow:hidden;
+  font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
+  background:#0f1117;color:#e8eaf0;}
+
+/* ── 슬라이드 컨테이너 ── */
+.slide{
+  display:none;
+  position:absolute; inset:0;
+  padding:28px 52px 70px 52px; /* bottom: nav 공간 */
+  flex-direction:column;
+  overflow:hidden;
+}
 .slide.active{display:flex;}
 
-/* 슬라이드 배경 테마 */
-.slide-cover{background:linear-gradient(135deg,#0d1b2a 0%,#1a3a5c 50%,#0d1b2a 100%);}
-.slide-blue{background:linear-gradient(160deg,#0a0e1a 0%,#112240 100%);}
-.slide-dark{background:linear-gradient(160deg,#070b12 0%,#0d1b2a 100%);}
+/* ── 배경 ── */
+.bg-cover{background:linear-gradient(135deg,#0d1b2a 0%,#1a3a5c 50%,#0d1b2a 100%);}
+.bg-blue {background:linear-gradient(160deg,#080e1c 0%,#0e2040 100%);}
+.bg-dark {background:linear-gradient(160deg,#060a10 0%,#0b1828 100%);}
 
-/* 공통 타이포 */
-.slide-title{font-size:2.4rem;font-weight:700;color:#64b5f6;margin-bottom:8px;line-height:1.2;}
-.slide-subtitle{font-size:1.15rem;color:#90caf9;margin-bottom:30px;opacity:0.85;}
-.section-label{font-size:0.8rem;letter-spacing:3px;text-transform:uppercase;color:#4fc3f7;margin-bottom:12px;opacity:0.7;}
+/* ── 공통 타이포 (전 슬라이드 동일) ── */
+.label{font-size:0.68rem;letter-spacing:3px;text-transform:uppercase;
+       color:#4fc3f7;margin-bottom:8px;opacity:0.75;flex-shrink:0;}
+.title{font-size:1.75rem;font-weight:700;color:#64b5f6;
+       line-height:1.25;margin-bottom:12px;flex-shrink:0;}
+.body-text{font-size:0.82rem;line-height:1.6;color:#cfd8dc;}
 
-/* 카드 */
-.card{background:rgba(255,255,255,0.05);border:1px solid rgba(100,181,246,0.2);border-radius:12px;padding:20px 24px;}
-.card-blue{border-color:rgba(100,181,246,0.4);background:rgba(33,150,243,0.08);}
-.card-green{border-color:rgba(102,187,106,0.4);background:rgba(76,175,80,0.08);}
-.card-orange{border-color:rgba(255,183,77,0.4);background:rgba(255,152,0,0.1);}
-.card-red{border-color:rgba(239,83,80,0.4);background:rgba(244,67,54,0.08);}
+/* ── 콘텐츠 영역 (남은 높이 꽉 채움) ── */
+.content{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;}
+.content.row{flex-direction:row;gap:20px;}
 
-/* 그리드 */
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
-.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;}
+/* ── 카드 ── */
+.card{background:rgba(255,255,255,0.045);border:1px solid rgba(100,181,246,0.18);
+      border-radius:10px;padding:13px 17px;flex-shrink:0;}
+.card.b{border-color:rgba(100,181,246,0.4);background:rgba(33,150,243,0.07);}
+.card.g{border-color:rgba(102,187,106,0.4);background:rgba(76,175,80,0.07);}
+.card.o{border-color:rgba(255,183,77,0.38);background:rgba(255,152,0,0.09);}
+.card.r{border-color:rgba(239,83,80,0.38);background:rgba(244,67,54,0.07);}
 
-/* 네비게이션 */
-#nav{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;z-index:100;background:rgba(0,0,0,0.5);padding:10px 20px;border-radius:30px;backdrop-filter:blur(8px);}
-#nav button{background:rgba(100,181,246,0.15);border:1px solid rgba(100,181,246,0.4);color:#90caf9;padding:7px 18px;border-radius:20px;cursor:pointer;font-size:0.9rem;transition:all 0.2s;}
-#nav button:hover{background:rgba(100,181,246,0.3);}
-#slide-counter{color:#90caf9;font-size:0.85rem;min-width:60px;text-align:center;}
-.dot-nav{display:flex;gap:6px;align-items:center;}
-.dot{width:7px;height:7px;border-radius:50%;background:rgba(144,202,249,0.3);cursor:pointer;transition:all 0.2s;}
-.dot.active{background:#64b5f6;width:20px;border-radius:4px;}
+/* ── 카드 제목 ── */
+.ctitle{font-size:0.82rem;font-weight:700;margin-bottom:7px;}
+.ctitle.blue{color:#90caf9;}
+.ctitle.green{color:#a5d6a7;}
+.ctitle.orange{color:#ffcc80;}
+.ctitle.red{color:#ef9a9a;}
+.ctitle.cyan{color:#80deea;}
 
-/* 수식 스타일 */
-.formula{background:rgba(0,0,0,0.4);border:1px solid rgba(100,181,246,0.3);border-radius:8px;padding:14px 20px;font-family:'Courier New',monospace;font-size:1.15rem;color:#80deea;text-align:center;margin:10px 0;}
-.formula-label{font-size:0.78rem;color:#b0bec5;margin-top:4px;text-align:center;}
+/* ── 그리드 ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;min-height:0;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;min-height:0;}
 
-/* 배지 */
-.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:0.78rem;font-weight:600;}
-.badge-blue{background:rgba(33,150,243,0.25);color:#90caf9;border:1px solid rgba(33,150,243,0.4);}
-.badge-green{background:rgba(76,175,80,0.2);color:#a5d6a7;border:1px solid rgba(76,175,80,0.4);}
-.badge-orange{background:rgba(255,152,0,0.2);color:#ffcc80;border:1px solid rgba(255,152,0,0.4);}
-.badge-red{background:rgba(244,67,54,0.2);color:#ef9a9a;border:1px solid rgba(244,67,54,0.4);}
+/* ── 아이콘 행 ── */
+.irow{display:flex;align-items:flex-start;gap:9px;margin:5px 0;font-size:0.82rem;line-height:1.5;}
+.irow .ic{flex-shrink:0;font-size:1.1rem;margin-top:1px;}
 
-/* 테이블 */
-table{width:100%;border-collapse:collapse;font-size:0.92rem;}
-th{background:rgba(33,150,243,0.2);color:#90caf9;padding:9px 14px;text-align:center;border:1px solid rgba(100,181,246,0.2);}
-td{padding:8px 14px;text-align:center;border:1px solid rgba(255,255,255,0.08);}
-tr:nth-child(even) td{background:rgba(255,255,255,0.03);}
-.td-good{color:#a5d6a7;font-weight:600;}
-.td-warn{color:#ffcc80;font-weight:600;}
-.td-bad{color:#ef9a9a;font-weight:600;}
+/* ── 테이블 ── */
+table{width:100%;border-collapse:collapse;}
+th{background:rgba(33,150,243,0.18);color:#90caf9;padding:6px 10px;
+   text-align:center;border:1px solid rgba(100,181,246,0.2);font-size:0.76rem;}
+td{padding:5px 10px;text-align:center;border:1px solid rgba(255,255,255,0.07);font-size:0.76rem;}
+tr:nth-child(even) td{background:rgba(255,255,255,0.025);}
+.tg{color:#a5d6a7;font-weight:600;} .tw{color:#ffcc80;font-weight:600;} .tb{color:#ef9a9a;font-weight:600;}
 
-/* 아이콘 텍스트 */
-.icon-row{display:flex;align-items:flex-start;gap:12px;margin:8px 0;}
-.icon{font-size:1.4rem;flex-shrink:0;margin-top:2px;}
+/* ── 배지 ── */
+.badge{display:inline-block;padding:2px 9px;border-radius:10px;font-size:0.72rem;font-weight:600;}
+.badge.bg{background:rgba(76,175,80,0.18);color:#a5d6a7;border:1px solid rgba(76,175,80,0.4);}
+.badge.bb{background:rgba(33,150,243,0.2);color:#90caf9;border:1px solid rgba(33,150,243,0.4);}
+.badge.bo{background:rgba(255,152,0,0.18);color:#ffcc80;border:1px solid rgba(255,152,0,0.4);}
+.badge.br{background:rgba(244,67,54,0.18);color:#ef9a9a;border:1px solid rgba(244,67,54,0.4);}
 
-/* 타임라인 */
-.timeline{display:flex;flex-direction:column;gap:0;}
-.tl-item{display:flex;gap:20px;align-items:flex-start;padding:10px 0;}
-.tl-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;margin-top:4px;border:2px solid;}
-.tl-line{width:2px;background:rgba(100,181,246,0.2);margin-left:6px;flex-shrink:0;}
+/* ── 수식 블록 ── */
+.eq{background:rgba(0,0,0,0.45);border:1px solid rgba(100,181,246,0.28);
+    border-radius:7px;padding:10px 14px;font-family:'Courier New',monospace;
+    font-size:0.92rem;color:#80deea;text-align:center;margin:6px 0;}
 
-/* 강조 숫자 */
-.big-num{font-size:3rem;font-weight:700;color:#64b5f6;line-height:1;}
-.big-unit{font-size:1.1rem;color:#90caf9;margin-left:4px;}
+/* ── note ── */
+.note{font-size:0.72rem;color:#607d8b;font-style:italic;margin-top:4px;}
 
-/* 커버 */
-.cover-tag{display:inline-block;background:rgba(33,150,243,0.2);border:1px solid rgba(33,150,243,0.5);color:#90caf9;padding:5px 16px;border-radius:20px;font-size:0.85rem;margin-bottom:20px;}
-.cover-title{font-size:2.8rem;font-weight:800;line-height:1.2;margin-bottom:12px;}
-.cover-title span{color:#64b5f6;}
-.cover-meta{display:flex;gap:20px;flex-wrap:wrap;margin-top:24px;}
-.meta-item{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 18px;font-size:0.88rem;color:#b0bec5;}
-.meta-item strong{color:#e8eaf0;display:block;font-size:0.95rem;}
+/* ── 네비게이션 ── */
+#nav{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);
+     display:flex;align-items:center;gap:10px;z-index:100;
+     background:rgba(0,0,0,0.55);padding:8px 18px;border-radius:28px;
+     backdrop-filter:blur(8px);}
+#nav button{background:rgba(100,181,246,0.14);border:1px solid rgba(100,181,246,0.38);
+            color:#90caf9;padding:5px 16px;border-radius:18px;cursor:pointer;
+            font-size:0.82rem;transition:all 0.18s;}
+#nav button:hover{background:rgba(100,181,246,0.28);}
+#sc{color:#90caf9;font-size:0.78rem;min-width:52px;text-align:center;}
+.dots{display:flex;gap:5px;align-items:center;}
+.dot{width:6px;height:6px;border-radius:50%;background:rgba(144,202,249,0.28);
+     cursor:pointer;transition:all 0.18s;}
+.dot.on{background:#64b5f6;width:18px;border-radius:3px;}
 
-/* SVG 차트 컨테이너 */
-.chart-wrap{width:100%;overflow:hidden;}
+/* ── 진행 바 ── */
+#prog{position:fixed;top:0;left:0;height:3px;
+      background:linear-gradient(90deg,#2196f3,#00bcd4);
+      transition:width 0.25s;z-index:200;}
+
+/* ── SVG 공통 ── */
+svg{display:block;overflow:visible;}
 svg text{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;}
-
-/* 진행 바 */
-#progress{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,#2196f3,#00bcd4);transition:width 0.3s;z-index:200;}
-
-/* 플로우차트 */
-.flow-box{background:rgba(33,150,243,0.12);border:1.5px solid rgba(100,181,246,0.5);border-radius:10px;padding:10px 16px;text-align:center;font-size:0.88rem;color:#e8eaf0;}
-.flow-diamond{background:rgba(255,152,0,0.12);border:1.5px solid rgba(255,183,77,0.5);border-radius:6px;padding:10px 16px;text-align:center;font-size:0.85rem;color:#ffcc80;transform:perspective(200px);}
-.flow-arrow{text-align:center;color:#64b5f6;font-size:1.2rem;line-height:1;}
-.flow-yes{color:#a5d6a7;font-size:0.78rem;}
-.flow-no{color:#ef9a9a;font-size:0.78rem;}
-
-/* 주석 */
-.note{font-size:0.8rem;color:#78909c;font-style:italic;margin-top:6px;}
-.highlight{color:#80deea;font-weight:600;}
-
-/* 슬라이드별 크기 조정 */
-.text-sm{font-size:0.88rem;}
-.text-xs{font-size:0.82rem;}
 </style>
 </head>
 <body>
+<div id="prog"></div>
 
-<div id="progress"></div>
-
-<!-- ===== SLIDE 1: COVER ===== -->
-<div class="slide slide-cover active" id="s1">
-  <div class="cover-tag">📄 논문 기술 조사 발표 · 2026</div>
-  <div class="cover-title">배터리 <span>OCV</span>를<br>6분 안에 예측하는 방법</div>
-  <p style="color:#b0bec5;font-size:1.1rem;max-width:700px;line-height:1.7;">
-    리튬이온 배터리의 개방회로전압(OCV)을 단 몇 분 만에 정확히 예측하는 신기술 —<br>
-    활성화공정의 자가방전 선별 시간 단축에 직접 적용 가능
+<!-- ══════════════════════════════════
+     SLIDE 1 · 커버
+══════════════════════════════════ -->
+<div class="slide bg-cover active" id="s1">
+  <div class="label">📄 논문 기술 조사 발표 · 2026</div>
+  <div class="title" style="font-size:2rem;">배터리 <span style="color:#4fc3f7;">OCV</span>를 6분 안에 예측하는 방법</div>
+  <p class="body-text" style="max-width:680px;margin-bottom:16px;">
+    리튬이온 배터리의 개방회로전압(OCV)을 단 몇 분 만에 정확히 예측하는 신기술.<br>
+    활성화공정 자가방전 선별 시간 단축에 직접 적용 가능.
   </p>
-  <div class="cover-meta">
-    <div class="meta-item"><strong>논문 출처</strong>Zhou et al., J. Power Sources 553 (2023) 232295</div>
-    <div class="meta-item"><strong>연구 기관</strong>National Taiwan University</div>
-    <div class="meta-item"><strong>발표자</strong>활성화공정 엔지니어링팀</div>
-    <div class="meta-item"><strong>발표일</strong>2026년 6월</div>
+
+  <div class="g2" style="max-width:800px;gap:12px;margin-bottom:16px;">
+    <div class="card b"><div class="ctitle blue">논문 출처</div><div class="body-text">Zhou et al., <em>J. Power Sources</em> 553 (2023) 232295<br>DOI: 10.1016/j.jpowsour.2022.232295</div></div>
+    <div class="card b"><div class="ctitle blue">연구 기관 / 발표</div><div class="body-text">National Taiwan University<br>활성화공정 엔지니어링팀 · 2026년 6월</div></div>
   </div>
-  <div style="position:absolute;right:60px;top:50%;transform:translateY(-50%);">
-    <svg width="280" height="280" viewBox="0 0 280 280">
-      <!-- 배터리 아이콘 추상화 -->
-      <defs>
-        <radialGradient id="glow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="#2196f3" stop-opacity="0.3"/>
-          <stop offset="100%" stop-color="#2196f3" stop-opacity="0"/>
-        </radialGradient>
-      </defs>
-      <circle cx="140" cy="140" r="130" fill="url(#glow)"/>
-      <!-- OCV 이완 곡선 시각화 -->
-      <path d="M 40 60 Q 80 62 100 80 T 150 130 T 200 165 T 240 178"
-            stroke="#ef5350" stroke-width="2.5" fill="none" stroke-dasharray="none" opacity="0.7"/>
-      <path d="M 40 60 C 90 58 130 70 200 178"
-            stroke="#64b5f6" stroke-width="3" fill="none"/>
+
+  <div class="content row" style="align-items:center;gap:28px;flex:0 0 auto;">
+    <!-- 핵심 수치 3개 -->
+    <div style="display:flex;gap:14px;">
+      <div class="card g" style="text-align:center;min-width:100px;">
+        <div style="font-size:2.4rem;font-weight:800;color:#64b5f6;line-height:1;">6</div>
+        <div style="font-size:0.78rem;color:#a5d6a7;margin-top:2px;">분 이내</div>
+        <div style="font-size:0.7rem;color:#607d8b;">25°C 기준</div>
+      </div>
+      <div class="card" style="text-align:center;min-width:100px;">
+        <div style="font-size:2.4rem;font-weight:800;color:#80deea;line-height:1;">&lt;3</div>
+        <div style="font-size:0.78rem;color:#80deea;margin-top:2px;">mV 오차</div>
+        <div style="font-size:0.7rem;color:#607d8b;">MAE 기준</div>
+      </div>
+      <div class="card o" style="text-align:center;min-width:100px;">
+        <div style="font-size:2.4rem;font-weight:800;color:#ffcc80;line-height:1;">0</div>
+        <div style="font-size:0.78rem;color:#ffcc80;margin-top:2px;">추가 장비</div>
+        <div style="font-size:0.7rem;color:#607d8b;">소프트웨어만</div>
+      </div>
+    </div>
+    <!-- OCV 이완 미니 SVG -->
+    <svg width="260" height="130" viewBox="0 0 260 130">
+      <defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#2196f3" stop-opacity="0.15"/><stop offset="100%" stop-color="#2196f3" stop-opacity="0"/></linearGradient></defs>
+      <rect x="0" y="0" width="260" height="130" rx="8" fill="rgba(0,0,0,0.3)" stroke="rgba(100,181,246,0.2)" stroke-width="1"/>
+      <!-- 축 -->
+      <line x1="30" y1="105" x2="240" y2="105" stroke="#546e7a" stroke-width="1"/>
+      <line x1="30" y1="15"  x2="30"  y2="105" stroke="#546e7a" stroke-width="1"/>
       <!-- OCV 기준선 -->
-      <line x1="40" y1="178" x2="240" y2="178" stroke="#a5d6a7" stroke-width="1.5" stroke-dasharray="6,4"/>
-      <text x="244" y="182" fill="#a5d6a7" font-size="12">OCV</text>
-      <!-- tc 표시 -->
-      <line x1="160" y1="60" x2="160" y2="200" stroke="#ffcc80" stroke-width="1.5" stroke-dasharray="4,3"/>
-      <text x="155" y="215" fill="#ffcc80" font-size="11">tᶜ</text>
+      <line x1="30" y1="85" x2="240" y2="85" stroke="#a5d6a7" stroke-width="1" stroke-dasharray="5,3"/>
+      <text x="243" y="88" fill="#a5d6a7" font-size="8">OCV</text>
+      <!-- 실제 이완 -->
+      <path d="M30,20 C60,22 85,38 108,55 S145,72 175,80 S210,84 235,85" stroke="#ef5350" stroke-width="1.8" fill="none"/>
+      <!-- 가상 RC (tc이후) -->
+      <path d="M140,52 C165,63 195,76 225,83 S240,85 235,85" stroke="#64b5f6" stroke-width="2" fill="none" stroke-dasharray="6,3"/>
+      <!-- tc 선 -->
+      <line x1="140" y1="12" x2="140" y2="108" stroke="#ffcc80" stroke-width="1.2" stroke-dasharray="4,3"/>
+      <text x="137" y="10" fill="#ffcc80" font-size="8">tc</text>
       <!-- 라벨 -->
-      <text x="42" y="50" fill="#ef9a9a" font-size="11">실제 이완</text>
-      <text x="42" y="70" fill="#64b5f6" font-size="11">가상 RC 곡선</text>
-      <!-- 화살표 -->
-      <text x="100" y="240" fill="#80deea" font-size="13" font-weight="600">완전 이완 불필요!</text>
-      <text x="108" y="256" fill="#b0bec5" font-size="11">tc + 90초만으로 OCV 계산</text>
+      <text x="35" y="30" fill="#ef9a9a" font-size="8">실제 이완</text>
+      <text x="35" y="40" fill="#90caf9" font-size="8">가상 RC 곡선</text>
+      <text x="35" y="115" fill="#78909c" font-size="8">시간 →</text>
+      <text x="18" y="60"  fill="#78909c" font-size="8" transform="rotate(-90,18,60)">전압</text>
     </svg>
   </div>
 </div>
 
-<!-- ===== SLIDE 2: 문제 배경 ===== -->
-<div class="slide slide-blue" id="s2">
-  <div class="section-label">배경 · Problem Statement</div>
-  <div class="slide-title">왜 OCV 측정이 오래 걸리는가?</div>
-  <div class="grid2" style="gap:28px;align-items:start;">
-    <div>
-      <p style="color:#b0bec5;margin-bottom:18px;font-size:0.95rem;line-height:1.7;">
+<!-- ══════════════════════════════════
+     SLIDE 2 · 문제 배경
+══════════════════════════════════ -->
+<div class="slide bg-blue" id="s2">
+  <div class="label">배경 · Problem Statement</div>
+  <div class="title">왜 OCV 측정이 오래 걸리는가?</div>
+  <div class="content g2">
+    <!-- 왼쪽 -->
+    <div style="display:flex;flex-direction:column;gap:10px;min-height:0;">
+      <p class="body-text" style="flex-shrink:0;">
         배터리에 전류를 흘리면 내부에 <strong style="color:#80deea;">분극(Polarization)</strong>이 발생합니다.
-        전류를 끊어도 이 분극이 사라지는 데 시간이 걸리며,
-        그 시간 동안 전압이 서서히 변합니다. 이것이 <strong style="color:#64b5f6;">이완(Relaxation)</strong> 과정입니다.
+        전류를 끊어도 이 분극이 사라지는 데 시간이 걸리며, 그 시간 동안 전압이 서서히 변합니다.
+        이것이 <strong style="color:#64b5f6;">이완(Relaxation)</strong> 과정입니다.
       </p>
-      <div class="card card-red" style="margin-bottom:14px;">
-        <div style="font-weight:600;color:#ef9a9a;margin-bottom:8px;">😫 기존 방법의 문제</div>
-        <div class="icon-row text-sm"><span class="icon">⏱️</span><div><strong>증분 OCV 테스트:</strong> 각 SOC 포인트마다 3시간 대기 × 36 포인트 = <span style="color:#ef9a9a;">약 115시간</span></div></div>
-        <div class="icon-row text-sm"><span class="icon">📉</span><div><strong>저전류 측정법:</strong> 미약하지만 전류가 흘러 엄밀한 OCV가 아님</div></div>
-        <div class="icon-row text-sm"><span class="icon">🧮</span><div><strong>곡선 피팅법:</strong> 미지수 많고 수식 복잡, 긴 데이터 필요</div></div>
-        <div class="icon-row text-sm"><span class="icon">⚡</span><div><strong>능동 전류 인가법:</strong> SOC 자체를 변화시켜 오차 발생</div></div>
+      <div class="card r" style="flex-shrink:0;">
+        <div class="ctitle red">😫 기존 방법의 문제</div>
+        <div class="irow"><span class="ic">⏱️</span><div><strong>증분 OCV 테스트:</strong> 각 SOC 포인트마다 3시간 대기 × 36 포인트 = <span style="color:#ef9a9a;">약 115시간</span></div></div>
+        <div class="irow"><span class="ic">📉</span><div><strong>저전류 측정법:</strong> 미약하지만 전류가 흘러 엄밀한 OCV가 아님</div></div>
+        <div class="irow"><span class="ic">🧮</span><div><strong>곡선 피팅법:</strong> 미지수 많고 수식 복잡, 긴 데이터 필요</div></div>
+        <div class="irow"><span class="ic">⚡</span><div><strong>능동 전류 인가법:</strong> SOC 자체를 변화시켜 오차 발생</div></div>
       </div>
-      <div class="card card-green">
-        <div style="font-weight:600;color:#a5d6a7;margin-bottom:8px;">✅ 이 논문의 해결책</div>
-        <p class="text-sm" style="color:#c8e6c9;line-height:1.6;">
+      <div class="card g" style="flex-shrink:0;">
+        <div class="ctitle green">✅ 이 논문의 해결책</div>
+        <p class="body-text">
           이완 <strong>초기 몇 분</strong>의 전압 데이터만으로,<br>
           1차/2차 미분비에서 시정수 τ를 실시간 계산 →<br>
-          <span class="highlight">완전 이완 없이도 OCV 예측</span>
+          <strong style="color:#80deea;">완전 이완 없이도 OCV 예측</strong>
         </p>
       </div>
     </div>
-    <div>
-      <!-- 이완 곡선 애니메이션 SVG -->
-      <svg width="100%" viewBox="0 0 380 300" style="background:rgba(0,0,0,0.3);border-radius:12px;border:1px solid rgba(100,181,246,0.2);">
-        <text x="20" y="24" fill="#90caf9" font-size="13" font-weight="600">배터리 이완 전압 개요</text>
+    <!-- 오른쪽: 이완 곡선 SVG -->
+    <div style="display:flex;flex-direction:column;gap:10px;min-height:0;">
+      <svg width="100%" viewBox="0 0 340 230" style="background:rgba(0,0,0,0.3);border-radius:10px;border:1px solid rgba(100,181,246,0.18);flex:1;">
+        <text x="170" y="18" fill="#90caf9" font-size="11" font-weight="600" text-anchor="middle">배터리 이완 전압 개요</text>
         <!-- 축 -->
-        <line x1="50" y1="260" x2="350" y2="260" stroke="#546e7a" stroke-width="1.5"/>
-        <line x1="50" y1="260" x2="50" y2="40" stroke="#546e7a" stroke-width="1.5"/>
-        <text x="190" y="285" fill="#78909c" font-size="11" text-anchor="middle">시간 (분)</text>
-        <text x="18" y="155" fill="#78909c" font-size="11" transform="rotate(-90,18,155)">전압 (V)</text>
+        <line x1="45" y1="200" x2="320" y2="200" stroke="#455a64" stroke-width="1.2"/>
+        <line x1="45" y1="200" x2="45"  y2="30"  stroke="#455a64" stroke-width="1.2"/>
+        <text x="182" y="218" fill="#607d8b" font-size="9" text-anchor="middle">시간 (분)</text>
+        <text x="16"  y="115" fill="#607d8b" font-size="9" transform="rotate(-90,16,115)">전압 (V)</text>
         <!-- OCV 기준선 -->
-        <line x1="50" y1="215" x2="350" y2="215" stroke="#a5d6a7" stroke-width="1.5" stroke-dasharray="6,4"/>
-        <text x="355" y="219" fill="#a5d6a7" font-size="11">OCV</text>
-        <!-- 실제 이완 (복잡한 다중 시정수) -->
-        <path d="M 50,70 C 80,72 100,90 120,120 S 160,165 200,190 S 250,210 320,213"
-              stroke="#ef5350" stroke-width="2.5" fill="none" opacity="0.8"/>
-        <!-- 가상 RC 곡선 (tc 이후) -->
-        <path d="M 185,148 C 210,162 240,185 270,200 S 310,212 340,214"
-              stroke="#64b5f6" stroke-width="2.5" fill="none" stroke-dasharray="8,3"/>
+        <line x1="45" y1="168" x2="320" y2="168" stroke="#a5d6a7" stroke-width="1.2" stroke-dasharray="5,3"/>
+        <text x="323" y="172" fill="#a5d6a7" font-size="9">OCV</text>
+        <!-- 실제 이완 (복잡한 형태) -->
+        <path d="M45,55 C70,57 92,72 115,98 S152,135 188,153 S240,163 305,167"
+              stroke="#ef5350" stroke-width="2" fill="none"/>
+        <!-- 가상 RC 곡선 (tc이후) -->
+        <path d="M178,115 C205,132 238,152 275,163 S310,167 305,167"
+              stroke="#64b5f6" stroke-width="2.2" fill="none" stroke-dasharray="7,3"/>
         <!-- tc 수직선 -->
-        <line x1="185" y1="40" x2="185" y2="270" stroke="#ffcc80" stroke-width="1.5" stroke-dasharray="5,3"/>
-        <text x="180" y="35" fill="#ffcc80" font-size="11">tc</text>
-        <!-- 시간 레이블 -->
-        <text x="50" y="273" fill="#78909c" font-size="10">0</text>
-        <text x="115" y="273" fill="#78909c" font-size="10">1분</text>
-        <text x="175" y="273" fill="#ffcc80" font-size="10">3~6분</text>
-        <text x="300" y="273" fill="#78909c" font-size="10" opacity="0.5">수시간</text>
+        <line x1="178" y1="28" x2="178" y2="208" stroke="#ffcc80" stroke-width="1.3" stroke-dasharray="4,3"/>
+        <text x="174" y="26" fill="#ffcc80" font-size="9">tc</text>
+        <!-- 시간 눈금 -->
+        <text x="45"  y="210" fill="#607d8b" font-size="8" text-anchor="middle">0</text>
+        <text x="115" y="210" fill="#607d8b" font-size="8" text-anchor="middle">1분</text>
+        <text x="178" y="210" fill="#ffcc80" font-size="8" text-anchor="middle">3~6분</text>
+        <text x="290" y="210" fill="#607d8b" font-size="8" text-anchor="middle" opacity="0.6">수시간</text>
         <!-- 범례 -->
-        <line x1="60" y1="248" x2="85" y2="248" stroke="#ef5350" stroke-width="2"/>
-        <text x="90" y="252" fill="#ef9a9a" font-size="10">실제 이완 곡선</text>
-        <line x1="185" y1="248" x2="210" y2="248" stroke="#64b5f6" stroke-width="2" stroke-dasharray="5,2"/>
-        <text x="215" y="252" fill="#90caf9" font-size="10">가상 RC 곡선 (예측)</text>
-        <!-- 화살표+설명 -->
-        <text x="60" y="200" fill="#ffcc80" font-size="10">↙ 여기서 계산</text>
-        <text x="60" y="212" fill="#ffcc80" font-size="10">  OCV 바로 예측!</text>
+        <line x1="52" y1="188" x2="70" y2="188" stroke="#ef5350" stroke-width="1.8"/>
+        <text x="74" y="191" fill="#ef9a9a" font-size="8">실제 이완 곡선</text>
+        <line x1="160" y1="188" x2="178" y2="188" stroke="#64b5f6" stroke-width="1.8" stroke-dasharray="5,2"/>
+        <text x="182" y="191" fill="#90caf9" font-size="8">가상 RC 곡선 (예측)</text>
+        <!-- 설명 텍스트 -->
+        <text x="185" y="108" fill="#ffcc80" font-size="8">← 이 시점에서 OCV 계산!</text>
       </svg>
-      <p class="note" style="text-align:center;margin-top:8px;">↑ tc 시점의 미분값만으로 OCV를 계산 — 이완 완료를 기다릴 필요 없음</p>
+      <p class="note" style="text-align:center;">↑ tc 시점의 미분값만으로 OCV를 계산 — 이완 완료를 기다릴 필요 없음</p>
     </div>
   </div>
 </div>
 
-<!-- ===== SLIDE 3: 실험 설계 ===== -->
-<div class="slide slide-dark" id="s3">
-  <div class="section-label">실험 설계 · Experimental Setup</div>
-  <div class="slide-title">어떻게 실험했는가?</div>
-  <div class="grid3" style="align-items:start;gap:18px;">
-    <!-- 셀 정보 -->
-    <div>
-      <div class="card card-blue" style="margin-bottom:14px;">
-        <div style="font-weight:600;color:#90caf9;margin-bottom:10px;">🔋 실험 셀</div>
-        <div style="font-size:0.88rem;line-height:1.8;color:#cfd8dc;">
+<!-- ══════════════════════════════════
+     SLIDE 3 · 실험 설계
+══════════════════════════════════ -->
+<div class="slide bg-dark" id="s3">
+  <div class="label">실험 설계 · Experimental Setup</div>
+  <div class="title">어떻게 실험했는가?</div>
+  <div class="content g3">
+    <!-- col 1: 셀 & 장비 -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="card b">
+        <div class="ctitle blue">🔋 실험 셀</div>
+        <div class="body-text" style="line-height:1.75;">
           <div>모델: <strong style="color:#e8eaf0;">LG 18650 F1L</strong></div>
-          <div>화학계: <strong style="color:#e8eaf0;">NMC (리튬 니켈 망간 코발트)</strong></div>
+          <div>화학계: <strong style="color:#e8eaf0;">NMC (니켈·망간·코발트)</strong></div>
           <div>형태: <strong style="color:#e8eaf0;">원통형 18650</strong></div>
           <div>공칭 용량: <strong style="color:#e8eaf0;">~3,350 mAh</strong></div>
-          <div>전압 범위: <strong style="color:#e8eaf0;">2.5V ~ 4.2V</strong></div>
+          <div>전압 범위: <strong style="color:#e8eaf0;">2.5 V ~ 4.2 V</strong></div>
         </div>
       </div>
-      <div class="card" style="font-size:0.85rem;color:#cfd8dc;line-height:1.7;">
-        <div style="color:#80deea;font-weight:600;margin-bottom:6px;">🧪 측정 장비</div>
-        Bio-Logic BCS-815<br>
-        • 전압 정확도: <strong style="color:#a5d6a7;">±0.3 mV</strong><br>
-        • 전류 정확도: <strong style="color:#a5d6a7;">±0.01%</strong><br>
-        • 데이터: <strong style="color:#a5d6a7;">1초 간격 기록</strong>
-      </div>
-    </div>
-    <!-- 노화 실험 -->
-    <div>
-      <div class="card card-orange" style="margin-bottom:14px;">
-        <div style="font-weight:600;color:#ffcc80;margin-bottom:10px;">📊 셀 3종 (SOH 다양화)</div>
-        <div style="font-size:0.85rem;line-height:1.9;">
-          <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.08);">
-            <span>Cell #1</span><span style="color:#a5d6a7;font-weight:600;">0 사이클 → SOH 99.6% (신품)</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.08);">
-            <span>Cell #2</span><span style="color:#ffcc80;font-weight:600;">100 사이클 → SOH 89.5%</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding:4px 0;">
-            <span>Cell #3</span><span style="color:#ef9a9a;font-weight:600;">160 사이클 → SOH 83.0%</span>
-          </div>
-        </div>
-        <p class="note" style="margin-top:8px;">노화 조건: 1C CC 충방전, 25°C, cut-off 4.2V/2.5V</p>
-      </div>
-      <!-- 온도 조건 -->
-      <div class="card" style="font-size:0.88rem;">
-        <div style="color:#80deea;font-weight:600;margin-bottom:8px;">🌡️ 실험 온도 3종</div>
-        <div style="display:flex;gap:10px;justify-content:space-around;text-align:center;">
-          <div><div style="font-size:1.8rem;color:#90caf9;font-weight:700;">5°C</div><div style="color:#ef9a9a;font-size:0.8rem;">저온 ⚠️</div></div>
-          <div><div style="font-size:1.8rem;color:#a5d6a7;font-weight:700;">25°C</div><div style="color:#a5d6a7;font-size:0.8rem;">실온 ✅</div></div>
-          <div><div style="font-size:1.8rem;color:#ffcc80;font-weight:700;">45°C</div><div style="color:#ffcc80;font-size:0.8rem;">고온 ✅</div></div>
+      <div class="card">
+        <div class="ctitle cyan">🧪 측정 장비</div>
+        <div class="body-text" style="line-height:1.75;">
+          Bio-Logic BCS-815<br>
+          • 전압 정확도: <strong style="color:#a5d6a7;">±0.3 mV</strong><br>
+          • 전류 정확도: <strong style="color:#a5d6a7;">±0.01%</strong><br>
+          • 샘플링: <strong style="color:#a5d6a7;">1초 간격</strong>
         </div>
       </div>
     </div>
-    <!-- OCV 측정 절차 -->
-    <div>
-      <div class="card" style="margin-bottom:14px;">
-        <div style="font-weight:600;color:#80deea;margin-bottom:10px;">📋 OCV 기준값 측정 절차</div>
-        <div style="font-size:0.82rem;color:#cfd8dc;line-height:1.7;">
-          <div style="font-weight:600;color:#90caf9;margin:6px 0 4px;">① CTR 과정 (충전→이완)</div>
-          0.25C로 5% SOC 충전 → <strong>3시간 대기</strong> → 전압 기록<br>
-          SOC 5%→10%→…→95% 반복
-          <div style="font-weight:600;color:#90caf9;margin:8px 0 4px;">② DTR 과정 (방전→이완)</div>
-          0.25C로 5% SOC 방전 → <strong>3시간 대기</strong> → 전압 기록<br>
-          SOC 95%→90%→…→5% 반복
+    <!-- col 2: 셀 3종 & 온도 -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="card o">
+        <div class="ctitle orange">📊 셀 3종 (SOH 다양화)</div>
+        <table style="margin-top:4px;">
+          <thead><tr><th>셀</th><th>사이클</th><th>SOH</th></tr></thead>
+          <tbody>
+            <tr><td>Cell #1</td><td>0회 (신품)</td><td class="tg">99.6%</td></tr>
+            <tr><td>Cell #2</td><td>100회</td><td class="tw">89.5%</td></tr>
+            <tr><td>Cell #3</td><td>160회</td><td class="tb">83.0%</td></tr>
+          </tbody>
+        </table>
+        <p class="note" style="margin-top:5px;">노화: 1C CC 충방전, 25°C, 4.2V/2.5V cut-off</p>
+      </div>
+      <div class="card">
+        <div class="ctitle cyan">🌡️ 실험 온도 3종</div>
+        <div style="display:flex;justify-content:space-around;text-align:center;margin-top:6px;">
+          <div><div style="font-size:1.5rem;font-weight:700;color:#90caf9;">5°C</div><div style="font-size:0.72rem;color:#ef9a9a;">저온 ⚠️</div></div>
+          <div><div style="font-size:1.5rem;font-weight:700;color:#a5d6a7;">25°C</div><div style="font-size:0.72rem;color:#a5d6a7;">실온 ✅</div></div>
+          <div><div style="font-size:1.5rem;font-weight:700;color:#ffcc80;">45°C</div><div style="font-size:0.72rem;color:#ffcc80;">고온 ✅</div></div>
         </div>
       </div>
-      <div class="card card-red" style="font-size:0.85rem;">
-        <div style="color:#ef9a9a;font-weight:600;margin-bottom:6px;">⏰ 기존 방법 소요 시간</div>
-        18 SOC 포인트 × 양방향 = <strong style="color:#ef9a9a;">36 포인트</strong><br>
-        각 포인트: 방전 ~12분 + 3시간 대기<br>
-        <strong style="color:#ef9a9a;font-size:1.1rem;">총 ≈ 115시간!</strong>
-        <div class="note">→ 이것을 6분으로 단축하는 것이 이 논문의 핵심</div>
+    </div>
+    <!-- col 3: 측정 절차 -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="card">
+        <div class="ctitle cyan">📋 OCV 기준값 측정 절차</div>
+        <div class="body-text" style="line-height:1.7;">
+          <div style="color:#90caf9;font-weight:600;margin:4px 0 2px;">① CTR 과정 (충전→이완)</div>
+          0.25C로 5% SOC 충전 → <strong>3시간 대기</strong> → OCV 기록<br>
+          SOC 5% → 10% → … → 95% 반복
+          <div style="color:#90caf9;font-weight:600;margin:7px 0 2px;">② DTR 과정 (방전→이완)</div>
+          0.25C로 5% SOC 방전 → <strong>3시간 대기</strong> → OCV 기록<br>
+          SOC 95% → 90% → … → 5% 반복
+        </div>
+      </div>
+      <div class="card r">
+        <div class="ctitle red">⏰ 기존 방법 소요 시간</div>
+        <div class="body-text">
+          36 포인트 × (방전 ~12분 + 3시간 대기)<br>
+          <strong style="color:#ef9a9a;font-size:1.0rem;">총 ≈ 115시간!</strong>
+        </div>
+        <p class="note">→ 이것을 6분으로 단축하는 것이 핵심</p>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ===== SLIDE 4: RC 모델 이론 ===== -->
-<div class="slide slide-blue" id="s4">
-  <div class="section-label">핵심 이론 · Core Theory</div>
-  <div class="slide-title">1차 RC 회로 모델과 시정수 τ</div>
-  <div class="grid2" style="gap:28px;align-items:center;">
-    <div>
+<!-- ══════════════════════════════════
+     SLIDE 4 · RC 모델 이론
+══════════════════════════════════ -->
+<div class="slide bg-blue" id="s4">
+  <div class="label">핵심 이론 · Core Theory</div>
+  <div class="title">1차 RC 회로 모델과 시정수 τ</div>
+  <div class="content g2">
+    <!-- 왼쪽: RC 회로 + 수식 -->
+    <div style="display:flex;flex-direction:column;gap:10px;min-height:0;">
       <!-- RC 회로 다이어그램 -->
-      <svg width="100%" viewBox="0 0 380 200" style="background:rgba(0,0,0,0.3);border-radius:12px;border:1px solid rgba(100,181,246,0.2);margin-bottom:16px;">
-        <text x="190" y="22" fill="#90caf9" font-size="13" font-weight="600" text-anchor="middle">배터리 1차 RC 등가회로</text>
+      <svg width="100%" viewBox="0 0 340 165" style="background:rgba(0,0,0,0.3);border-radius:10px;border:1px solid rgba(100,181,246,0.18);">
+        <text x="170" y="16" fill="#90caf9" font-size="11" font-weight="600" text-anchor="middle">배터리 1차 RC 등가회로</text>
         <!-- 배선 -->
-        <line x1="40" y1="80" x2="80" y2="80" stroke="#64b5f6" stroke-width="2"/>
-        <line x1="160" y1="80" x2="200" y2="80" stroke="#64b5f6" stroke-width="2"/>
-        <line x1="200" y1="80" x2="200" y2="60" stroke="#64b5f6" stroke-width="2"/>
-        <line x1="200" y1="80" x2="200" y2="100" stroke="#64b5f6" stroke-width="2"/>
-        <line x1="200" y1="60" x2="280" y2="60" stroke="#64b5f6" stroke-width="2"/>
-        <line x1="200" y1="100" x2="280" y2="100" stroke="#64b5f6" stroke-width="2"/>
-        <line x1="280" y1="60" x2="280" y2="80" stroke="#64b5f6" stroke-width="2"/>
-        <line x1="280" y1="100" x2="280" y2="80" stroke="#64b5f6" stroke-width="2"/>
-        <line x1="280" y1="80" x2="340" y2="80" stroke="#64b5f6" stroke-width="2"/>
-        <line x1="40" y1="130" x2="340" y2="130" stroke="#64b5f6" stroke-width="2"/>
-        <line x1="40" y1="80" x2="40" y2="130" stroke="#64b5f6" stroke-width="2"/>
-        <line x1="340" y1="80" x2="340" y2="130" stroke="#64b5f6" stroke-width="2"/>
-
+        <line x1="30"  y1="72" x2="72"  y2="72" stroke="#64b5f6" stroke-width="1.8"/>
+        <line x1="148" y1="72" x2="185" y2="72" stroke="#64b5f6" stroke-width="1.8"/>
+        <line x1="185" y1="72" x2="185" y2="50" stroke="#64b5f6" stroke-width="1.8"/>
+        <line x1="185" y1="72" x2="185" y2="94" stroke="#64b5f6" stroke-width="1.8"/>
+        <line x1="185" y1="50" x2="265" y2="50" stroke="#64b5f6" stroke-width="1.8"/>
+        <line x1="185" y1="94" x2="265" y2="94" stroke="#64b5f6" stroke-width="1.8"/>
+        <line x1="265" y1="50" x2="265" y2="72" stroke="#64b5f6" stroke-width="1.8"/>
+        <line x1="265" y1="94" x2="265" y2="72" stroke="#64b5f6" stroke-width="1.8"/>
+        <line x1="265" y1="72" x2="305" y2="72" stroke="#64b5f6" stroke-width="1.8"/>
+        <line x1="30"  y1="118" x2="305" y2="118" stroke="#64b5f6" stroke-width="1.8"/>
+        <line x1="30"  y1="72"  x2="30"  y2="118" stroke="#64b5f6" stroke-width="1.8"/>
+        <line x1="305" y1="72"  x2="305" y2="118" stroke="#64b5f6" stroke-width="1.8"/>
         <!-- OCV 전압원 -->
-        <circle cx="60" cy="105" r="16" fill="none" stroke="#a5d6a7" stroke-width="2"/>
-        <text x="60" y="109" fill="#a5d6a7" font-size="11" text-anchor="middle">OCV</text>
-        <line x1="40" y1="80" x2="44" y2="80" stroke="#a5d6a7" stroke-width="1.5"/>
-        <line x1="40" y1="130" x2="44" y2="130" stroke="#a5d6a7" stroke-width="1.5"/>
-
+        <circle cx="51" cy="95" r="14" fill="none" stroke="#a5d6a7" stroke-width="1.8"/>
+        <text x="51" y="99" fill="#a5d6a7" font-size="9" text-anchor="middle">OCV</text>
+        <text x="51" y="140" fill="#a5d6a7" font-size="8" text-anchor="middle">전압원</text>
         <!-- R0 저항 -->
-        <rect x="82" y="72" width="56" height="16" rx="4" fill="rgba(255,152,0,0.2)" stroke="#ffcc80" stroke-width="1.5"/>
-        <text x="110" y="84" fill="#ffcc80" font-size="11" text-anchor="middle">R₀</text>
-        <text x="110" y="160" fill="#ffb74d" font-size="10" text-anchor="middle">직렬 저항</text>
-        <text x="110" y="172" fill="#78909c" font-size="9" text-anchor="middle">(내부 옴 저항)</text>
-
+        <rect x="74" y="65" width="72" height="14" rx="3" fill="rgba(255,152,0,0.18)" stroke="#ffcc80" stroke-width="1.5"/>
+        <text x="110" y="76" fill="#ffcc80" font-size="10" text-anchor="middle">R₀ (직렬저항)</text>
         <!-- Rp 저항 -->
-        <rect x="210" y="52" width="60" height="14" rx="3" fill="rgba(33,150,243,0.2)" stroke="#64b5f6" stroke-width="1.5"/>
-        <text x="240" y="63" fill="#90caf9" font-size="10" text-anchor="middle">Rp</text>
-
+        <rect x="196" y="43" width="58" height="13" rx="3" fill="rgba(33,150,243,0.18)" stroke="#64b5f6" stroke-width="1.5"/>
+        <text x="225" y="53" fill="#90caf9" font-size="9" text-anchor="middle">Rp</text>
         <!-- Cp 커패시터 -->
-        <line x1="224" y1="94" x2="224" y2="106" stroke="#ef5350" stroke-width="2"/>
-        <line x1="256" y1="94" x2="256" y2="106" stroke="#ef5350" stroke-width="2"/>
-        <line x1="216" y1="94" x2="264" y2="94" stroke="#ef5350" stroke-width="2"/>
-        <line x1="216" y1="106" x2="264" y2="106" stroke="#ef5350" stroke-width="2"/>
-        <text x="240" y="118" fill="#ef9a9a" font-size="10" text-anchor="middle">Cp</text>
-
+        <line x1="210" y1="88" x2="210" y2="100" stroke="#ef5350" stroke-width="2"/>
+        <line x1="240" y1="88" x2="240" y2="100" stroke="#ef5350" stroke-width="2"/>
+        <line x1="203" y1="88" x2="247" y2="88" stroke="#ef5350" stroke-width="2"/>
+        <line x1="203" y1="100" x2="247" y2="100" stroke="#ef5350" stroke-width="2"/>
+        <text x="225" y="114" fill="#ef9a9a" font-size="9" text-anchor="middle">Cp</text>
         <!-- Vbat 출력 -->
-        <line x1="340" y1="80" x2="345" y2="80" stroke="#80deea" stroke-width="2"/>
-        <line x1="340" y1="130" x2="345" y2="130" stroke="#80deea" stroke-width="2"/>
-        <text x="360" y="105" fill="#80deea" font-size="12" text-anchor="middle">Vbat</text>
-
-        <!-- 라벨들 -->
-        <text x="240" y="148" fill="#90caf9" font-size="10" text-anchor="middle">병렬 RC</text>
-        <text x="240" y="160" fill="#78909c" font-size="9" text-anchor="middle">(분극 특성)</text>
-        <text x="60" y="148" fill="#a5d6a7" font-size="10" text-anchor="middle">전압원</text>
-        <text x="60" y="160" fill="#78909c" font-size="9" text-anchor="middle">(OCV)</text>
+        <text x="315" y="97" fill="#80deea" font-size="10" text-anchor="middle">Vbat</text>
+        <!-- 라벨 설명 -->
+        <text x="225" y="140" fill="#78909c" font-size="8" text-anchor="middle">병렬 RC (분극 특성 모사)</text>
       </svg>
-
-      <div class="card" style="font-size:0.85rem;color:#cfd8dc;line-height:1.8;">
-        <div style="color:#80deea;font-weight:600;margin-bottom:6px;">전류 차단 후 이완 방정식</div>
-        <div>전류 = 0 일 때, 분극 전압 Vp는:</div>
-        <div style="text-align:center;padding:8px 0;color:#80deea;font-size:1rem;font-family:monospace;">
-          Vp(t) = Vp(0) · e<sup style="font-size:0.7rem;">-t/τ</sup>
-        </div>
-        <div>단자 전압은:</div>
-        <div style="text-align:center;padding:8px 0;color:#64b5f6;font-size:1rem;font-family:monospace;">
-          V<sub>bat</sub>(t) = OCV + ΔV₀ · e<sup style="font-size:0.7rem;">-t/τ</sup>
-        </div>
+      <!-- 방정식 -->
+      <div class="card b" style="flex-shrink:0;">
+        <div class="ctitle blue">전류 차단 후 이완 (I = 0)</div>
+        <div class="eq" style="font-size:0.82rem;">Vbat(t) = OCV + ΔV₀ · e<sup>−t/τ</sup></div>
+        <div class="body-text" style="font-size:0.78rem;">τ = Rp × Cp = 시정수 (분극이 사라지는 속도)</div>
       </div>
     </div>
-
-    <div>
-      <div class="card card-blue" style="margin-bottom:16px;">
-        <div style="font-weight:600;color:#90caf9;margin-bottom:12px;">🎯 핵심 아이디어: τ를 측정값에서 직접 계산</div>
-        <p style="font-size:0.88rem;color:#cfd8dc;line-height:1.6;margin-bottom:12px;">
-          V(t) = OCV + ΔV₀·e<sup>-t/τ</sup> 를 두 번 미분하면:
-        </p>
-        <div style="background:rgba(0,0,0,0.4);border-radius:8px;padding:12px;font-family:monospace;text-align:center;">
-          <div style="color:#80deea;font-size:1.05rem;">dV/dt = -ΔV₀/τ · e<sup style="font-size:0.7em;">-t/τ</sup></div>
-          <div style="color:#80deea;font-size:1.05rem;margin-top:6px;">d²V/dt² = ΔV₀/τ² · e<sup style="font-size:0.7em;">-t/τ</sup></div>
-          <div style="border-top:1px solid rgba(100,181,246,0.3);margin-top:10px;padding-top:10px;">
-            <div style="color:#4fc3f7;font-size:0.85rem;margin-bottom:4px;">두 식을 나누면:</div>
-            <div style="color:#ffcc80;font-size:1.3rem;font-weight:700;">
-              τ = −(dV/dt) / (d²V/dt²)
-            </div>
-            <div style="color:#ffcc80;font-size:0.9rem;margin-top:4px;">|<sub>t = tc</sub></div>
+    <!-- 오른쪽: 핵심 아이디어 -->
+    <div style="display:flex;flex-direction:column;gap:10px;min-height:0;">
+      <div class="card b">
+        <div class="ctitle blue">🎯 핵심 아이디어: τ를 미분으로 직접 계산</div>
+        <p class="body-text" style="margin-bottom:8px;">V(t) = OCV + ΔV₀·e<sup>−t/τ</sup> 를 두 번 미분하면:</p>
+        <div class="eq" style="font-size:0.82rem;">dV/dt = −ΔV₀/τ · e<sup>−t/τ</sup></div>
+        <div class="eq" style="font-size:0.82rem;">d²V/dt² = ΔV₀/τ² · e<sup>−t/τ</sup></div>
+        <div style="background:rgba(0,0,0,0.4);border-radius:7px;padding:10px;text-align:center;margin-top:6px;">
+          <div class="body-text" style="color:#4fc3f7;font-size:0.78rem;margin-bottom:4px;">두 식을 나누면 ΔV₀ 소거 →</div>
+          <div style="font-family:'Courier New',monospace;font-size:1.15rem;color:#ffcc80;font-weight:700;">
+            τ = −(dV/dt) / (d²V/dt²)
           </div>
+          <div style="font-size:0.72rem;color:#ffcc80;opacity:0.8;margin-top:2px;">단, t = tc 시점에서 평가</div>
         </div>
       </div>
-
-      <div class="card card-green">
-        <div style="font-weight:600;color:#a5d6a7;margin-bottom:8px;">💡 이것이 혁신적인 이유</div>
-        <div class="icon-row text-sm">
-          <span class="icon">✅</span>
-          <div>ΔV₀, R₀, Rp, Cp 등 <strong>어떤 파라미터도 미리 알 필요 없음</strong></div>
-        </div>
-        <div class="icon-row text-sm">
-          <span class="icon">✅</span>
-          <div>측정된 전압의 <strong>1차·2차 미분비만으로</strong> τ 즉시 계산</div>
-        </div>
-        <div class="icon-row text-sm">
-          <span class="icon">✅</span>
-          <div>τ 계산 후 OCV = V(tc) − (dV/dt)|<sub>tc</sub> × τ</div>
-        </div>
-        <div class="icon-row text-sm">
-          <span class="icon">✅</span>
-          <div>모든 SOH, 온도, 화학계에 <strong>범용 적용 가능</strong></div>
-        </div>
-      </div>
-
-      <div class="note" style="margin-top:10px;">
-        ※ 수치 미분: tc 중심 ±90초 데이터에 최소제곱법 적용 (노이즈 저감)
+      <div class="card g">
+        <div class="ctitle green">💡 이것이 혁신적인 이유</div>
+        <div class="irow"><span class="ic">✅</span><div>ΔV₀, R₀, Rp, Cp 등 <strong>어떤 파라미터도 미리 알 필요 없음</strong></div></div>
+        <div class="irow"><span class="ic">✅</span><div>측정 전압의 <strong>1·2차 미분비만으로</strong> τ 즉시 계산</div></div>
+        <div class="irow"><span class="ic">✅</span><div>τ 계산 후: <strong>OCV = V(tc) − (dV/dt)|tc × τ</strong></div></div>
+        <div class="irow"><span class="ic">✅</span><div>모든 SOH·온도·화학계에 <strong>범용 적용 가능</strong></div></div>
+        <p class="note">수치 미분: tc 중심 ±90초 데이터에 최소제곱법 적용 (노이즈 저감)</p>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ===== SLIDE 5: tc 결정 기준 ===== -->
-<div class="slide slide-dark" id="s5">
-  <div class="section-label">알고리즘 · Critical Time Criterion</div>
-  <div class="slide-title">언제 계산을 시작하는가? — tc 결정 기준</div>
-  <div class="grid2" style="gap:24px;align-items:start;">
-    <div>
-      <p style="color:#b0bec5;font-size:0.9rem;margin-bottom:16px;line-height:1.6;">
-        τ(t)는 이완 초기에 불안정하다가 점점 수렴합니다. "언제 τ가 충분히 안정화되었는가?"를 자동으로 판단하는 기준이 필요합니다.
+<!-- ══════════════════════════════════
+     SLIDE 5 · tc 결정 기준
+══════════════════════════════════ -->
+<div class="slide bg-dark" id="s5">
+  <div class="label">알고리즘 · Critical Time Criterion</div>
+  <div class="title">언제 계산을 시작하는가? — tc 결정 기준</div>
+  <div class="content g2">
+    <!-- 왼쪽 -->
+    <div style="display:flex;flex-direction:column;gap:10px;min-height:0;">
+      <p class="body-text" style="flex-shrink:0;">
+        τ(t)는 이완 초기에 불안정하다가 점점 수렴합니다.
+        "τ가 충분히 안정화된 시점 tc"를 자동으로 결정하는 기준이 필요합니다.
       </p>
-
-      <div class="card" style="margin-bottom:14px;">
-        <div style="font-weight:600;color:#80deea;margin-bottom:10px;">📏 매 초마다 계산하는 지표</div>
-        <div style="background:rgba(0,0,0,0.4);border-radius:8px;padding:10px;font-family:monospace;text-align:center;font-size:0.9rem;">
-          <div style="color:#80deea;">ΔV(t) = V(t+1) − V(t)</div>
-          <div style="color:#4fc3f7;margin-top:6px;">|avg.ΔV| = |최근 60초 평균 ΔV|</div>
-        </div>
-        <p class="note" style="margin-top:6px;">전압 변화가 작아질수록 τ가 안정화됨 → OCV 예측 가능</p>
+      <div class="card" style="flex-shrink:0;">
+        <div class="ctitle cyan">📏 매 초마다 계산하는 지표</div>
+        <div class="eq" style="font-size:0.82rem;">ΔV(t) = V(t+1) − V(t)</div>
+        <div class="eq" style="font-size:0.82rem;">|avg.ΔV| = |최근 60초 ΔV의 평균|</div>
+        <p class="note">전압 변화가 작아질수록 τ가 안정화됨 → OCV 예측 가능</p>
       </div>
-
-      <div class="card card-blue">
-        <div style="font-weight:600;color:#90caf9;margin-bottom:10px;">🚦 5가지 기준 조건</div>
-        <table style="font-size:0.82rem;">
+      <div class="card b">
+        <div class="ctitle blue">🚦 5가지 기준 조건 (논문 Section 3.2)</div>
+        <table style="margin-top:4px;">
           <thead><tr><th>기준</th><th>조건</th><th>특성</th></tr></thead>
           <tbody>
-            <tr><td><span class="badge badge-orange">C1 ▴</span></td><td>|avg.ΔV| &lt; 0.05 mV</td><td style="color:#ffcc80;">가장 빠름, 오차 가능</td></tr>
-            <tr><td><span class="badge badge-orange">C2 ◆</span></td><td>|avg.ΔV| &lt; 0.04 mV</td><td>중간</td></tr>
-            <tr><td><span class="badge badge-green">C3 ● ★</span></td><td>|avg.ΔV| &lt; 0.03 mV</td><td style="color:#a5d6a7;font-weight:600;">최종 채택 기준</td></tr>
-            <tr><td><span class="badge">C4 ★</span></td><td>|avg.ΔV| &lt; 0.02 mV</td><td>더 엄격, 역효과 가능</td></tr>
-            <tr><td><span class="badge badge-blue">C5 ■</span></td><td>|avg.ΔV| &lt; 0.025 mV</td><td style="color:#90caf9;">이상 케이스 전용</td></tr>
+            <tr><td><span class="badge bo">C1 ▴</span></td><td>|avg.ΔV| &lt; 0.05 mV</td><td style="color:#ffcc80;">빠름, 오차 가능</td></tr>
+            <tr><td><span class="badge bo">C2 ◆</span></td><td>|avg.ΔV| &lt; 0.04 mV</td><td>중간</td></tr>
+            <tr><td><span class="badge bg">C3 ●</span></td><td>|avg.ΔV| &lt; 0.03 mV</td><td style="color:#a5d6a7;font-weight:600;">★ 최종 채택 기준</td></tr>
+            <tr><td>C4 ★</td><td>|avg.ΔV| &lt; 0.02 mV</td><td>역효과 가능</td></tr>
+            <tr><td><span class="badge bb">C5 ■</span></td><td>|avg.ΔV| &lt; 0.025 mV</td><td style="color:#90caf9;">이상 케이스 전용</td></tr>
           </tbody>
         </table>
       </div>
+      <div class="card o" style="flex-shrink:0;">
+        <div class="ctitle orange">⚠️ 이상 케이스 감지: k 파라미터</div>
+        <div class="eq" style="font-size:0.82rem;">k = (t₂ − t₃) / (t₁ − t₂)</div>
+        <div class="body-text">
+          <span class="badge bg">k ≈ 1.3</span> → 정상 → C3 사용<br>
+          <span class="badge br">k &gt; 2</span> → 이상 → C5 전환<br>
+          <span class="note">주로 SOC ≈ 50~55% 평탄 구간에서 발생</span>
+        </div>
+      </div>
     </div>
-
-    <div>
-      <!-- Fig 1c 재현 -->
-      <svg width="100%" viewBox="0 0 360 280" style="background:rgba(0,0,0,0.3);border-radius:12px;border:1px solid rgba(100,181,246,0.2);margin-bottom:12px;">
-        <text x="180" y="22" fill="#90caf9" font-size="12" font-weight="600" text-anchor="middle">OCV 예측 오차 vs tc (논문 Fig.1c 재현, SOC=85%, 25°C)</text>
+    <!-- 오른쪽: 오차 vs tc 그래프 -->
+    <div style="min-height:0;display:flex;flex-direction:column;gap:10px;">
+      <svg width="100%" viewBox="0 0 330 245" style="background:rgba(0,0,0,0.3);border-radius:10px;border:1px solid rgba(100,181,246,0.18);">
+        <text x="165" y="16" fill="#90caf9" font-size="10.5" font-weight="600" text-anchor="middle">OCV 예측 오차 vs tc (논문 Fig.1c 재현, SOC=85%, 25°C)</text>
         <!-- 축 -->
-        <line x1="55" y1="240" x2="330" y2="240" stroke="#546e7a" stroke-width="1.5"/>
-        <line x1="55" y1="50" x2="55" y2="240" stroke="#546e7a" stroke-width="1.5"/>
+        <line x1="52" y1="210" x2="315" y2="210" stroke="#455a64" stroke-width="1.3"/>
+        <line x1="52" y1="30"  x2="52"  y2="210" stroke="#455a64" stroke-width="1.3"/>
         <!-- 0 기준선 -->
-        <line x1="55" y1="145" x2="330" y2="145" stroke="#546e7a" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="52" y1="120" x2="315" y2="120" stroke="#455a64" stroke-width="0.8" stroke-dasharray="3,3"/>
         <!-- ±2.5mV 영역 R -->
-        <rect x="55" y="128" width="275" height="34" fill="rgba(76,175,80,0.08)" stroke="none"/>
-        <text x="320" y="125" fill="#a5d6a7" font-size="9">+2.5mV</text>
-        <text x="320" y="168" fill="#a5d6a7" font-size="9">-2.5mV</text>
-        <line x1="55" y1="128" x2="330" y2="128" stroke="#a5d6a7" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
-        <line x1="55" y1="162" x2="330" y2="162" stroke="#a5d6a7" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
-        <text x="80" y="148" fill="#a5d6a7" font-size="10" opacity="0.7">영역 R (±2.5mV)</text>
-        <!-- 오차 곡선 (대략적 재현) -->
-        <path d="M 55,220 C 80,215 100,200 120,175 S 148,150 165,145 S 180,143 200,144 S 230,146 250,145 S 280,145 310,145 S 320,145 330,145"
+        <rect x="52" y="104" width="263" height="32" fill="rgba(76,175,80,0.07)" stroke="none"/>
+        <line x1="52" y1="104" x2="315" y2="104" stroke="#a5d6a7" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+        <line x1="52" y1="136" x2="315" y2="136" stroke="#a5d6a7" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+        <text x="74"  y="101" fill="#a5d6a7" font-size="8" opacity="0.8">영역 R (±2.5 mV)</text>
+        <!-- 오차 곡선 -->
+        <path d="M52,195 C80,188 100,168 120,148 S148,127 168,120 S195,116 220,118 S260,119 300,119"
               stroke="#ef5350" stroke-width="2" fill="none"/>
         <!-- C1, C2, C3 마커 -->
-        <circle cx="148" cy="162" r="5" fill="#ffb74d" opacity="0.9"/>
-        <text x="148" y="177" fill="#ffb74d" font-size="9" text-anchor="middle">C1(205s)</text>
-        <circle cx="175" cy="149" r="5" fill="#90caf9" opacity="0.9"/>
-        <text x="175" y="190" fill="#90caf9" font-size="9" text-anchor="middle">C2(234s)</text>
-        <circle cx="215" cy="144" r="5" fill="#a5d6a7" opacity="0.9"/>
-        <text x="215" y="204" fill="#a5d6a7" font-size="9" text-anchor="middle">C3(284s)</text>
-        <!-- 축 라벨 -->
-        <text x="190" y="258" fill="#78909c" font-size="10" text-anchor="middle">tc (초)</text>
-        <text x="25" y="150" fill="#78909c" font-size="10" transform="rotate(-90,25,150)">오차 (mV)</text>
+        <circle cx="145" cy="136" r="5" fill="#ffb74d"/>
+        <text x="145" y="152" fill="#ffb74d" font-size="8.5" text-anchor="middle">C1 (205s)</text>
+        <circle cx="172" cy="121" r="5" fill="#90caf9"/>
+        <text x="172" y="168" fill="#90caf9" font-size="8.5" text-anchor="middle">C2 (234s)</text>
+        <circle cx="208" cy="117" r="5" fill="#a5d6a7"/>
+        <text x="208" y="185" fill="#a5d6a7" font-size="8.5" text-anchor="middle">C3 (284s) ★</text>
         <!-- 눈금 -->
-        <text x="50" y="148" fill="#78909c" font-size="9" text-anchor="end">0</text>
-        <text x="50" y="128" fill="#78909c" font-size="9" text-anchor="end">+2.5</text>
-        <text x="50" y="165" fill="#78909c" font-size="9" text-anchor="end">-2.5</text>
-        <text x="50" y="225" fill="#78909c" font-size="9" text-anchor="end">-10</text>
-        <text x="55" y="252" fill="#78909c" font-size="9">0</text>
-        <text x="145" y="252" fill="#78909c" font-size="9">200</text>
-        <text x="245" y="252" fill="#78909c" font-size="9">300</text>
+        <text x="48" y="123" fill="#607d8b" font-size="8" text-anchor="end">0</text>
+        <text x="48" y="107" fill="#607d8b" font-size="8" text-anchor="end">+2.5</text>
+        <text x="48" y="139" fill="#607d8b" font-size="8" text-anchor="end">−2.5</text>
+        <text x="48" y="198" fill="#607d8b" font-size="8" text-anchor="end">−10</text>
+        <text x="52"  y="222" fill="#607d8b" font-size="8" text-anchor="middle">0</text>
+        <text x="145" y="222" fill="#607d8b" font-size="8" text-anchor="middle">200s</text>
+        <text x="210" y="222" fill="#607d8b" font-size="8" text-anchor="middle">300s</text>
+        <text x="300" y="222" fill="#607d8b" font-size="8" text-anchor="middle">400s</text>
+        <!-- 축 라벨 -->
+        <text x="183" y="236" fill="#607d8b" font-size="9" text-anchor="middle">임계 시점 tc (초)</text>
+        <text x="22" y="120" fill="#607d8b" font-size="9" transform="rotate(-90,22,120)">OCV 예측 오차 (mV)</text>
       </svg>
-
-      <!-- k 파라미터 설명 -->
-      <div class="card card-orange" style="font-size:0.85rem;">
-        <div style="font-weight:600;color:#ffcc80;margin-bottom:6px;">⚠️ 이상 케이스 감지: k 파라미터</div>
-        <div style="font-family:monospace;text-align:center;padding:6px;color:#80deea;font-size:0.9rem;">
-          k = (t₂ - t₃) / (t₁ - t₂)
-        </div>
-        <div style="margin-top:8px;line-height:1.7;">
-          <span class="badge badge-green">k ≈ 1.3</span> → 정상 (이상적 RC) → C3 사용<br>
-          <span class="badge badge-red">k > 2</span> → 이상 → C5로 전환<br>
-          <span class="note">주로 SOC≈50~55% 평탄 구간에서 k>2 발생</span>
-        </div>
-      </div>
+      <p class="note" style="text-align:center;flex-shrink:0;">※ SOC=85%, 25°C, Cell #1 기준 재현. C3 채택 시 오차 ≈ 0 (영역 R 안에 위치)</p>
     </div>
   </div>
 </div>
 
-<!-- ===== SLIDE 6: 알고리즘 플로우차트 ===== -->
-<div class="slide slide-blue" id="s6">
-  <div class="section-label">알고리즘 · Algorithm Flow</div>
-  <div class="slide-title">전체 OCV 예측 절차</div>
-  <div style="display:flex;gap:30px;align-items:flex-start;height:calc(100% - 100px);">
-    <!-- 플로우차트 -->
-    <div style="flex:1;">
-      <svg width="100%" viewBox="0 0 320 520" style="max-height:480px;">
+<!-- ══════════════════════════════════
+     SLIDE 6 · 알고리즘 플로우
+══════════════════════════════════ -->
+<div class="slide bg-blue" id="s6">
+  <div class="label">알고리즘 · Algorithm Flow</div>
+  <div class="title">전체 OCV 예측 절차 (플로우차트)</div>
+  <div class="content row">
+    <!-- 플로우차트 SVG -->
+    <div style="flex:0 0 300px;min-height:0;">
+      <svg width="300" height="100%" viewBox="0 0 300 490" style="max-height:490px;display:block;">
         <!-- Step 1 -->
-        <rect x="60" y="10" width="200" height="42" rx="8" fill="rgba(33,150,243,0.15)" stroke="#64b5f6" stroke-width="1.5"/>
-        <text x="160" y="28" fill="#e8eaf0" font-size="11" font-weight="600" text-anchor="middle">배터리 전류 차단</text>
-        <text x="160" y="44" fill="#90caf9" font-size="10" text-anchor="middle">이완(Relaxation) 시작</text>
-        <line x1="160" y1="52" x2="160" y2="68" stroke="#64b5f6" stroke-width="1.5"/>
-        <polygon points="155,68 165,68 160,76" fill="#64b5f6"/>
-
+        <rect x="65" y="8"  width="170" height="38" rx="7" fill="rgba(33,150,243,0.14)" stroke="#64b5f6" stroke-width="1.5"/>
+        <text x="150" y="24" fill="#e0e0e0" font-size="10" font-weight="600" text-anchor="middle">배터리 전류 차단</text>
+        <text x="150" y="38" fill="#90caf9" font-size="9"  text-anchor="middle">이완(Relaxation) 시작</text>
+        <line x1="150" y1="46" x2="150" y2="58" stroke="#64b5f6" stroke-width="1.5"/>
+        <polygon points="145,58 155,58 150,65" fill="#64b5f6"/>
         <!-- Step 2 -->
-        <rect x="40" y="76" width="240" height="52" rx="8" fill="rgba(33,150,243,0.1)" stroke="#4fc3f7" stroke-width="1.5"/>
-        <text x="160" y="96" fill="#e8eaf0" font-size="10" font-weight="600" text-anchor="middle">매 초마다 계산:</text>
-        <text x="160" y="112" fill="#80deea" font-size="10" text-anchor="middle" font-family="Courier New">ΔV = V(t+1)−V(t)  |avg.ΔV| = 60초 평균</text>
-        <line x1="160" y1="128" x2="160" y2="144" stroke="#64b5f6" stroke-width="1.5"/>
-        <polygon points="155,144 165,144 160,152" fill="#64b5f6"/>
-
-        <!-- 조건 1: C3 -->
-        <polygon points="160,152 260,178 160,204 60,178" fill="rgba(255,152,0,0.12)" stroke="#ffb74d" stroke-width="1.5"/>
-        <text x="160" y="182" fill="#ffcc80" font-size="11" font-weight="600" text-anchor="middle">|avg.ΔV| &lt; 0.03mV?</text>
-        <text x="160" y="195" fill="#ffb74d" font-size="10" text-anchor="middle">(C3 기준)</text>
-        <!-- NO 방향 -->
-        <line x1="60" y1="178" x2="20" y2="178" stroke="#ef5350" stroke-width="1.5"/>
-        <line x1="20" y1="178" x2="20" y2="128" stroke="#ef5350" stroke-width="1.5"/>
-        <line x1="20" y1="128" x2="40" y2="128" stroke="#ef5350" stroke-width="1.5"/>
-        <text x="38" y="168" fill="#ef9a9a" font-size="10">NO</text>
-        <text x="8" y="155" fill="#ef9a9a" font-size="9">계속</text>
-        <text x="8" y="165" fill="#ef9a9a" font-size="9">대기</text>
+        <rect x="40" y="65" width="220" height="44" rx="7" fill="rgba(33,150,243,0.08)" stroke="#4fc3f7" stroke-width="1.3"/>
+        <text x="150" y="81" fill="#e0e0e0" font-size="9.5" font-weight="600" text-anchor="middle">매 초마다:</text>
+        <text x="150" y="95" fill="#80deea" font-size="9"   text-anchor="middle">ΔV = V(t+1)−V(t),  |avg.ΔV| = 60초 평균</text>
+        <line x1="150" y1="109" x2="150" y2="121" stroke="#64b5f6" stroke-width="1.5"/>
+        <polygon points="145,121 155,121 150,128" fill="#64b5f6"/>
+        <!-- 판단 1: C3 -->
+        <polygon points="150,128 240,152 150,176 60,152" fill="rgba(255,152,0,0.1)" stroke="#ffb74d" stroke-width="1.5"/>
+        <text x="150" y="156" fill="#ffcc80" font-size="10" font-weight="600" text-anchor="middle">|avg.ΔV| &lt; 0.03 mV?</text>
+        <text x="150" y="168" fill="#ffb74d" font-size="8.5" text-anchor="middle">C3 기준</text>
+        <!-- NO 루프 -->
+        <line x1="60" y1="152" x2="22" y2="152" stroke="#ef5350" stroke-width="1.3"/>
+        <line x1="22" y1="152" x2="22" y2="87"  stroke="#ef5350" stroke-width="1.3"/>
+        <line x1="22" y1="87"  x2="40" y2="87"  stroke="#ef5350" stroke-width="1.3"/>
+        <text x="38" y="142" fill="#ef9a9a" font-size="8">NO</text>
         <!-- YES -->
-        <line x1="160" y1="204" x2="160" y2="218" stroke="#a5d6a7" stroke-width="1.5"/>
-        <polygon points="155,218 165,218 160,226" fill="#a5d6a7"/>
-        <text x="172" y="215" fill="#a5d6a7" font-size="10">YES</text>
-
+        <line x1="150" y1="176" x2="150" y2="190" stroke="#a5d6a7" stroke-width="1.5"/>
+        <polygon points="145,190 155,190 150,197" fill="#a5d6a7"/>
+        <text x="162" y="187" fill="#a5d6a7" font-size="8.5">YES</text>
         <!-- Step 3: k 계산 -->
-        <rect x="60" y="226" width="200" height="36" rx="8" fill="rgba(33,150,243,0.1)" stroke="#4fc3f7" stroke-width="1.5"/>
-        <text x="160" y="242" fill="#e8eaf0" font-size="10" font-weight="600" text-anchor="middle">k = (t₂−t₃)/(t₁−t₂) 계산</text>
-        <text x="160" y="256" fill="#80deea" font-size="9" text-anchor="middle">C1,C2,C3 충족 시각으로 계산</text>
-        <line x1="160" y1="262" x2="160" y2="278" stroke="#64b5f6" stroke-width="1.5"/>
-        <polygon points="155,278 165,278 160,286" fill="#64b5f6"/>
-
-        <!-- 조건 2: k -->
-        <polygon points="160,286 240,306 160,326 80,306" fill="rgba(255,152,0,0.12)" stroke="#ffb74d" stroke-width="1.5"/>
-        <text x="160" y="310" fill="#ffcc80" font-size="11" font-weight="600" text-anchor="middle">k &gt; 2 ?</text>
-        <!-- YES → C5 -->
-        <line x1="240" y1="306" x2="290" y2="306" stroke="#ffb74d" stroke-width="1.5"/>
-        <rect x="264" y="290" width="52" height="32" rx="6" fill="rgba(255,152,0,0.15)" stroke="#ffb74d" stroke-width="1.5"/>
-        <text x="290" y="305" fill="#ffcc80" font-size="9" text-anchor="middle">C5 기준</text>
-        <text x="290" y="318" fill="#ffcc80" font-size="9" text-anchor="middle">대기</text>
-        <text x="252" y="302" fill="#ffcc80" font-size="9">YES</text>
-        <line x1="290" y1="322" x2="290" y2="354" stroke="#ffb74d" stroke-width="1.5"/>
-        <line x1="290" y1="354" x2="214" y2="354" stroke="#ffb74d" stroke-width="1.5"/>
-        <!-- NO -->
-        <line x1="160" y1="326" x2="160" y2="340" stroke="#a5d6a7" stroke-width="1.5"/>
-        <polygon points="155,340 165,340 160,348" fill="#a5d6a7"/>
-        <text x="172" y="338" fill="#a5d6a7" font-size="10">NO</text>
-
+        <rect x="65" y="197" width="170" height="32" rx="7" fill="rgba(33,150,243,0.08)" stroke="#4fc3f7" stroke-width="1.3"/>
+        <text x="150" y="211" fill="#e0e0e0" font-size="9.5" font-weight="600" text-anchor="middle">k = (t₂−t₃)/(t₁−t₂) 계산</text>
+        <text x="150" y="224" fill="#80deea" font-size="8.5" text-anchor="middle">C1, C2, C3 충족 시각으로 계산</text>
+        <line x1="150" y1="229" x2="150" y2="241" stroke="#64b5f6" stroke-width="1.5"/>
+        <polygon points="145,241 155,241 150,248" fill="#64b5f6"/>
+        <!-- 판단 2: k -->
+        <polygon points="150,248 225,267 150,286 75,267" fill="rgba(255,152,0,0.1)" stroke="#ffb74d" stroke-width="1.5"/>
+        <text x="150" y="271" fill="#ffcc80" font-size="10" font-weight="600" text-anchor="middle">k &gt; 2 ?</text>
+        <!-- k>2 YES 오른쪽 -->
+        <line x1="225" y1="267" x2="270" y2="267" stroke="#ffb74d" stroke-width="1.3"/>
+        <rect x="245" y="254" width="50" height="28" rx="6" fill="rgba(255,152,0,0.14)" stroke="#ffb74d" stroke-width="1.3"/>
+        <text x="270" y="266" fill="#ffcc80" font-size="8.5" text-anchor="middle">C5 기준</text>
+        <text x="270" y="277" fill="#ffcc80" font-size="8.5" text-anchor="middle">대기</text>
+        <text x="234" y="263" fill="#ffcc80" font-size="8">YES</text>
+        <line x1="270" y1="282" x2="270" y2="318" stroke="#ffb74d" stroke-width="1.3"/>
+        <line x1="270" y1="318" x2="218" y2="318" stroke="#ffb74d" stroke-width="1.3"/>
+        <!-- k≤2 NO -->
+        <line x1="150" y1="286" x2="150" y2="302" stroke="#a5d6a7" stroke-width="1.5"/>
+        <polygon points="145,302 155,302 150,309" fill="#a5d6a7"/>
+        <text x="162" y="298" fill="#a5d6a7" font-size="8.5">NO</text>
         <!-- Step 4: τ 계산 -->
-        <rect x="60" y="348" width="200" height="42" rx="8" fill="rgba(0,188,212,0.12)" stroke="#80deea" stroke-width="1.5"/>
-        <text x="160" y="365" fill="#e8eaf0" font-size="10" font-weight="600" text-anchor="middle">τ 계산 (±90초 최소제곱 피팅)</text>
-        <text x="160" y="381" fill="#80deea" font-size="10" text-anchor="middle" font-family="Courier New">τ = −(dV/dt) / (d²V/dt²)|tc</text>
-        <line x1="160" y1="390" x2="160" y2="406" stroke="#80deea" stroke-width="1.5"/>
-        <polygon points="155,406 165,406 160,414" fill="#80deea"/>
-
+        <rect x="55" y="309" width="180" height="36" rx="7" fill="rgba(0,188,212,0.1)" stroke="#80deea" stroke-width="1.5"/>
+        <text x="145" y="324" fill="#e0e0e0" font-size="9.5" font-weight="600" text-anchor="middle">τ 계산 (±90초 최소제곱 피팅)</text>
+        <text x="145" y="338" fill="#80deea" font-size="9"   text-anchor="middle">τ = −(dV/dt) / (d²V/dt²)|tc</text>
+        <line x1="145" y1="345" x2="145" y2="357" stroke="#80deea" stroke-width="1.5"/>
+        <polygon points="140,357 150,357 145,364" fill="#80deea"/>
         <!-- Step 5: OCV -->
-        <rect x="50" y="414" width="220" height="42" rx="8" fill="rgba(76,175,80,0.15)" stroke="#a5d6a7" stroke-width="2"/>
-        <text x="160" y="430" fill="#a5d6a7" font-size="11" font-weight="700" text-anchor="middle">OCV 예측 완료!</text>
-        <text x="160" y="448" fill="#80deea" font-size="10" text-anchor="middle" font-family="Courier New">OCV = V(tc) − (dV/dt)|tc × τ</text>
-        <text x="160" y="475" fill="#ffcc80" font-size="11" font-weight="600" text-anchor="middle">총 소요 시간: tc + 90초 ≈ 6분</text>
-        <text x="160" y="490" fill="#78909c" font-size="9" text-anchor="middle">※ 논문 기준 (25°C, 신품 셀)</text>
+        <rect x="40" y="364" width="210" height="36" rx="7" fill="rgba(76,175,80,0.14)" stroke="#a5d6a7" stroke-width="2"/>
+        <text x="145" y="379" fill="#a5d6a7" font-size="10.5" font-weight="700" text-anchor="middle">OCV 예측 완료!</text>
+        <text x="145" y="393" fill="#80deea" font-size="9"   text-anchor="middle">OCV = V(tc) − (dV/dt)|tc × τ</text>
+        <!-- 소요 시간 -->
+        <text x="145" y="420" fill="#ffcc80" font-size="10" font-weight="600" text-anchor="middle">총 소요 시간: tc + 90초 ≈ 6분</text>
+        <text x="145" y="432" fill="#607d8b" font-size="8"   text-anchor="middle">※ 25°C 신품 셀 기준 (논문 Table 3)</text>
       </svg>
     </div>
-
-    <!-- 우측 설명 -->
-    <div style="flex:0.8;display:flex;flex-direction:column;gap:14px;">
-      <div class="card card-green">
-        <div style="font-weight:600;color:#a5d6a7;margin-bottom:8px;">⚡ 연산의 가벼움</div>
-        <div class="text-sm" style="color:#cfd8dc;line-height:1.7;">
-          전체 알고리즘이 필요한 연산:<br>
+    <!-- 오른쪽 설명 -->
+    <div style="flex:1;display:flex;flex-direction:column;gap:10px;min-height:0;">
+      <div class="card g">
+        <div class="ctitle green">⚡ 연산이 가벼운 이유</div>
+        <div class="body-text" style="line-height:1.7;">
+          전체 알고리즘에 필요한 연산:<br>
           ① 최근 60초 ΔV 평균 계산<br>
           ② ±90초 데이터 1·2차 선형 피팅<br>
-          ③ τ = 미분비 계산<br>
+          ③ τ = 미분비 계산 (나눗셈)<br>
           ④ OCV = V − (dV/dt)·τ<br>
-          <strong style="color:#a5d6a7;">→ BMS에 바로 탑재 가능한 수준</strong>
+          <strong style="color:#a5d6a7;">→ BMS에 바로 탑재 가능</strong>
         </div>
       </div>
-      <div class="card card-blue">
-        <div style="font-weight:600;color:#90caf9;margin-bottom:8px;">🔧 BMS 적용 검증</div>
-        <div class="text-sm" style="color:#cfd8dc;line-height:1.7;">
-          데이터 기록 간격을 바꿔도 동작:
-          <table style="margin-top:8px;font-size:0.82rem;">
-            <tr><th>간격</th><th>C3 기준 조정</th><th>결과</th></tr>
-            <tr><td>1초</td><td>0.03 mV</td><td class="td-good">✅ 기준</td></tr>
-            <tr><td>10초</td><td>0.30 mV</td><td class="td-good">✅ 동등</td></tr>
-            <tr><td>30초</td><td>0.90 mV</td><td class="td-good">✅ 동등</td></tr>
-          </table>
-        </div>
+      <div class="card b">
+        <div class="ctitle blue">📱 BMS 데이터 간격 검증 (논문 Section 4.3)</div>
+        <table style="margin-top:4px;">
+          <thead><tr><th>기록 간격</th><th>C3 기준 조정</th><th>결과</th></tr></thead>
+          <tbody>
+            <tr><td>1초</td><td>0.03 mV</td><td class="tg">✅ 기준</td></tr>
+            <tr><td>10초</td><td>0.30 mV</td><td class="tg">✅ 동등</td></tr>
+            <tr><td>30초</td><td>0.90 mV</td><td class="tg">✅ 동등</td></tr>
+          </tbody>
+        </table>
       </div>
-      <div class="card card-orange">
-        <div style="font-weight:600;color:#ffcc80;margin-bottom:6px;">📌 활성화공정 관점</div>
-        <div class="text-sm" style="color:#cfd8dc;line-height:1.6;">
-          Formation/Aging 직후 사이클러가 기록하는 <strong>기존 데이터</strong>를 그대로 활용
-          <br>→ 추가 장비 없이 소프트웨어만으로 구현 가능
+      <div class="card o">
+        <div class="ctitle orange">📌 활성화공정 관점</div>
+        <div class="body-text">
+          Formation/Aging 직후 사이클러가 기록하는
+          <strong>기존 1초 전압 데이터</strong>를 그대로 활용<br>
+          → 추가 장비 없이 소프트웨어만으로 구현 가능
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ===== SLIDE 7: 결과 — 정확도 ===== -->
-<div class="slide slide-dark" id="s7">
-  <div class="section-label">실험 결과 · Accuracy Results</div>
-  <div class="slide-title">OCV 예측 정확도 (MAE)</div>
-  <div class="grid2" style="gap:24px;align-items:start;">
-    <div>
-      <p style="color:#b0bec5;font-size:0.88rem;margin-bottom:14px;">
-        3개 셀 × 3가지 온도 × CTR/DTR 방식으로 전체 SOC 범위(10~90%)에서 예측 오차를 검증.<br>
-        (출처: 논문 Table 2)
-      </p>
-      <table style="font-size:0.85rem;margin-bottom:14px;">
+<!-- ══════════════════════════════════
+     SLIDE 7 · 결과: 정확도
+══════════════════════════════════ -->
+<div class="slide bg-dark" id="s7">
+  <div class="label">실험 결과 · Accuracy Results</div>
+  <div class="title">OCV 예측 정확도 (MAE)</div>
+  <div class="content g2">
+    <!-- 왼쪽: 표 -->
+    <div style="display:flex;flex-direction:column;gap:10px;min-height:0;">
+      <p class="body-text" style="flex-shrink:0;">3셀 × 3온도 × CTR/DTR 방식으로 SOC 10~90% 전 범위 검증. (출처: 논문 Table 2)</p>
+      <table>
         <thead>
-          <tr><th>조건</th><th>Cell #1<br><small>(SOH 99.6%)</small></th><th>Cell #2<br><small>(SOH 89.5%)</small></th><th>Cell #3<br><small>(SOH 83.0%)</small></th></tr>
+          <tr>
+            <th>조건</th>
+            <th>Cell #1<br><small>SOH 99.6%</small></th>
+            <th>Cell #2<br><small>SOH 89.5%</small></th>
+            <th>Cell #3<br><small>SOH 83.0%</small></th>
+          </tr>
         </thead>
         <tbody>
-          <tr><td><strong>CTR, 45°C</strong></td><td class="td-good">2.18 mV</td><td class="td-good">2.64 mV</td><td class="td-good">2.77 mV</td></tr>
-          <tr><td><strong>DTR, 45°C</strong></td><td class="td-good">2.56 mV</td><td class="td-good">2.41 mV</td><td class="td-good">2.58 mV</td></tr>
-          <tr><td><strong>CTR, 25°C</strong></td><td class="td-good">2.08 mV ✅</td><td class="td-good">2.18 mV</td><td class="td-good">2.71 mV</td></tr>
-          <tr><td><strong>DTR, 25°C</strong></td><td class="td-warn">3.39 mV</td><td class="td-warn">4.08 mV</td><td class="td-warn">3.79 mV</td></tr>
-          <tr><td><strong>CTR, 5°C</strong></td><td class="td-good">2.45 mV</td><td class="td-bad">5.33 mV</td><td class="td-bad">5.24 mV</td></tr>
-          <tr><td><strong>DTR, 5°C</strong></td><td class="td-warn">6.18 mV</td><td class="td-bad">5.83 mV</td><td class="td-bad">6.58 mV ⚠️</td></tr>
+          <tr><td><strong>CTR, 45°C</strong></td><td class="tg">2.18 mV</td><td class="tg">2.64 mV</td><td class="tg">2.77 mV</td></tr>
+          <tr><td><strong>DTR, 45°C</strong></td><td class="tg">2.56 mV</td><td class="tg">2.41 mV</td><td class="tg">2.58 mV</td></tr>
+          <tr><td><strong>CTR, 25°C</strong></td><td class="tg">2.08 mV ✅</td><td class="tg">2.18 mV</td><td class="tg">2.71 mV</td></tr>
+          <tr><td><strong>DTR, 25°C</strong></td><td class="tw">3.39 mV</td><td class="tw">4.08 mV</td><td class="tw">3.79 mV</td></tr>
+          <tr><td><strong>CTR, 5°C</strong></td><td class="tg">2.45 mV</td><td class="tb">5.33 mV</td><td class="tb">5.24 mV</td></tr>
+          <tr><td><strong>DTR, 5°C</strong></td><td class="tw">6.18 mV</td><td class="tb">5.83 mV</td><td class="tb">6.58 mV ⚠️</td></tr>
         </tbody>
       </table>
-      <div style="display:flex;gap:10px;">
-        <span class="badge badge-green">✅ &lt; 3 mV: 우수</span>
-        <span class="badge badge-orange">⚠️ 3~6 mV: 주의</span>
-        <span class="badge badge-red">❌ &gt; 6 mV: 제한</span>
+      <div style="display:flex;gap:8px;flex-shrink:0;">
+        <span class="badge bg">✅ &lt; 3 mV: 우수</span>
+        <span class="badge bo">⚠️ 3~6 mV: 주의</span>
+        <span class="badge br">❌ &gt; 6 mV: 제한</span>
+      </div>
+      <div class="card b" style="flex-shrink:0;">
+        <div class="ctitle blue">📌 주요 패턴</div>
+        <div class="irow" style="font-size:0.78rem;"><span>🌡️</span><div><strong>온도↑ = 정확↑</strong>: 45°C &gt; 25°C &gt; 5°C</div></div>
+        <div class="irow" style="font-size:0.78rem;"><span>⬆️</span><div><strong>CTR &gt; DTR</strong>: 충전 후 이완이 더 빠르고 정확</div></div>
+        <div class="irow" style="font-size:0.78rem;"><span>📉</span><div><strong>SOH 영향 미미</strong>: 25/45°C에서 노화 영향 거의 없음</div></div>
       </div>
     </div>
-
-    <div>
-      <!-- 막대 차트 -->
-      <svg width="100%" viewBox="0 0 340 260" style="background:rgba(0,0,0,0.3);border-radius:12px;border:1px solid rgba(100,181,246,0.2);">
-        <text x="170" y="18" fill="#90caf9" font-size="11" font-weight="600" text-anchor="middle">Cell #1 MAE — 조건별 비교 (논문 Table 2)</text>
+    <!-- 오른쪽: 막대 그래프 (Cell #1) -->
+    <div style="min-height:0;display:flex;flex-direction:column;gap:10px;">
+      <svg width="100%" viewBox="0 0 310 240" style="background:rgba(0,0,0,0.3);border-radius:10px;border:1px solid rgba(100,181,246,0.18);">
+        <text x="155" y="15" fill="#90caf9" font-size="10.5" font-weight="600" text-anchor="middle">Cell #1 MAE 조건별 비교 (논문 Table 2)</text>
         <!-- 축 -->
-        <line x1="100" y1="220" x2="320" y2="220" stroke="#546e7a" stroke-width="1.5"/>
-        <line x1="100" y1="30" x2="100" y2="220" stroke="#546e7a" stroke-width="1.5"/>
-        <!-- 기준선 3mV -->
-        <line x1="100" y1="110" x2="320" y2="110" stroke="#a5d6a7" stroke-width="1" stroke-dasharray="4,3" opacity="0.6"/>
-        <text x="96" y="113" fill="#a5d6a7" font-size="9" text-anchor="end">3mV</text>
-        <!-- 기준선 6mV -->
-        <line x1="100" y1="30" x2="320" y2="30" stroke="#ef5350" stroke-width="1" stroke-dasharray="4,3" opacity="0.4"/>
-        <text x="96" y="33" fill="#ef9a9a" font-size="9" text-anchor="end">6mV</text>
-        <!-- 눈금 -->
-        <text x="96" y="223" fill="#78909c" font-size="9" text-anchor="end">0</text>
-        <!-- 막대들 (Cell #1 기준) -->
-        <!-- CTR 45: 2.18 → 높이 = 2.18/7 * 190 = 59 -->
-        <rect x="110" y="161" width="22" height="59" fill="#a5d6a7" rx="3" opacity="0.85"/>
-        <text x="121" y="157" fill="#a5d6a7" font-size="9" text-anchor="middle">2.18</text>
-        <!-- DTR 45: 2.56 -->
-        <rect x="136" y="151" width="22" height="69" fill="#66bb6a" rx="3" opacity="0.85"/>
-        <text x="147" y="147" fill="#a5d6a7" font-size="9" text-anchor="middle">2.56</text>
-        <!-- CTR 25: 2.08 -->
-        <rect x="162" y="164" width="22" height="56" fill="#4fc3f7" rx="3" opacity="0.85"/>
-        <text x="173" y="160" fill="#90caf9" font-size="9" text-anchor="middle">2.08</text>
-        <!-- DTR 25: 3.39 -->
-        <rect x="188" y="128" width="22" height="92" fill="#ffa726" rx="3" opacity="0.85"/>
-        <text x="199" y="124" fill="#ffcc80" font-size="9" text-anchor="middle">3.39</text>
-        <!-- CTR 5: 2.45 -->
-        <rect x="214" y="154" width="22" height="66" fill="#29b6f6" rx="3" opacity="0.85"/>
-        <text x="225" y="150" fill="#80deea" font-size="9" text-anchor="middle">2.45</text>
-        <!-- DTR 5: 6.18 -->
-        <rect x="240" y="53" width="22" height="167" fill="#ef5350" rx="3" opacity="0.85"/>
-        <text x="251" y="49" fill="#ef9a9a" font-size="9" text-anchor="middle">6.18</text>
+        <line x1="42" y1="200" x2="295" y2="200" stroke="#455a64" stroke-width="1.2"/>
+        <line x1="42" y1="30"  x2="42"  y2="200" stroke="#455a64" stroke-width="1.2"/>
+        <!-- 기준선 3mV = y 높이: (3/7)*170 = 73px, y=200-73=127 -->
+        <line x1="42" y1="127" x2="295" y2="127" stroke="#a5d6a7" stroke-width="1" stroke-dasharray="4,3" opacity="0.6"/>
+        <text x="38" y="130" fill="#a5d6a7" font-size="7.5" text-anchor="end">3</text>
+        <!-- 기준선 6mV = y: (6/7)*170=146, y=200-146=54 -->
+        <line x1="42" y1="54" x2="295" y2="54" stroke="#ef5350" stroke-width="1" stroke-dasharray="4,3" opacity="0.4"/>
+        <text x="38" y="57" fill="#ef9a9a" font-size="7.5" text-anchor="end">6</text>
+        <text x="38" y="203" fill="#607d8b" font-size="7.5" text-anchor="end">0</text>
+        <!-- 막대 폭=30, 간격=10, 시작=55
+             높이 계산: h = (mV/7) * 170
+             CTR45: 2.18 → h=53, y=200-53=147
+             DTR45: 2.56 → h=62, y=138
+             CTR25: 2.08 → h=51, y=149
+             DTR25: 3.39 → h=82, y=118
+             CTR5:  2.45 → h=59, y=141
+             DTR5:  6.18 → h=150, y=50           -->
+        <rect x="55"  y="147" width="30" height="53"  fill="#66bb6a" rx="3" opacity="0.85"/>
+        <text x="70"  y="143" fill="#a5d6a7" font-size="8" text-anchor="middle">2.18</text>
+        <rect x="95"  y="138" width="30" height="62"  fill="#4db6ac" rx="3" opacity="0.85"/>
+        <text x="110" y="134" fill="#a5d6a7" font-size="8" text-anchor="middle">2.56</text>
+        <rect x="135" y="149" width="30" height="51"  fill="#4fc3f7" rx="3" opacity="0.85"/>
+        <text x="150" y="145" fill="#90caf9" font-size="8" text-anchor="middle">2.08</text>
+        <rect x="175" y="118" width="30" height="82"  fill="#ffa726" rx="3" opacity="0.85"/>
+        <text x="190" y="114" fill="#ffcc80" font-size="8" text-anchor="middle">3.39</text>
+        <rect x="215" y="141" width="30" height="59"  fill="#29b6f6" rx="3" opacity="0.85"/>
+        <text x="230" y="137" fill="#80deea" font-size="8" text-anchor="middle">2.45</text>
+        <rect x="255" y="50"  width="30" height="150" fill="#ef5350" rx="3" opacity="0.85"/>
+        <text x="270" y="46"  fill="#ef9a9a" font-size="8" text-anchor="middle">6.18</text>
         <!-- X축 라벨 -->
-        <text x="121" y="234" fill="#78909c" font-size="8" text-anchor="middle">CTR</text>
-        <text x="121" y="244" fill="#78909c" font-size="8" text-anchor="middle">45°C</text>
-        <text x="147" y="234" fill="#78909c" font-size="8" text-anchor="middle">DTR</text>
-        <text x="147" y="244" fill="#78909c" font-size="8" text-anchor="middle">45°C</text>
-        <text x="173" y="234" fill="#90caf9" font-size="8" text-anchor="middle">CTR</text>
-        <text x="173" y="244" fill="#90caf9" font-size="8" text-anchor="middle">25°C</text>
-        <text x="199" y="234" fill="#ffb74d" font-size="8" text-anchor="middle">DTR</text>
-        <text x="199" y="244" fill="#ffb74d" font-size="8" text-anchor="middle">25°C</text>
-        <text x="225" y="234" fill="#80deea" font-size="8" text-anchor="middle">CTR</text>
-        <text x="225" y="244" fill="#80deea" font-size="8" text-anchor="middle">5°C</text>
-        <text x="251" y="234" fill="#ef9a9a" font-size="8" text-anchor="middle">DTR</text>
-        <text x="251" y="244" fill="#ef9a9a" font-size="8" text-anchor="middle">5°C</text>
+        <text x="70"  y="212" fill="#607d8b" font-size="7.5" text-anchor="middle">CTR</text>
+        <text x="70"  y="221" fill="#607d8b" font-size="7.5" text-anchor="middle">45°C</text>
+        <text x="110" y="212" fill="#607d8b" font-size="7.5" text-anchor="middle">DTR</text>
+        <text x="110" y="221" fill="#607d8b" font-size="7.5" text-anchor="middle">45°C</text>
+        <text x="150" y="212" fill="#90caf9" font-size="7.5" text-anchor="middle">CTR</text>
+        <text x="150" y="221" fill="#90caf9" font-size="7.5" text-anchor="middle">25°C</text>
+        <text x="190" y="212" fill="#ffb74d" font-size="7.5" text-anchor="middle">DTR</text>
+        <text x="190" y="221" fill="#ffb74d" font-size="7.5" text-anchor="middle">25°C</text>
+        <text x="230" y="212" fill="#80deea" font-size="7.5" text-anchor="middle">CTR</text>
+        <text x="230" y="221" fill="#80deea" font-size="7.5" text-anchor="middle">5°C</text>
+        <text x="270" y="212" fill="#ef9a9a" font-size="7.5" text-anchor="middle">DTR</text>
+        <text x="270" y="221" fill="#ef9a9a" font-size="7.5" text-anchor="middle">5°C</text>
+        <!-- Y축 단위 -->
+        <text x="18"  y="115" fill="#607d8b" font-size="8.5" transform="rotate(-90,18,115)">MAE (mV)</text>
       </svg>
-
-      <div class="card card-blue" style="margin-top:12px;font-size:0.85rem;">
-        <div style="font-weight:600;color:#90caf9;margin-bottom:6px;">📌 주요 패턴 해석</div>
-        <div class="icon-row" style="font-size:0.82rem;"><span>🌡️</span><div><strong>온도↑ = 정확↑</strong>: 45°C&gt;25°C&gt;5°C — 확산계수가 클수록 RC 모델과 일치</div></div>
-        <div class="icon-row" style="font-size:0.82rem;"><span>🔋</span><div><strong>CTR &gt; DTR</strong>: 충전 후 이완이 방전 후보다 항상 빠르고 정확</div></div>
-        <div class="icon-row" style="font-size:0.82rem;"><span>📉</span><div><strong>SOH 영향 미미</strong>: 25°C, 45°C에서 노화 영향 거의 없음 → 공정 적용에 유리</div></div>
-      </div>
     </div>
   </div>
 </div>
 
-<!-- ===== SLIDE 8: 결과 — 소요 시간 ===== -->
-<div class="slide slide-blue" id="s8">
-  <div class="section-label">실험 결과 · Time Results</div>
-  <div class="slide-title">예측에 걸리는 시간은 얼마인가?</div>
-  <div class="grid2" style="gap:24px;align-items:start;">
-    <div>
-      <p style="color:#b0bec5;font-size:0.88rem;margin-bottom:14px;">총 소요시간 = tc + 90초 (미분 계산 버퍼). (출처: 논문 Table 3)</p>
-      <table style="font-size:0.85rem;margin-bottom:16px;">
+<!-- ══════════════════════════════════
+     SLIDE 8 · 결과: 소요 시간
+══════════════════════════════════ -->
+<div class="slide bg-blue" id="s8">
+  <div class="label">실험 결과 · Time Results</div>
+  <div class="title">예측 소요 시간 (총 = tc + 90초)</div>
+  <div class="content g2">
+    <!-- 왼쪽: 표 -->
+    <div style="display:flex;flex-direction:column;gap:10px;min-height:0;">
+      <p class="body-text" style="flex-shrink:0;">총 소요시간 = tc + 90초 (미분 계산 버퍼 포함). (출처: 논문 Table 3)</p>
+      <table>
         <thead>
-          <tr><th>조건</th><th>Cell #1<br>(SOH 99.6%)</th><th>Cell #2<br>(SOH 89.5%)</th><th>Cell #3<br>(SOH 83.0%)</th></tr>
+          <tr>
+            <th>조건</th>
+            <th>Cell #1<br><small>99.6%</small></th>
+            <th>Cell #2<br><small>89.5%</small></th>
+            <th>Cell #3<br><small>83.0%</small></th>
+          </tr>
         </thead>
         <tbody>
-          <tr><td><strong>CTR, 45°C</strong></td><td class="td-good">240 s (4.0분)</td><td class="td-good">266 s</td><td class="td-good">280 s</td></tr>
-          <tr><td><strong>DTR, 45°C</strong></td><td class="td-good">254 s (4.2분)</td><td class="td-good">276 s</td><td class="td-good">291 s</td></tr>
-          <tr><td><strong>CTR, 25°C</strong></td><td class="td-good">311 s (5.2분)</td><td class="td-good">324 s</td><td class="td-good">354 s</td></tr>
-          <tr><td><strong>DTR, 25°C</strong></td><td class="td-warn">330 s (5.5분)</td><td class="td-warn">349 s</td><td class="td-warn">393 s (6.6분)</td></tr>
-          <tr><td><strong>CTR, 5°C</strong></td><td class="td-warn">393 s (6.6분)</td><td class="td-warn">448 s</td><td class="td-warn">473 s</td></tr>
-          <tr><td><strong>DTR, 5°C</strong></td><td class="td-bad">426 s (7.1분)</td><td class="td-bad">492 s</td><td class="td-bad">544 s (9.1분)</td></tr>
+          <tr><td><strong>CTR, 45°C</strong></td><td class="tg">240 s (4.0분)</td><td class="tg">266 s</td><td class="tg">280 s</td></tr>
+          <tr><td><strong>DTR, 45°C</strong></td><td class="tg">254 s (4.2분)</td><td class="tg">276 s</td><td class="tg">291 s</td></tr>
+          <tr><td><strong>CTR, 25°C</strong></td><td class="tg">311 s (5.2분)</td><td class="tg">324 s</td><td class="tg">354 s</td></tr>
+          <tr><td><strong>DTR, 25°C</strong></td><td class="tw">330 s (5.5분)</td><td class="tw">349 s</td><td class="tw">393 s</td></tr>
+          <tr><td><strong>CTR, 5°C</strong></td><td class="tw">393 s (6.6분)</td><td class="tw">448 s</td><td class="tw">473 s</td></tr>
+          <tr><td><strong>DTR, 5°C</strong></td><td class="tb">426 s (7.1분)</td><td class="tb">492 s</td><td class="tb">544 s (9.1분)</td></tr>
         </tbody>
       </table>
-
-      <div class="card card-green" style="font-size:0.88rem;">
-        <div style="font-weight:600;color:#a5d6a7;margin-bottom:8px;">💡 소요 시간이 결정되는 요인</div>
-        <div class="icon-row text-sm"><span>🌡️</span><div>온도↓ → 확산 느림 → C3 도달 지연 (10°C당 약 30~40초 증가)</div></div>
-        <div class="icon-row text-sm"><span>🔋</span><div>SOH↓ → 확산계수 추가 감소 → 지연 심화 (5°C에서 두드러짐)</div></div>
-        <div class="icon-row text-sm"><span>⬆️</span><div>CTR이 DTR보다 항상 빠름: 충전 후 이완이 자연스럽게 수렴</div></div>
+      <div class="card g" style="flex-shrink:0;">
+        <div class="ctitle green">💡 소요 시간 결정 요인</div>
+        <div class="irow" style="font-size:0.78rem;"><span>🌡️</span><div><strong>온도↓</strong>: 확산 느려짐 → C3 도달 지연 (10°C당 ~30~40초)</div></div>
+        <div class="irow" style="font-size:0.78rem;"><span>🔋</span><div><strong>SOH↓</strong>: 확산계수 추가 감소 → 5°C에서 심화</div></div>
+        <div class="irow" style="font-size:0.78rem;"><span>⬆️</span><div><strong>CTR이 DTR보다 항상 빠름</strong>: 충전 후 이완이 자연스럽게 수렴</div></div>
       </div>
     </div>
-
-    <div>
-      <!-- 소요시간 비교 차트 -->
-      <svg width="100%" viewBox="0 0 340 270" style="background:rgba(0,0,0,0.3);border-radius:12px;border:1px solid rgba(100,181,246,0.2);margin-bottom:14px;">
-        <text x="170" y="18" fill="#90caf9" font-size="11" font-weight="600" text-anchor="middle">평균 소요 시간 — 기존 vs 이 방법 비교</text>
-        <!-- 극적인 비교 -->
-        <!-- 기존 방법 바 -->
-        <rect x="70" y="40" width="80" height="160" fill="rgba(239,83,80,0.3)" stroke="#ef5350" stroke-width="2" rx="4"/>
-        <text x="110" y="35" fill="#ef9a9a" font-size="11" font-weight="600" text-anchor="middle">기존 방법</text>
-        <text x="110" y="55" fill="#ef9a9a" font-size="22" font-weight="800" text-anchor="middle">115</text>
-        <text x="110" y="73" fill="#ef9a9a" font-size="11" text-anchor="middle">시간</text>
-        <text x="110" y="90" fill="#ef9a9a" font-size="10" text-anchor="middle">(증분 OCV 테스트)</text>
-        <text x="110" y="200" fill="#ef9a9a" font-size="9" text-anchor="middle">36 SOC 포인트 × 약 3.2h</text>
-
-        <!-- 이 방법 바 -->
-        <rect x="200" y="188" width="80" height="12" fill="rgba(76,175,80,0.4)" stroke="#a5d6a7" stroke-width="2" rx="4"/>
-        <text x="240" y="183" fill="#a5d6a7" font-size="11" font-weight="600" text-anchor="middle">이 방법</text>
-        <text x="240" y="220" fill="#a5d6a7" font-size="22" font-weight="800" text-anchor="middle">6</text>
-        <text x="240" y="235" fill="#a5d6a7" font-size="11" text-anchor="middle">분</text>
-        <text x="240" y="250" fill="#a5d6a7" font-size="9" text-anchor="middle">각 SOC 포인트당</text>
+    <!-- 오른쪽: 비교 그래프 -->
+    <div style="min-height:0;display:flex;flex-direction:column;gap:10px;">
+      <svg width="100%" viewBox="0 0 310 240" style="background:rgba(0,0,0,0.3);border-radius:10px;border:1px solid rgba(100,181,246,0.18);">
+        <text x="155" y="15" fill="#90caf9" font-size="10.5" font-weight="600" text-anchor="middle">기존 방법 vs 이 논문 — 시간 비교</text>
+        <!-- 기존 방법 막대 (115h → 비율적으로 큰 직사각형) -->
+        <rect x="55" y="35" width="80" height="148" fill="rgba(239,83,80,0.25)" stroke="#ef5350" stroke-width="1.8" rx="5"/>
+        <text x="95"  y="30"  fill="#ef9a9a" font-size="10" font-weight="700" text-anchor="middle">기존 방법</text>
+        <text x="95"  y="52"  fill="#ef9a9a" font-size="22" font-weight="800" text-anchor="middle">115</text>
+        <text x="95"  y="68"  fill="#ef9a9a" font-size="11" text-anchor="middle">시간</text>
+        <text x="95"  y="84"  fill="#ef9a9a" font-size="8.5" text-anchor="middle">(증분 OCV 테스트)</text>
+        <text x="95"  y="174" fill="#ef9a9a" font-size="8"   text-anchor="middle">36포인트 × 약 3.2h</text>
+        <!-- 이 방법 막대 (6분 → 매우 낮은 직사각형) -->
+        <rect x="185" y="175" width="80" height="8" fill="rgba(76,175,80,0.35)" stroke="#a5d6a7" stroke-width="1.8" rx="3"/>
+        <text x="225" y="170" fill="#a5d6a7" font-size="10" font-weight="700" text-anchor="middle">이 방법</text>
+        <text x="225" y="210" fill="#a5d6a7" font-size="22" font-weight="800" text-anchor="middle">6</text>
+        <text x="225" y="224" fill="#a5d6a7" font-size="11" text-anchor="middle">분</text>
         <!-- 축 -->
-        <line x1="50" y1="200" x2="330" y2="200" stroke="#546e7a" stroke-width="1.5"/>
-        <text x="190" y="265" fill="#ffcc80" font-size="12" font-weight="600" text-anchor="middle">⚡ 약 1,100배 이상 단축!</text>
+        <line x1="35" y1="183" x2="295" y2="183" stroke="#455a64" stroke-width="1.2"/>
+        <!-- 배율 -->
+        <text x="155" y="237" fill="#ffcc80" font-size="11" font-weight="700" text-anchor="middle">⚡ 약 1,100배 이상 단축!</text>
       </svg>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;flex-shrink:0;">
         <div class="card" style="text-align:center;">
-          <div class="big-num" style="font-size:2.5rem;">6<span class="big-unit">분</span></div>
-          <div style="color:#a5d6a7;font-size:0.82rem;margin-top:4px;">25°C 신품 셀 CTR 기준</div>
-          <div style="color:#b0bec5;font-size:0.78rem;">MAE &lt; 3 mV</div>
+          <div style="font-size:2rem;font-weight:800;color:#64b5f6;line-height:1;">6<span style="font-size:0.9rem;color:#90caf9;">분</span></div>
+          <div style="color:#a5d6a7;font-size:0.75rem;margin-top:2px;">25°C 신품 CTR 기준</div>
+          <div style="color:#607d8b;font-size:0.7rem;">MAE &lt; 3 mV</div>
         </div>
         <div class="card" style="text-align:center;">
-          <div class="big-num" style="font-size:2.5rem;color:#ffcc80;">9<span class="big-unit" style="color:#ffb74d;">분</span></div>
-          <div style="color:#ffcc80;font-size:0.82rem;margin-top:4px;">최대 (5°C, 열화셀, DTR)</div>
-          <div style="color:#b0bec5;font-size:0.78rem;">MAE &lt; 7 mV</div>
+          <div style="font-size:2rem;font-weight:800;color:#ffcc80;line-height:1;">9<span style="font-size:0.9rem;color:#ffb74d;">분</span></div>
+          <div style="color:#ffcc80;font-size:0.75rem;margin-top:2px;">최대 (5°C 열화셀 DTR)</div>
+          <div style="color:#607d8b;font-size:0.7rem;">MAE &lt; 7 mV</div>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ===== SLIDE 9: 결과 — 히스테리시스/SOC ===== -->
-<div class="slide slide-dark" id="s9">
-  <div class="section-label">결과 상세 · Detailed Results</div>
-  <div class="slide-title">CTR vs DTR 히스테리시스 & SOC별 특성</div>
-  <div class="grid2" style="gap:24px;align-items:start;">
-    <div>
-      <div class="card card-blue" style="margin-bottom:16px;">
-        <div style="font-weight:600;color:#90caf9;margin-bottom:10px;">🔄 CTR vs DTR: 왜 차이가 나는가?</div>
-        <svg width="100%" viewBox="0 0 300 160">
-          <!-- CTR: 위에서 아래로 -->
-          <text x="10" y="18" fill="#a5d6a7" font-size="10" font-weight="600">CTR (충전→이완)</text>
-          <path d="M 20,30 C 50,32 80,50 110,80 S 150,100 180,108 S 220,113 260,114" stroke="#a5d6a7" stroke-width="2" fill="none"/>
-          <line x1="20" y1="114" x2="265" y2="114" stroke="#a5d6a7" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
-          <text x="268" y="117" fill="#a5d6a7" font-size="8">OCVc</text>
-
-          <!-- DTR: 아래에서 위로 -->
-          <text x="10" y="140" fill="#90caf9" font-size="10" font-weight="600">DTR (방전→이완)</text>
-          <path d="M 20,155 C 50,153 80,145 110,135 S 150,128 180,124 S 220,120 260,120" stroke="#90caf9" stroke-width="2" fill="none"/>
-          <line x1="20" y1="120" x2="265" y2="120" stroke="#90caf9" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
-          <text x="268" y="123" fill="#90caf9" font-size="8">OCVd</text>
-
+<!-- ══════════════════════════════════
+     SLIDE 9 · CTR/DTR & SOC 특성
+══════════════════════════════════ -->
+<div class="slide bg-dark" id="s9">
+  <div class="label">결과 상세 · Detailed Results</div>
+  <div class="title">CTR vs DTR 차이 & SOC별 특성</div>
+  <div class="content g2">
+    <!-- 왼쪽 -->
+    <div style="display:flex;flex-direction:column;gap:10px;min-height:0;">
+      <div class="card b">
+        <div class="ctitle blue">🔄 CTR vs DTR: 왜 차이가 나는가?</div>
+        <svg width="100%" viewBox="0 0 280 130">
+          <!-- CTR -->
+          <text x="8" y="14" fill="#a5d6a7" font-size="9.5" font-weight="600">CTR: 충전 후 이완 (위에서 OCV로 하강)</text>
+          <path d="M18,25 C45,27 72,42 100,65 S140,85 170,92 S218,98 255,99" stroke="#a5d6a7" stroke-width="2" fill="none"/>
+          <line x1="18" y1="99" x2="258" y2="99" stroke="#a5d6a7" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+          <text x="260" y="102" fill="#a5d6a7" font-size="7.5">OCVc</text>
+          <!-- DTR -->
+          <text x="8" y="118" fill="#90caf9" font-size="9.5" font-weight="600">DTR: 방전 후 이완 (아래서 OCV로 상승)</text>
+          <path d="M18,128 C45,126 72,120 100,114 S140,108 170,106 S218,104 255,104" stroke="#90caf9" stroke-width="2" fill="none"/>
+          <line x1="18" y1="104" x2="258" y2="104" stroke="#90caf9" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+          <text x="260" y="107" fill="#90caf9" font-size="7.5">OCVd</text>
           <!-- 히스테리시스 화살표 -->
-          <line x1="240" y1="115" x2="240" y2="120" stroke="#ffcc80" stroke-width="2" marker-end="url(#arr)"/>
-          <text x="245" y="119" fill="#ffcc80" font-size="8">히스테리시스</text>
-          <text x="245" y="128" fill="#ffcc80" font-size="8">= OCVc - OCVd</text>
+          <line x1="238" y1="99" x2="238" y2="104" stroke="#ffcc80" stroke-width="1.8"/>
+          <polygon points="235,104 241,104 238,107" fill="#ffcc80"/>
         </svg>
-        <div style="font-size:0.83rem;color:#cfd8dc;line-height:1.6;margin-top:8px;">
-          <strong style="color:#a5d6a7;">CTR</strong>: 충전 후 전압이 위에서 OCV로 자연스럽게 하강 → 수렴 빠름<br>
-          <strong style="color:#90caf9;">DTR</strong>: 방전 후 전압이 아래에서 OCV로 상승 → 구동력 약해 수렴 느림
-        </div>
+        <p class="body-text" style="margin-top:6px;">
+          <strong style="color:#a5d6a7;">CTR</strong>: 충전 후 OCV로 자연 하강 → 수렴 빠름 → 더 짧은 시간, 더 정확<br>
+          <strong style="color:#90caf9;">DTR</strong>: 방전 후 OCV로 상승 → 구동력 약함 → 수렴 느림
+        </p>
       </div>
-
-      <div class="card card-orange">
-        <div style="font-weight:600;color:#ffcc80;margin-bottom:8px;">📍 SOC별 오차 특성</div>
-        <svg width="100%" viewBox="0 0 280 100">
-          <!-- OCV 곡선 개형 -->
-          <text x="5" y="12" fill="#b0bec5" font-size="9">NMC OCV 개형</text>
-          <path d="M 20,85 C 40,80 60,55 80,40 S 110,28 140,25 S 180,24 210,25 S 240,30 260,40" stroke="#64b5f6" stroke-width="2" fill="none"/>
-          <!-- 평탄 구간 강조 -->
-          <rect x="100" y="20" width="90" height="70" fill="rgba(239,83,80,0.1)" stroke="#ef5350" stroke-width="1" stroke-dasharray="3,2" rx="4"/>
-          <text x="145" y="55" fill="#ef9a9a" font-size="9" text-anchor="middle">평탄 구간</text>
-          <text x="145" y="67" fill="#ef9a9a" font-size="9" text-anchor="middle">SOC 50~70%</text>
-          <text x="145" y="79" fill="#ef9a9a" font-size="9" text-anchor="middle">→ 오차 증가</text>
-          <!-- X축 -->
-          <line x1="20" y1="90" x2="265" y2="90" stroke="#546e7a" stroke-width="1"/>
-          <text x="20" y="99" fill="#78909c" font-size="8">0%</text>
-          <text x="120" y="99" fill="#ef9a9a" font-size="8">50%</text>
-          <text x="245" y="99" fill="#78909c" font-size="8">100%</text>
+      <div class="card o">
+        <div class="ctitle orange">📍 SOC ≈ 50~55% 구간 주의</div>
+        <svg width="100%" viewBox="0 0 270 80">
+          <path d="M15,75 C30,72 48,50 62,36 S88,22 115,20 S148,20 178,20 S210,22 235,30 S252,42 258,50"
+                stroke="#64b5f6" stroke-width="1.8" fill="none"/>
+          <rect x="100" y="15" width="80" height="62" fill="rgba(239,83,80,0.08)" stroke="#ef5350" stroke-width="1" stroke-dasharray="3,2" rx="4"/>
+          <text x="140" y="42" fill="#ef9a9a" font-size="8.5" text-anchor="middle">평탄 구간</text>
+          <text x="140" y="53" fill="#ef9a9a" font-size="8"   text-anchor="middle">SOC 50~70%</text>
+          <text x="140" y="64" fill="#ef9a9a" font-size="8"   text-anchor="middle">→ 오차 증가</text>
+          <line x1="15" y1="76" x2="258" y2="76" stroke="#455a64" stroke-width="1"/>
+          <text x="15"  y="76" fill="#607d8b" font-size="7.5">0%</text>
+          <text x="118" y="76" fill="#ef9a9a" font-size="7.5">50%</text>
+          <text x="245" y="76" fill="#607d8b" font-size="7.5">100%</text>
         </svg>
-        <div style="font-size:0.82rem;color:#cfd8dc;line-height:1.5;margin-top:4px;">
-          OCV 곡선이 <strong style="color:#ef9a9a;">평탄한 구간(SOC 50~55%)</strong>에서 ΔV 신호가 작아 C3 조건이 너무 일찍 충족 → k&gt;2 이상 케이스 → C5 보정 필요
-        </div>
+        <p class="body-text" style="margin-top:4px;font-size:0.78rem;">
+          OCV 곡선이 평탄 → ΔV 신호 미약 → C3 너무 일찍 충족 → k&gt;2 → C5 보정 필요
+        </p>
       </div>
     </div>
+    <!-- 오른쪽: 종합 평가 표 -->
+    <div style="display:flex;flex-direction:column;gap:10px;min-height:0;">
+      <div class="ctitle cyan" style="flex-shrink:0;">📊 전체 조건별 종합 평가 (논문 결과 기반)</div>
+      <table style="flex-shrink:0;">
+        <thead><tr><th>온도</th><th>방식</th><th>정확도</th><th>시간</th><th>권장</th></tr></thead>
+        <tbody>
+          <tr><td>45°C</td><td>CTR</td><td class="tg">2~3 mV</td><td class="tg">~4분</td><td>⭐⭐⭐</td></tr>
+          <tr><td>45°C</td><td>DTR</td><td class="tg">2~3 mV</td><td class="tg">~5분</td><td>⭐⭐⭐</td></tr>
+          <tr><td>25°C</td><td>CTR</td><td class="tg">2~3 mV</td><td class="tg">~5~6분</td><td>⭐⭐⭐</td></tr>
+          <tr><td>25°C</td><td>DTR</td><td class="tw">3~4 mV</td><td class="tw">~6분</td><td>⭐⭐</td></tr>
+          <tr><td>5°C</td><td>CTR</td><td class="tw">2~5 mV</td><td class="tw">~7분</td><td>⭐⭐</td></tr>
+          <tr><td>5°C</td><td>DTR</td><td class="tb">6~7 mV</td><td class="tb">~9분</td><td>⭐</td></tr>
+        </tbody>
+      </table>
+      <div class="card g" style="flex-shrink:0;">
+        <div class="ctitle green">🏭 활성화공정 최적 시나리오</div>
+        <div class="irow" style="font-size:0.78rem;"><span>✅</span><div>Formation 완료 후 <strong>CTR 방식</strong>으로 이완 (충전 후 이완 = 자연스럽게 CTR)</div></div>
+        <div class="irow" style="font-size:0.78rem;"><span>✅</span><div>항온 공정 (25°C 이상) → MAE &lt; 3 mV, 6분 이내</div></div>
+        <div class="irow" style="font-size:0.78rem;"><span>✅</span><div>BT2152B 정전압 홀딩의 <strong>기준 OCV 빠른 설정</strong>에 활용 가능</div></div>
+      </div>
+    </div>
+  </div>
+</div>
 
-    <div>
-      <!-- 전체 조건 정리 표 -->
-      <div style="margin-bottom:14px;">
-        <div style="font-weight:600;color:#80deea;margin-bottom:10px;">📊 전체 조건별 종합 평가</div>
-        <table style="font-size:0.82rem;">
-          <thead><tr><th>온도</th><th>방식</th><th>정확도</th><th>시간</th><th>권장</th></tr></thead>
+<!-- ══════════════════════════════════
+     SLIDE 10 · 한계 & 검증
+══════════════════════════════════ -->
+<div class="slide bg-dark" id="s10">
+  <div class="label">검토 · Limitations & Verification</div>
+  <div class="title">논문의 한계 및 할루시네이션 검증</div>
+  <div class="content g2">
+    <!-- 왼쪽: 한계 -->
+    <div style="display:flex;flex-direction:column;gap:10px;min-height:0;">
+      <div class="card r">
+        <div class="ctitle red">⚠️ 논문이 직접 명시한 한계</div>
+        <div class="irow" style="font-size:0.78rem;"><span>❄️</span><div><strong>저온 (5°C) 성능 저하</strong>: MAE 최대 6.6 mV, 최대 9분 소요. 저온에서 이완이 단순 1차 RC와 크게 달라짐</div></div>
+        <div class="irow" style="font-size:0.78rem;"><span>📉</span><div><strong>SOC 50~55% 구간</strong>: OCV 평탄 → ΔV 미약 → k&gt;2 이상 빈발 → C5 보정 필요</div></div>
+        <div class="irow" style="font-size:0.78rem;"><span>🔋</span><div><strong>1차 RC 모델 단순화</strong>: 실제 배터리는 다중 시정수를 가짐 — 이완 후반부의 지배적 성분만 포착</div></div>
+        <div class="irow" style="font-size:0.78rem;"><span>🔬</span><div><strong>셀 1종만 검증</strong>: LG 18650 F1L (NMC) — LFP, NCA 등 다른 화학계는 별도 검증 필요</div></div>
+        <div class="irow" style="font-size:0.78rem;"><span>📦</span><div><strong>소규모 실험</strong>: 3개 셀, 160사이클까지만 검증. 대규모 양산 적용 전 추가 검증 필요</div></div>
+      </div>
+    </div>
+    <!-- 오른쪽: 검증 체크리스트 -->
+    <div style="display:flex;flex-direction:column;gap:10px;min-height:0;">
+      <div class="card b">
+        <div class="ctitle blue">✅ 수치 출처 검증 체크리스트 (원문 PDF 직접 확인)</div>
+        <table style="margin-top:4px;">
+          <thead><tr><th>항목</th><th>값</th><th>원문 위치</th></tr></thead>
           <tbody>
-            <tr><td>45°C</td><td>CTR</td><td class="td-good">2~3 mV</td><td class="td-good">~4분</td><td>⭐⭐⭐</td></tr>
-            <tr><td>45°C</td><td>DTR</td><td class="td-good">2~3 mV</td><td class="td-good">~5분</td><td>⭐⭐⭐</td></tr>
-            <tr><td>25°C</td><td>CTR</td><td class="td-good">2~3 mV</td><td class="td-good">~5~6분</td><td>⭐⭐⭐</td></tr>
-            <tr><td>25°C</td><td>DTR</td><td class="td-warn">3~4 mV</td><td class="td-warn">~6분</td><td>⭐⭐</td></tr>
-            <tr><td>5°C</td><td>CTR</td><td class="td-warn">2~5 mV</td><td class="td-warn">~7분</td><td>⭐⭐</td></tr>
-            <tr><td>5°C</td><td>DTR</td><td class="td-bad">6~7 mV</td><td class="td-bad">~9분</td><td>⭐</td></tr>
+            <tr><td>셀 모델</td><td>LG 18650 F1L</td><td class="tg">Section 2 ✅</td></tr>
+            <tr><td>장비</td><td>Bio-Logic BCS-815, ±0.3 mV</td><td class="tg">Section 2 ✅</td></tr>
+            <tr><td>SOH</td><td>99.6 / 89.5 / 83.0 %</td><td class="tg">Table 1 ✅</td></tr>
+            <tr><td>MAE 전 수치</td><td>2.08 ~ 6.58 mV</td><td class="tg">Table 2 ✅</td></tr>
+            <tr><td>소요 시간</td><td>240 ~ 544 s</td><td class="tg">Table 3 ✅</td></tr>
+            <tr><td>C3 기준</td><td>0.03 mV (60초 평균)</td><td class="tg">Section 3.2 ✅</td></tr>
+            <tr><td>tc 예시값</td><td>205 / 234 / 284 s</td><td class="tg">Section 3.2 ✅</td></tr>
+            <tr><td>n 버퍼</td><td>90초</td><td class="tg">Section 3.1 ✅</td></tr>
           </tbody>
         </table>
       </div>
+    </div>
+  </div>
+</div>
 
-      <div class="card card-green" style="font-size:0.87rem;">
-        <div style="font-weight:600;color:#a5d6a7;margin-bottom:8px;">🏭 활성화공정 최적 적용 시나리오</div>
-        <div class="icon-row text-sm">
-          <span>✅</span>
-          <div>Formation/Aging 완료 후 <strong>CTR 방식</strong>으로 전압 기록<br>(충전 완료 후 이완 = 자연스럽게 CTR)</div>
+<!-- ══════════════════════════════════
+     SLIDE 11 · 향후 계획
+══════════════════════════════════ -->
+<div class="slide bg-cover" id="s11">
+  <div class="label">향후 계획 · Future Plan</div>
+  <div class="title">이 기술을 우리 공정에 적용하겠습니다</div>
+  <div class="content g2">
+    <!-- 왼쪽: 적용 목표 & 코드 -->
+    <div style="display:flex;flex-direction:column;gap:10px;min-height:0;">
+      <div class="card g">
+        <div class="ctitle green">🎯 적용 목표</div>
+        <div class="irow"><span class="ic">⏱️</span><div><strong>Aging 단계 OCV 측정 시간 단축</strong><br><span style="font-size:0.78rem;color:#b0bec5;">기존 7일 방치법 → 6분 예측으로 대체</span></div></div>
+        <div class="irow"><span class="ic">🔍</span><div><strong>BT2152B 정전압 홀딩 기준점 빠른 설정</strong><br><span style="font-size:0.78rem;color:#b0bec5;">OCV 6분 예측 → 즉시 정전압 인가 → 자가방전 10분 선별</span></div></div>
+        <div class="irow"><span class="ic">📊</span><div><strong>τ 값 자체를 셀 품질 지표로 활용</strong><br><span style="font-size:0.78rem;color:#b0bec5;">이완 시정수 이상 → 내부 단락 조기 감지 신호</span></div></div>
+      </div>
+      <div class="card b">
+        <div class="ctitle blue">💻 구현 계획 (Python)</div>
+        <div style="background:rgba(0,0,0,0.45);border-radius:6px;padding:10px;font-family:'Courier New',monospace;font-size:0.75rem;color:#80deea;line-height:1.65;">
+          <span style="color:#607d8b;"># τ 실시간 계산 핵심 로직</span><br>
+          dVdt  = polyfit(t_win, V_win, 1)[0]<br>
+          d2Vdt = polyfit(t_win, V_win, 2)[0]*2<br>
+          tau   = −dVdt / d2Vdt<br>
+          OCV   = V_tc − dVdt * tau
         </div>
-        <div class="icon-row text-sm">
-          <span>✅</span>
-          <div>항온 공정 (25°C 이상) → <strong>MAE &lt; 3 mV, 6분 이내</strong></div>
+      </div>
+    </div>
+    <!-- 오른쪽: 로드맵 -->
+    <div style="display:flex;flex-direction:column;gap:0;min-height:0;position:relative;padding-left:22px;">
+      <div style="position:absolute;left:8px;top:8px;bottom:8px;width:2px;background:linear-gradient(180deg,#2196f3,#4caf50,#ff9800);border-radius:1px;"></div>
+      <!-- 1단계 -->
+      <div style="margin-bottom:10px;position:relative;">
+        <div style="position:absolute;left:-18px;width:12px;height:12px;background:#2196f3;border-radius:50%;top:3px;"></div>
+        <div class="card b" style="padding:10px 14px;">
+          <div class="ctitle blue" style="font-size:0.8rem;">📌 1단계 — 알고리즘 구현 (1개월)</div>
+          <div class="body-text" style="font-size:0.78rem;line-height:1.6;">
+            Python으로 Zhou et al. 알고리즘 재현<br>
+            보유 셀 데이터로 오프라인 검증<br>
+            C3 기준·k 파라미터·τ 계산 확인
+          </div>
         </div>
-        <div class="icon-row text-sm">
-          <span>✅</span>
-          <div>저온 창고 보관 후 선별 시 주의 → 5°C에서 오차 증가</div>
+      </div>
+      <!-- 2단계 -->
+      <div style="margin-bottom:10px;position:relative;">
+        <div style="position:absolute;left:-18px;width:12px;height:12px;background:#4caf50;border-radius:50%;top:3px;"></div>
+        <div class="card g" style="padding:10px 14px;">
+          <div class="ctitle green" style="font-size:0.8rem;">🔬 2단계 — 셀 재현 실험 (2개월)</div>
+          <div class="body-text" style="font-size:0.78rem;line-height:1.6;">
+            원통형 셀(21700/18650) 대상 재현 실험<br>
+            다양한 SOH·SOC에서 MAE 측정<br>
+            공정 온도 조건 (25°C±2) 성능 확인
+          </div>
         </div>
-        <div class="icon-row text-sm">
-          <span>✅</span>
-          <div>BT2152 정전압 홀딩의 <strong>기준 OCV를 빠르게 설정</strong>하는 데 활용 가능</div>
+      </div>
+      <!-- 3단계 -->
+      <div style="position:relative;">
+        <div style="position:absolute;left:-18px;width:12px;height:12px;background:#ff9800;border-radius:50%;top:3px;"></div>
+        <div class="card o" style="padding:10px 14px;">
+          <div class="ctitle orange" style="font-size:0.8rem;">🏭 3단계 — 공정 통합 (3개월~)</div>
+          <div class="body-text" style="font-size:0.78rem;line-height:1.6;">
+            사이클러 출력 → 실시간 OCV 예측 파이프라인<br>
+            BT2152B 연동: OCV 예측 → 즉시 정전압 설정<br>
+            자가방전 선별 시간 단축 및 불량 조기 감지
+          </div>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ===== SLIDE 10: 논문의 한계 ===== -->
-<div class="slide slide-dark" id="s10">
-  <div class="section-label">검토 · Limitations & Verification</div>
-  <div class="slide-title">논문의 한계 및 주의사항 (할루시네이션 검증)</div>
-  <div class="grid2" style="gap:24px;align-items:start;">
-    <div>
-      <div class="card card-red" style="margin-bottom:16px;">
-        <div style="font-weight:600;color:#ef9a9a;margin-bottom:10px;">⚠️ 논문이 명시한 한계점</div>
-        <div class="icon-row text-sm">
-          <span>❄️</span>
-          <div><strong>저온 (5°C) 성능 저하</strong>: MAE 최대 6.6 mV, 소요 시간 최대 9분. 저온에서 이완 과정이 단순 RC 모델과 크게 달라지기 때문</div>
-        </div>
-        <div class="icon-row text-sm" style="margin-top:10px;">
-          <span>📉</span>
-          <div><strong>SOC 50~55% 구간</strong>: OCV 곡선 평탄 → ΔV 신호 미약 → k&gt;2 이상 케이스 빈발 → C5 보정에도 오차 잔존</div>
-        </div>
-        <div class="icon-row text-sm" style="margin-top:10px;">
-          <span>🔋</span>
-          <div><strong>1차 RC 모델 단순화</strong>: 실제 배터리는 다중 시정수를 가짐. 이 방법은 이완 후반부의 지배적 시정수 하나만 포착</div>
-        </div>
-        <div class="icon-row text-sm" style="margin-top:10px;">
-          <span>🔬</span>
-          <div><strong>셀 종류 제한</strong>: LG 18650 F1L (NMC) 단일 화학계만 검증. 다른 화학계(LFP, NCA 등)는 별도 검증 필요</div>
+<!-- ══════════════════════════════════
+     SLIDE 12 · 결론
+══════════════════════════════════ -->
+<div class="slide bg-cover" id="s12">
+  <div class="label">결론 · Summary</div>
+  <div class="title">한 줄 요약: 6분이면 OCV를 안다</div>
+  <div class="content" style="gap:12px;">
+    <div class="g3" style="flex-shrink:0;">
+      <div class="card b" style="text-align:center;">
+        <div style="font-size:1.5rem;margin-bottom:6px;">🧮</div>
+        <div class="ctitle blue" style="text-align:center;">핵심 수식</div>
+        <div class="eq" style="font-size:0.78rem;margin-top:6px;">τ = −(dV/dt) / (d²V/dt²)</div>
+        <p class="body-text" style="margin-top:6px;font-size:0.76rem;">파라미터 없이 미분비만으로 시정수 계산</p>
+      </div>
+      <div class="card g" style="text-align:center;">
+        <div style="font-size:1.5rem;margin-bottom:6px;">⏱️</div>
+        <div class="ctitle green" style="text-align:center;">성능</div>
+        <div style="font-size:2rem;font-weight:800;color:#64b5f6;line-height:1.1;">6분</div>
+        <p class="body-text" style="font-size:0.76rem;">25°C, CTR, MAE &lt; 3 mV</p>
+      </div>
+      <div class="card o" style="text-align:center;">
+        <div style="font-size:1.5rem;margin-bottom:6px;">🏭</div>
+        <div class="ctitle orange" style="text-align:center;">공정 적용</div>
+        <p class="body-text" style="font-size:0.76rem;">추가 장비 없음<br>소프트웨어만으로 구현<br>BMS / 사이클러 즉시 적용</p>
+      </div>
+    </div>
+    <div class="g2" style="flex-shrink:0;">
+      <div class="card" style="flex-shrink:0;">
+        <div class="ctitle green">✅ 잘 동작하는 조건</div>
+        <div class="body-text" style="line-height:1.7;">
+          • 온도: 25°C ~ 45°C<br>
+          • 방식: CTR (충전 완료 후 이완)<br>
+          • SOH: 83% 이상<br>
+          • SOC: 10~45%, 60~90% 범위
         </div>
       </div>
-
-      <div class="card card-orange" style="font-size:0.85rem;">
-        <div style="font-weight:600;color:#ffcc80;margin-bottom:8px;">📋 논문 정보 검증 체크리스트</div>
-        <div style="line-height:2;font-size:0.82rem;">
-          <span style="color:#a5d6a7;">✅</span> 셀 모델명: LG 18650 F1L (원문 명시)<br>
-          <span style="color:#a5d6a7;">✅</span> 장비: Bio-Logic BCS-815 (원문 명시)<br>
-          <span style="color:#a5d6a7;">✅</span> MAE 수치: Table 2 원문에서 직접 인용<br>
-          <span style="color:#a5d6a7;">✅</span> 소요 시간: Table 3 원문에서 직접 인용<br>
-          <span style="color:#a5d6a7;">✅</span> n=90초 버퍼: 원문 Section 3.1 명시<br>
-          <span style="color:#a5d6a7;">✅</span> k≈1.3 이론값: 원문 Section 4.1 명시<br>
-          <span style="color:#a5d6a7;">✅</span> C3 기준 0.03mV: 원문 명시<br>
-          <span style="color:#a5d6a7;">✅</span> BMS 10/30초 간격 검증: 원문 Section 4.3 명시
+      <div class="card r" style="flex-shrink:0;">
+        <div class="ctitle red">⚠️ 주의할 조건</div>
+        <div class="body-text" style="line-height:1.7;">
+          • 5°C 저온 → 정확도 저하, 시간 증가<br>
+          • SOC 50~55% 평탄 구간 → k&gt;2<br>
+          • DTR 방식은 CTR보다 느리고 오차 큼<br>
+          • NMC 외 화학계는 별도 검증 필요
         </div>
       </div>
     </div>
-
-    <div>
-      <!-- 적용 범위 정리 -->
-      <div class="card card-blue" style="margin-bottom:16px;">
-        <div style="font-weight:600;color:#90caf9;margin-bottom:10px;">✅ 적용 가능 조건 (논문 기준)</div>
-        <table style="font-size:0.82rem;">
-          <thead><tr><th>항목</th><th>조건</th><th>성능 보장</th></tr></thead>
-          <tbody>
-            <tr><td>온도</td><td>25°C ~ 45°C</td><td class="td-good">MAE &lt; 4.1 mV ✅</td></tr>
-            <tr><td>온도</td><td>5°C</td><td class="td-warn">MAE &lt; 6.6 mV ⚠️</td></tr>
-            <tr><td>SOH</td><td>83% ~ 100%</td><td class="td-good">성능 유지 ✅</td></tr>
-            <tr><td>SOC 범위</td><td>10% ~ 45%, 60% ~ 90%</td><td class="td-good">안정 ✅</td></tr>
-            <tr><td>SOC 범위</td><td>50% ~ 55%</td><td class="td-warn">주의 필요 ⚠️</td></tr>
-            <tr><td>방식</td><td>CTR (충전 후)</td><td class="td-good">선호 ✅</td></tr>
-            <tr><td>데이터 간격</td><td>1~30초</td><td class="td-good">모두 동작 ✅</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="card" style="font-size:0.85rem;">
-        <div style="font-weight:600;color:#80deea;margin-bottom:8px;">🧪 실험 규모 및 검증 수준</div>
-        <div style="color:#cfd8dc;line-height:1.7;">
-          • 셀 수: <strong>3개</strong> (소규모 검증)<br>
-          • 노화 사이클: 최대 160사이클 (비교적 초기 노화)<br>
-          • SOC 해상도: 5% 간격 (10~90%)<br>
-          • 화학계: NMC 단일<br>
-          <span style="color:#ffcc80;">→ 실제 공정 적용 전 원통형 셀 대상 자체 검증 필요</span>
-        </div>
-      </div>
+    <div style="text-align:center;flex-shrink:0;" class="note">
+      출처: Ming-Ying Zhou et al., "Precise prediction of open circuit voltage of lithium ion batteries in a short time period,"
+      <em>J. Power Sources</em> 553 (2023) 232295. DOI: 10.1016/j.jpowsour.2022.232295
     </div>
   </div>
 </div>
 
-<!-- ===== SLIDE 11: 향후 계획 ===== -->
-<div class="slide slide-cover" id="s11">
-  <div class="section-label">향후 계획 · Future Plan</div>
-  <div class="slide-title">이 기술을 우리 공정에 적용하겠습니다</div>
-  <div class="grid2" style="gap:28px;align-items:start;">
-    <div>
-      <div class="card card-green" style="margin-bottom:16px;">
-        <div style="font-weight:600;color:#a5d6a7;margin-bottom:12px;">🎯 적용 목표</div>
-        <div class="icon-row">
-          <span class="icon">⏱️</span>
-          <div>
-            <strong>Aging 단계 OCV 측정 시간 단축</strong><br>
-            <span style="font-size:0.85rem;color:#b0bec5;">기존 7일 방치법 → 6분 예측으로 대체</span>
-          </div>
-        </div>
-        <div class="icon-row" style="margin-top:12px;">
-          <span class="icon">🔍</span>
-          <div>
-            <strong>BT2152B 정전압 홀딩 기준점 빠른 설정</strong><br>
-            <span style="font-size:0.85rem;color:#b0bec5;">OCV 6분 예측 → 즉시 정전압 인가 → 자가방전 10분 선별</span>
-          </div>
-        </div>
-        <div class="icon-row" style="margin-top:12px;">
-          <span class="icon">📊</span>
-          <div>
-            <strong>셀 품질 조기 판별 지표 추가</strong><br>
-            <span style="font-size:0.85rem;color:#b0bec5;">τ 값 자체가 내부 상태 지표 → 이상 셀 조기 감지</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="card card-blue">
-        <div style="font-weight:600;color:#90caf9;margin-bottom:10px;">💻 구현 계획</div>
-        <div class="text-sm" style="color:#cfd8dc;line-height:1.7;">
-          사이클러(Cycler) 출력 데이터 활용<br>
-          → <strong>Python 스크립트</strong>로 알고리즘 구현<br>
-          → 추가 장비 없이 기존 데이터로 검증<br>
-          → 상용 셀(원통형) 대상 재현 실험
-        </div>
-        <div style="background:rgba(0,0,0,0.4);border-radius:6px;padding:10px;margin-top:8px;font-family:monospace;font-size:0.78rem;color:#80deea;">
-          # 구현 핵심 코드 (의사코드)<br>
-          tau = -np.polyfit(t_win, V_win, 1)[0] /<br>
-                (np.polyfit(t_win, V_win, 2)[0]*2)<br>
-          OCV = V_tc - dVdt * tau
-        </div>
-      </div>
-    </div>
-
-    <div>
-      <div style="font-weight:600;color:#80deea;margin-bottom:14px;">📅 실행 로드맵</div>
-
-      <!-- 타임라인 -->
-      <div style="position:relative;padding-left:30px;">
-        <div style="position:absolute;left:8px;top:10px;bottom:10px;width:2px;background:linear-gradient(180deg,#2196f3,#4caf50,#ff9800);border-radius:1px;"></div>
-
-        <div style="margin-bottom:20px;">
-          <div style="position:absolute;left:2px;width:14px;height:14px;background:#2196f3;border-radius:50%;margin-top:2px;"></div>
-          <div style="background:rgba(33,150,243,0.12);border:1px solid rgba(33,150,243,0.4);border-radius:8px;padding:12px 16px;">
-            <div style="color:#90caf9;font-weight:600;font-size:0.92rem;">📌 1단계 — 알고리즘 구현 (1개월)</div>
-            <div style="color:#b0bec5;font-size:0.82rem;margin-top:4px;line-height:1.5;">
-              • Python으로 Zhou et al. 알고리즘 재현<br>
-              • 보유 셀 데이터로 오프라인 검증<br>
-              • C3 기준, k 파라미터, τ 계산 검증
-            </div>
-          </div>
-        </div>
-
-        <div style="margin-bottom:20px;">
-          <div style="position:absolute;left:2px;width:14px;height:14px;background:#4caf50;border-radius:50%;margin-top:2px;"></div>
-          <div style="background:rgba(76,175,80,0.1);border:1px solid rgba(76,175,80,0.4);border-radius:8px;padding:12px 16px;">
-            <div style="color:#a5d6a7;font-weight:600;font-size:0.92rem;">🔬 2단계 — 셀 검증 (2개월)</div>
-            <div style="color:#b0bec5;font-size:0.82rem;margin-top:4px;line-height:1.5;">
-              • 원통형 셀(21700/18650) 대상 재현 실험<br>
-              • 다양한 SOH, SOC에서 MAE 측정<br>
-              • 공정 온도 조건 (25°C±2) 성능 확인
-            </div>
-          </div>
-        </div>
-
-        <div style="margin-bottom:20px;">
-          <div style="position:absolute;left:2px;width:14px;height:14px;background:#ff9800;border-radius:50%;margin-top:2px;"></div>
-          <div style="background:rgba(255,152,0,0.1);border:1px solid rgba(255,152,0,0.4);border-radius:8px;padding:12px 16px;">
-            <div style="color:#ffcc80;font-weight:600;font-size:0.92rem;">🏭 3단계 — 공정 통합 (3개월~)</div>
-            <div style="color:#b0bec5;font-size:0.82rem;margin-top:4px;line-height:1.5;">
-              • 사이클러 출력 → 실시간 OCV 예측 파이프라인<br>
-              • BT2152B 연동: OCV 예측 → 즉시 정전압 설정<br>
-              • 자가방전 선별 시간: 현행 대비 단축 목표
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card card-orange" style="font-size:0.85rem;margin-top:4px;">
-        <div style="font-weight:600;color:#ffcc80;margin-bottom:6px;">💬 기대 효과</div>
-        <div style="color:#cfd8dc;line-height:1.6;">
-          추가 장비 <strong style="color:#a5d6a7;">불필요</strong> · 기존 사이클러 활용<br>
-          Aging 단계 체류 시간 단축 → <strong style="color:#a5d6a7;">공정 처리량(Throughput) 향상</strong><br>
-          OCV 기반 이상 셀 조기 감지 → <strong style="color:#a5d6a7;">저전압 불량 선별 보완</strong>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ===== SLIDE 12: 정리 ===== -->
-<div class="slide slide-cover" id="s12">
-  <div class="section-label">결론 · Summary</div>
-  <div class="slide-title" style="font-size:2.2rem;">한 줄 요약: 6분이면 OCV를 안다</div>
-  <div class="grid3" style="margin-top:20px;gap:18px;">
-    <div class="card card-blue" style="text-align:center;">
-      <div style="font-size:2rem;margin-bottom:10px;">🧮</div>
-      <div style="font-weight:600;color:#90caf9;margin-bottom:8px;">핵심 수식</div>
-      <div style="font-family:monospace;font-size:0.85rem;color:#80deea;background:rgba(0,0,0,0.4);padding:8px;border-radius:6px;">
-        τ = −(dV/dt) / (d²V/dt²)
-      </div>
-      <div style="font-size:0.82rem;color:#b0bec5;margin-top:8px;line-height:1.5;">파라미터 없이<br>미분비만으로 시정수 계산</div>
-    </div>
-    <div class="card card-green" style="text-align:center;">
-      <div style="font-size:2rem;margin-bottom:10px;">⏱️</div>
-      <div style="font-weight:600;color:#a5d6a7;margin-bottom:8px;">성능</div>
-      <div style="font-size:1.6rem;font-weight:700;color:#64b5f6;">6분</div>
-      <div style="font-size:0.82rem;color:#b0bec5;margin-top:4px;line-height:1.5;">25°C 기준<br>MAE &lt; 3 mV</div>
-    </div>
-    <div class="card card-orange" style="text-align:center;">
-      <div style="font-size:2rem;margin-bottom:10px;">🏭</div>
-      <div style="font-weight:600;color:#ffcc80;margin-bottom:8px;">공정 적용</div>
-      <div style="font-size:0.85rem;color:#cfd8dc;line-height:1.6;">추가 장비 없음<br>소프트웨어만으로 구현<br>BMS/사이클러 즉시 적용</div>
-    </div>
-  </div>
-
-  <div style="margin-top:24px;display:flex;gap:16px;flex-wrap:wrap;">
-    <div class="card" style="flex:1;min-width:250px;">
-      <div style="font-weight:600;color:#80deea;margin-bottom:8px;">✅ 잘 동작하는 조건</div>
-      <div class="text-sm" style="color:#cfd8dc;line-height:1.7;">
-        • 25°C 이상 실온/고온 환경<br>
-        • CTR 방식 (충전 완료 후 이완)<br>
-        • SOH 83% 이상<br>
-        • SOC 10~45%, 60~90% 범위
-      </div>
-    </div>
-    <div class="card" style="flex:1;min-width:250px;">
-      <div style="font-weight:600;color:#ef9a9a;margin-bottom:8px;">⚠️ 주의할 조건</div>
-      <div class="text-sm" style="color:#cfd8dc;line-height:1.7;">
-        • 5°C 저온 → 정확도 저하<br>
-        • SOC 50~55% 평탄 구간<br>
-        • DTR 방식은 CTR보다 느리고 부정확<br>
-        • NMC 외 화학계는 별도 검증 필요
-      </div>
-    </div>
-    <div class="card card-green" style="flex:1;min-width:250px;">
-      <div style="font-weight:600;color:#a5d6a7;margin-bottom:8px;">🚀 다음 단계</div>
-      <div class="text-sm" style="color:#cfd8dc;line-height:1.7;">
-        • Python 알고리즘 구현<br>
-        • 보유 셀 데이터로 오프라인 검증<br>
-        • 원통형 셀 재현 실험<br>
-        • BT2152B 선별 프로세스 통합
-      </div>
-    </div>
-  </div>
-
-  <div style="text-align:center;margin-top:20px;color:#546e7a;font-size:0.82rem;">
-    출처: Ming-Ying Zhou et al., "Precise prediction of open circuit voltage of lithium ion batteries in a short time period,"
-    <em>J. Power Sources</em> 553 (2023) 232295. DOI: 10.1016/j.jpowsour.2022.232295
-  </div>
-</div>
-
-<!-- ===== NAVIGATION ===== -->
+<!-- ══════════════════════════════════
+     NAVIGATION
+══════════════════════════════════ -->
 <div id="nav">
-  <button onclick="prevSlide()">◀ 이전</button>
-  <div class="dot-nav" id="dots"></div>
-  <span id="slide-counter">1 / 12</span>
-  <button onclick="nextSlide()">다음 ▶</button>
+  <button onclick="go(cur-1)">◀</button>
+  <div class="dots" id="dots"></div>
+  <span id="sc">1 / 12</span>
+  <button onclick="go(cur+1)">▶</button>
 </div>
 
 <script>
-const slides = document.querySelectorAll('.slide');
-const totalSlides = slides.length;
-let current = 0;
-
-// 점 네비게이션 생성
-const dotsContainer = document.getElementById('dots');
-slides.forEach((_, i) => {
-  const dot = document.createElement('div');
-  dot.className = 'dot' + (i === 0 ? ' active' : '');
-  dot.onclick = () => goTo(i);
-  dotsContainer.appendChild(dot);
-});
-
-function updateNav() {
-  document.getElementById('slide-counter').textContent = (current + 1) + ' / ' + totalSlides;
-  document.querySelectorAll('.dot').forEach((d, i) => {
-    d.className = 'dot' + (i === current ? ' active' : '');
-  });
-  const pct = ((current + 1) / totalSlides * 100).toFixed(1);
-  document.getElementById('progress').style.width = pct + '%';
+const S=document.querySelectorAll('.slide');
+const N=S.length;
+let cur=0;
+const dc=document.getElementById('dots');
+for(let i=0;i<N;i++){
+  const d=document.createElement('div');
+  d.className='dot'+(i===0?' on':'');
+  d.onclick=()=>go(i);
+  dc.appendChild(d);
 }
-
-function goTo(n) {
-  slides[current].classList.remove('active');
-  current = Math.max(0, Math.min(n, totalSlides - 1));
-  slides[current].classList.add('active');
-  updateNav();
+function go(n){
+  n=Math.max(0,Math.min(n,N-1));
+  S[cur].classList.remove('active');
+  cur=n;
+  S[cur].classList.add('active');
+  document.getElementById('sc').textContent=(cur+1)+' / '+N;
+  document.querySelectorAll('.dot').forEach((d,i)=>d.className='dot'+(i===cur?' on':''));
+  document.getElementById('prog').style.width=((cur+1)/N*100)+'%';
 }
-
-function nextSlide() { goTo(current + 1); }
-function prevSlide() { goTo(current - 1); }
-
-// 키보드 제어
-document.addEventListener('keydown', e => {
-  if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); nextSlide(); }
-  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); prevSlide(); }
-  if (e.key === 'Home') goTo(0);
-  if (e.key === 'End') goTo(totalSlides - 1);
-  // 숫자키
-  const n = parseInt(e.key);
-  if (!isNaN(n) && n >= 1 && n <= 9) goTo(n - 1);
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' '){e.preventDefault();go(cur+1);}
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();go(cur-1);}
+  if(e.key==='Home')go(0);
+  if(e.key==='End')go(N-1);
+  const n=parseInt(e.key);
+  if(!isNaN(n)&&n>=1&&n<=9)go(n-1);
 });
-
-updateNav();
+go(0);
 </script>
 </body>
 </html>

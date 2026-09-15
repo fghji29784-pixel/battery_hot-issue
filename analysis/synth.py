@@ -23,9 +23,11 @@ MINS = list(range(5, 31))
 KB, EA = 8.617333262e-5, 0.94          # eV/K, eV
 
 
-def make(n_tray=41, per=142, n_bad=8, seed=0, layer_effect=0.0):
+def make(n_tray=41, per=142, n_bad=8, seed=0, layer_effect=0.0, grid_effect=0.0):
     """layer_effect: 트레이 안에서 층이 3일 ΔOCV 를 흔드는 크기 [mV/층].
-    0 이면 층 효과 없음. 실데이터에서 층이 순위를 지배하는지 검정할 때 쓴다."""
+    grid_effect: 트레이 안 '자리'(행)에 따른 냉각 구배 [K/min per 행].
+      실데이터 히트맵처럼 한쪽 행이 더 많이 식게 만든다.
+      0 이면 공간 구배 없음. rescue.py 검정용."""
     rng = np.random.default_rng(seed)
     n = n_tray * per
     n_bad = min(n_bad, n)
@@ -35,8 +37,15 @@ def make(n_tray=41, per=142, n_bad=8, seed=0, layer_effect=0.0):
     t0_tray   = rng.normal(28.0, 1.6, n_tray)              # 투입 온도 [degC]
     drift_tray= (25.0 - t0_tray) / 260.0                   # 챔버 25도로 수렴 [K/min]
 
-    ti = np.repeat(t0_tray, per) + rng.normal(0, 0.12, n)   # 셀별 초기온도
-    dTdt = np.repeat(drift_tray, per) + rng.normal(0, 0.0012, n)
+    # 트레이 안 자리 — 셀 번호 1..per 를 열-우선 격자로 (실데이터와 같은 규칙)
+    ncol = 12 if per % 12 == 0 else max(1, int(round(np.sqrt(per))))
+    pos = np.tile(np.arange(per), n_tray)
+    grow = pos // ncol                                      # 행 인덱스
+
+    ti = np.repeat(t0_tray, per) + rng.normal(0, 0.12, n) \
+         + grid_effect * 30.0 * grow / max(grow.max(), 1)   # 뒤쪽 행이 뜨겁게 들어옴
+    dTdt = np.repeat(drift_tray, per) + rng.normal(0, 0.0012, n) \
+           - grid_effect * grow / max(grow.max(), 1)        # 그만큼 더 식는다
     tf = ti + dTdt * 30.0
     # 층은 트레이 '안에서' 갈린다. 한 트레이에 여러 층이 섞여 있다.
     layer = np.tile(np.arange(1, 9), n // 8 + 1)[:n]
@@ -80,7 +89,7 @@ def make(n_tray=41, per=142, n_bad=8, seed=0, layer_effect=0.0):
     grade[rng.choice(rest, min(72, len(rest)), replace=False)] = "Q"
     grade[bad] = "E"
 
-    d = {"tray_id": tray, "cell_no": [f"C{i:06d}" for i in range(n)]}
+    d = {"tray_id": tray, "cell_no": np.tile(np.arange(1, per + 1), n_tray)}
     for j, m in enumerate(MINS):
         d[f"i_{m}min"] = I[:, j]
     for j, m in enumerate(MINS):
@@ -102,6 +111,7 @@ if __name__ == "__main__":
         if x.startswith("--per="):   kw["per"] = int(x.split("=")[1])
         if x.startswith("--seed="):  kw["seed"] = int(x.split("=")[1])
         if x.startswith("--layer="):  kw["layer_effect"] = float(x.split("=")[1])
+        if x.startswith("--grid="):   kw["grid_effect"] = float(x.split("=")[1])
     out = a[0] if a else "synth.xlsx"
     df = make(**kw)
     df.to_excel(out, index=False) if out.lower().endswith((".xlsx", ".xlsm")) \

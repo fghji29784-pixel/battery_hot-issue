@@ -1,0 +1,234 @@
+# -*- coding: utf-8 -*-
+"""안 잡히는 셀을 살릴 수 있는가 — 트레이 내 공간 보정과 곡선 형상
+
+  python rescue.py "데이터.xlsx"
+  python rescue.py "데이터.xlsx" --grid=12x12 --order=col
+  python rescue.py "데이터.xlsx" --at=15
+
+결과는 analysis/results/ 에 자동 저장된다 (--save=경로 / --no-save).
+
+────────────────────────────────────────────────────────────────────────
+ 왜 만들었는가 — 트레이 히트맵이 알려준 것
+────────────────────────────────────────────────────────────────────────
+ CFDD011456 의 히트맵에서 두 가지가 보였다.
+
+  ① 전류에 뚜렷한 공간 구배가 있다
+     A행 쪽은 +4 uA 대, L행 쪽은 음수(-6 uA 까지). 셀 고유 특성이 아니라
+     트레이 안의 '자리' 가 전류를 결정하고 있다.
+
+  ② 그 구배가 온도 구배와 정확히 반대다
+     dT(=T_start-T_final) 히트맵은 A행 쪽이 0.03~0.05, L행 쪽이 0.11~0.16.
+     즉 L행 셀이 더 많이 식고, 그만큼 전류가 낮게 읽힌다.
+     rho(dT/dt, I) = +0.485 (부록 9) 를 트레이 하나 안에서 그림으로 본 것이다.
+
+ 그리고 셀 번호가 곧 자리다. 140 -> L08 (열-우선 12x12).
+ 즉 우리는 이미 모든 셀의 트레이 내 물리적 위치를 알고 있다.
+
+ → 온도를 재서 보정하는 대신, '자리' 로 보정할 수 있다.
+   온도 측정은 잡음이 크지만(셀당 ±0.05 K 요동) 자리는 정확하다.
+
+────────────────────────────────────────────────────────────────────────
+ 또 하나 — 곡선 형상
+────────────────────────────────────────────────────────────────────────
+ 셀 140 의 전류 곡선은 U자였다. 0 -> -1.8 uA(15분 부근) -> -0.2 uA(30분).
+ 다른 셀은 단조 증가인데 이 셀만 내려갔다 올라온다.
+
+ 열드리프트로 설명된다. 온도가 떨어지는 동안은 음의 인공전류가 실리고,
+ 온도가 안정되면 그 항이 사라지면서 진짜 자가방전이 드러난다.
+ 그렇다면 '값' 이 아니라 '회복 기울기' 가 신호일 수 있다.
+
+ 값 피처(i_XXmin)로는 이 셀이 양품보다도 낮게 나온다. 형상 피처는 다르다.
+"""
+import sys, re, warnings
+warnings.filterwarnings("ignore")
+import numpy as np, pandas as pd
+import runlog
+from predict_xlsx import (load, I_PAT, COND_PAT, TARGET_PAT, TRAY_PAT,
+                          CELL_PAT, measured_upto)
+from correct import between_tray_share, within_tray_rho, topk_recall, safe_z
+
+GRADE_KEY = "판정등급"
+
+
+def grid_pos(num, rows, cols, order):
+    """셀 번호를 (행 인덱스, 열 인덱스) 로 되돌린다.
+
+    order='col' : A1,A2,..,A12,B1,..  (열-우선. 140 -> L08)
+    order='row' : A1,B1,..,L1,A2,..   (행-우선)
+    """
+    k = np.asarray(num, float) - 1
+    bad = ~np.isfinite(k) | (k < 0) | (k >= rows * cols)
+    k = np.where(bad, 0, k).astype(int)
+    r, c = (k // cols, k % cols) if order == "col" else (k % rows, k // rows)
+    return np.where(bad, -1, r), np.where(bad, -1, c)
+
+
+def main(spec, at=None, rows=None, cols=None, order="col"):
+    df, _ = load(spec)
+    icols = sorted([c for c in df.columns if I_PAT.match(c)], key=lambda c: int(I_PAT.match(c).group(1)))
+    mins  = [int(I_PAT.match(c).group(1)) for c in icols]
+    conds = [c for c in df.columns if COND_PAT.match(c) and pd.api.types.is_numeric_dtype(df[c])]
+    tgts  = [c for c in df.columns if TARGET_PAT.search(c)]
+    tray  = next((c for c in df.columns if TRAY_PAT.search(c)), None)
+    cellc = next((c for c in df.columns if CELL_PAT.match(str(c).strip())), None)
+    gcol  = next((c for c in df.columns if GRADE_KEY in str(c)), None)
+    if not icols or cellc is None:
+        print("  !! 전류 컬럼 또는 셀 번호 컬럼을 못 찾았습니다."); return
+
+    D = df.copy()
+    D["_tray"] = D[tray].astype(str) if tray else "ALL"
+    D["_num"] = pd.to_numeric(D[cellc], errors="coerce")
+    for c in icols + conds: D[c] = pd.to_numeric(D[c], errors="coerce")
+    D = D.dropna(subset=icols + ["_num"]).reset_index(drop=True)
+    D["_upto"] = measured_upto(D[icols].values, mins)
+    D = D[D["_upto"] >= mins[-1]].reset_index(drop=True)
+    n = len(D); g = D["_tray"].values
+    if n < 30:
+        print(f"\n  !! {mins[-1]}분까지 측정된 셀이 {n}개뿐입니다."); return
+    at = at or (15 if 15 in mins else mins[-1])
+    acol = f"i_{at}min" if f"i_{at}min" in D.columns else icols[-1]
+    y = D[gcol].astype(str).str.strip().str.upper().eq("E").values.astype(int) if gcol else np.zeros(n, int)
+    yv = pd.to_numeric(D[tgts[-1]], errors="coerce").values if tgts else None
+
+    print("=" * 78); print(" 안 잡히는 셀을 살릴 수 있는가 — 공간 보정과 곡선 형상"); print("=" * 78)
+    print(f"  {n:,}셀 / 트레이 {D['_tray'].nunique()}개 / 평가 시점 {at}분"
+          + (f" / 불량(E) {int(y.sum())}개" if y.sum() else ""))
+
+    # ── [1] 격자 복원 ────────────────────────────────────────────
+    sz = int(D.groupby("_tray").size().median())
+    if rows is None or cols is None:
+        r0 = int(round(np.sqrt(sz)))
+        while r0 > 1 and sz % r0: r0 -= 1
+        rows, cols = (r0, sz // r0) if r0 > 1 else (1, sz)
+    print("\n" + "-" * 78); print(" [1] 셀 번호에서 트레이 내 자리 복원"); print("-" * 78)
+    print(f"    트레이당 셀 수 중앙 {sz}  →  격자 {rows} x {cols}  (순서: {order}-우선)")
+    R, C = grid_pos(D["_num"].values, rows, cols, order)
+    D["_r"], D["_c"] = R, C
+    ok = (R >= 0).mean()
+    print(f"    번호가 격자 범위 안인 셀 {ok*100:.1f}%"
+          + ("" if ok > 0.98 else "   ← 격자 크기나 순서가 틀렸을 수 있다. --grid / --order 로 지정할 것"))
+    ex = D.index[D["_num"] == 140]
+    if len(ex):
+        i = ex[0]
+        print(f"    검산: 셀 번호 140 → {chr(65+int(D['_r'][i]))}{int(D['_c'][i])+1:02d}"
+              "   (히트맵 제목이 L08 이면 맞다)")
+
+    # ── [2] 공간 구배 ────────────────────────────────────────────
+    print("\n" + "-" * 78)
+    print(" [2] 자리가 전류를 얼마나 설명하는가  (트레이 기준선을 뺀 뒤)")
+    print("-" * 78)
+    tn = lambda v: v - pd.Series(v).groupby(g).transform("median").values
+    tnI = tn(D[acol].values)
+    tot = float(np.nanvar(tnI))
+
+    def share(key):
+        m = pd.Series(tnI).groupby(D[key].values).transform("mean").values
+        return float(np.nanvar(m) / tot) if tot > 0 else float("nan")
+
+    print(f"    {'구분':<22}{'분산 설명 비중':>14}")
+    print("    " + "-" * 36)
+    print(f"    {'행 (A~)':<22}{share('_r')*100:>13.1f}%")
+    print(f"    {'열 (1~)':<22}{share('_c')*100:>13.1f}%")
+    D["_rc"] = D["_r"] * 1000 + D["_c"]
+    print(f"    {'자리 (행x열)':<22}{share('_rc')*100:>13.1f}%")
+    if "layer" in D.columns:
+        print(f"    {'층 (참고)':<22}{share('layer')*100:>13.1f}%")
+
+    prof = pd.Series(tnI).groupby(D["_r"].values).median()
+    print(f"\n    행별 전류 (트레이 중앙값 대비)")
+    for r_, v_ in prof.items():
+        if r_ < 0: continue
+        bar = "█" * int(min(abs(v_) / (prof.abs().max() + 1e-300) * 24, 24))
+        print(f"      {chr(65+int(r_))}  {v_:>12.4g}  {'' if v_>=0 else '-'}{bar}")
+    if "t_init" in D.columns and "t_final" in D.columns:
+        dT = tn((D["t_init"] - D["t_final"]).values)
+        pr2 = pd.Series(dT).groupby(D["_r"].values).median()
+        from scipy.stats import spearmanr
+        rr = spearmanr(prof.values, pr2.reindex(prof.index).values).statistic
+        print(f"\n    행별 전류 와 행별 냉각량(T_start-T_final) 의 순위상관 = {rr:+.3f}")
+        print("      → 음수면 '많이 식은 행일수록 전류가 낮다' 는 뜻이다. 열드리프트와 부합.")
+
+    # ── [3] 점수 비교 ────────────────────────────────────────────
+    print("\n" + "-" * 78)
+    print(" [3] 공간 보정과 곡선 형상이 검출을 바꾸는가")
+    print("-" * 78)
+    # 공간 보정: 트레이 정규화 전류에서 '그 자리의 전체 평균' 을 뺀다
+    pos = pd.Series(tnI).groupby(D["_rc"].values).transform("median").values
+    sp = tnI - pos
+
+    # 곡선 형상: 후반 기울기와 최저점 대비 회복량
+    V = D[icols].values
+    lateA = next((j for j, m in enumerate(mins) if m >= at - 10), 0)
+    lateB = next((j for j, m in enumerate(mins) if m >= at), len(mins) - 1)
+    span = max(mins[lateB] - mins[lateA], 1)
+    late = (V[:, lateB] - V[:, lateA]) / span
+    upto = np.array([j for j, m in enumerate(mins) if m <= at])
+    rec = V[:, upto[-1]] - V[:, upto].min(1)
+
+    cand = [("① 트레이 정규화 전류", tnI),
+            ("② + 자리 보정", sp),
+            (f"③ 후반 기울기 ({mins[lateA]}~{mins[lateB]}분)", late),
+            ("④ 후반 기울기 + 자리보정", late - pd.Series(late).groupby(D["_rc"].values).transform("median").values),
+            ("⑤ 최저점 대비 회복량", rec),
+            ("⑥ 자리보정 전류 + 회복량", safe_z(np.c_[sp, rec])[0].sum(1))]
+    hdr = f"    {'점수':<28}{'트레이간':>9}"
+    if yv is not None: hdr += f"{'트레이내rho':>12}"
+    if y.sum(): hdr += f"{'상위1%':>8}{'상위5%':>8}{'최악셀 검사율':>14}"
+    print(hdr); print("    " + "-" * (len(hdr) - 4))
+    worst = {}
+    for nm, s in cand:
+        line = f"    {nm:<28}{between_tray_share(s, g)*100:>8.1f}%"
+        if yv is not None: line += f"{within_tray_rho(s, yv, g)[0]:>12.3f}"
+        if y.sum():
+            t = topk_recall(s, y)
+            need = max((np.sum(s > s[i]) + 1) / n for i in np.where(y == 1)[0])
+            worst[nm] = need
+            line += f"{t[0.01]*100:>7.0f}%{t[0.05]*100:>7.0f}%{need*100:>13.2f}%"
+        print(line)
+    print("""
+    → '최악셀 검사율' 이 이 표의 목적이다. 불량을 전부 잡는 데 필요한 검사 비율이며,
+      안 잡히는 한 셀이 어디 있는지가 그대로 드러난다.""")
+
+    # ── [4] 불량 셀의 자리 ───────────────────────────────────────
+    if y.sum():
+        print("\n" + "-" * 78); print(" [4] 불량 셀은 트레이 어디에 있는가"); print("-" * 78)
+        idx = np.where(y == 1)[0]
+        print(f"    {'셀':>6}{'자리':>7}{'트레이':>18}{'트레이대비 전류':>16}{'후반기울기':>12}")
+        print("    " + "-" * 59)
+        for i in idx:
+            print(f"    {int(D['_num'][i]):>6}{chr(65+int(D['_r'][i]))+str(int(D['_c'][i])+1).zfill(2):>7}"
+                  f"{D['_tray'][i]:>18}{tnI[i]:>16.4g}{late[i]:>12.4g}")
+        rc = pd.Series([chr(65+int(r)) for r in D["_r"][idx]]).value_counts()
+        print(f"\n    행 분포: " + ", ".join(f"{k}{v}개" for k, v in rc.items()))
+        allr = pd.Series([chr(65+int(r)) for r in D["_r"]]).value_counts(normalize=True)
+        top = rc.index[0]
+        print(f"      {top}행에 {rc.iloc[0]}/{len(idx)}개. 전체에서 {top}행 비중은 {allr[top]*100:.1f}%.")
+        print("""      → 특정 행에 몰려 있으면 그 자리가 불량을 만드는지(진짜),
+        아니면 그 자리가 측정을 왜곡해 불량으로 보이게 하는지(가짜) 갈라야 한다.
+        [2] 의 냉각량 상관이 그 단서다.""")
+
+    print("\n" + "=" * 78)
+    print(""" 이 스크립트가 시험하는 것
+   1. 셀 번호로 트레이 내 자리를 복원할 수 있다 (히트맵이 근거).
+   2. 자리로 보정하면 온도를 재지 않고도 열드리프트를 지울 수 있다.
+      온도 측정은 셀당 ±0.05 K 로 요동하지만 자리는 정확하다.
+   3. 값이 아니라 곡선 형상(회복 기울기)이 신호일 수 있다.
+      열드리프트에 눌린 셀은 값은 낮아도 회복은 빠르다.
+ [3] 의 '최악셀 검사율' 이 ① 보다 뚜렷이 낮아지면 그 방법이 답이다.""")
+    print("=" * 78)
+
+
+if __name__ == "__main__":
+    a = [x for x in sys.argv[1:] if not x.startswith("--")]
+    if not a: print(__doc__)
+    else:
+        at, rw, cl, od = None, None, None, "col"
+        for x in sys.argv:
+            if x.startswith("--at="): at = int(x.split("=")[1])
+            if x.startswith("--order="): od = x.split("=")[1].strip().lower()[:3]
+            if x.startswith("--grid="):
+                m = re.match(r"(\d+)\s*[xX*]\s*(\d+)", x.split("=")[1])
+                if m: rw, cl = int(m.group(1)), int(m.group(2))
+        sv, en = runlog.parse(sys.argv)
+        with runlog.saving("rescue", a[0], sys.argv, sv, en):
+            main(a[0], at, rw, cl, od)

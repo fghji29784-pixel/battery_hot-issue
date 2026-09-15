@@ -112,6 +112,12 @@ def main(spec, at=None, ng_codes=("E",), no_model=False):
                                 else float(np.nanmedian(D[c])) for c in cov])
                 Zc = np.nan_to_num((Xc - ref) / sd, nan=0.0, posinf=0.0, neginf=0.0)
                 scores.append(("물리보정 P2", D[acol].values - (Zc @ b.coef_)))
+                # P1 — 셀별 조건까지 써서 보정한다. 트레이 내 순위도 바뀐다.
+                # 트레이 안에서 혼자 열평형이 안 된 셀은 P2 로는 살릴 수 없다.
+                # 전체 성능은 P1 이 나빴지만(부록 9), 특정 셀에는 이쪽이 필요하다.
+                Xi = D[cov].values.astype(float)
+                Zi = np.nan_to_num((Xi - ref) / sd, nan=0.0, posinf=0.0, neginf=0.0)
+                scores.append(("물리보정 P1", D[acol].values - (Zi @ b.coef_)))
 
     # 전류만 모델 (조건 피처 제외 — 부록 12 의 결론)
     # 교차검증이라 셀 수가 많으면 몇 분 걸린다. 명부만 빨리 보려면 --no-model.
@@ -190,8 +196,29 @@ def main(spec, at=None, ng_codes=("E",), no_model=False):
         print(f"    {nm:<16}{v[wi]:>12.4g}{np.nanmedian(v[others]):>16.4g}{np.nanmedian(v[good]):>12.4g}")
     tnv = tn(D[acol].values)
     print(f"    {'트레이대비 전류':<16}{tnv[wi]:>12.4g}{np.nanmedian(tnv[others]):>16.4g}{np.nanmedian(tnv[good]):>12.4g}")
+
     if yv is not None:
         print(f"    {'ΔOCV':<16}{yv[wi]:>12.4g}{np.nanmedian(yv[others]):>16.4g}{np.nanmedian(yv[good]):>12.4g}")
+
+    # 이 셀이 '자기 트레이 안에서' 얼마나 특이한가 — 트레이 단위 보정으로
+    # 못 잡는 이유가 여기 있다. 트레이 공통이 아니라 이 셀만의 조건이면
+    # P2 로는 안 되고 P1 이 필요하다.
+    same = np.where(g == g[wi])[0]
+    rankcols = [c for c in ("t_init", "t_final", "delta_t", "_dTdt", "v_init",
+                            "rwiring", acol) if c in D.columns]
+    if len(same) >= 10 and rankcols:
+        print(f"\n    이 셀이 자기 트레이({g[wi]}, {len(same)}셀) 안에서 몇 등인가  (1등 = 가장 큼)")
+        print(f"    {'항목':<16}{'순위':>12}{'백분위':>10}")
+        print("    " + "-" * 38)
+        for c in rankcols:
+            v = pd.to_numeric(D[c], errors="coerce").values[same]
+            if not np.isfinite(v).any(): continue
+            r = int(np.nansum(v > v[list(same).index(wi)]) + 1)
+            nm = {"_dTdt": "dT/dt", acol: f"전류 {at}분"}.get(c, c)
+            print(f"    {nm:<16}{f'{r}/{len(same)}':>12}{r / len(same) * 100:>9.0f}%")
+        print("""      → 온도·전압이 트레이 안에서 극단(1등이나 꼴찌)이면,
+        이 셀만의 조건이므로 트레이 단위 보정(P2)으로는 못 지운다.
+        위 [2] 의 'P1' 열이 P2 보다 크게 낫다면 그것이 근거다.""")
     print("""
     → '이 셀' 이 '다른 불량' 이 아니라 '양품' 쪽에 가까운 항목이 원인 후보다.
       전류가 양품과 같으면, SDM 이 이 셀의 이상을 못 본 것이다.

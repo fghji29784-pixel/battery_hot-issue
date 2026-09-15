@@ -7,6 +7,7 @@
   python predict_xlsx.py "데이터.xlsx" --plot
   python predict_xlsx.py "폴더"                       # 폴더 안 전부
   python predict_xlsx.py "데이터.xlsx" --use-opt      # 보정값/z_score 도 피처로 사용
+  python predict_xlsx.py "데이터.xlsx" --drop=layer   # 특정 조건 피처를 빼고 확인
 
 처리하는 두 가지 함정
   ① 15분만 측정해도 30분까지 값이 채워지는 경우
@@ -70,7 +71,7 @@ def measured_upto(V, mins, rtol=1e-9):
     return mins[idx]
 
 
-def main(spec, do_plot=False, only_inspect=False, use_opt=False):
+def main(spec, do_plot=False, only_inspect=False, use_opt=False, drop=()):
     df, nfile = load(spec)
     print("="*80); print(f" 데이터 {df.shape[0]:,}행 x {df.shape[1]}열  (파일 {nfile}개)"); print("="*80)
 
@@ -78,6 +79,11 @@ def main(spec, do_plot=False, only_inspect=False, use_opt=False):
     scols  = sorted([c for c in df.columns if SLOPE_PAT.match(c)], key=lambda c:int(SLOPE_PAT.match(c).group(1)))
     mins   = [int(I_PAT.match(c).group(1)) for c in icols]
     conds  = [c for c in df.columns if COND_PAT.match(c) and pd.api.types.is_numeric_dtype(df[c])]
+    if drop:
+        dl = [d.lower() for d in drop]
+        rm = [c for c in conds if c.lower() in dl]
+        conds = [c for c in conds if c.lower() not in dl]
+        if rm: print(f"  [--drop] 제외한 조건 피처: {', '.join(rm)}")
     opts   = [c for c in df.columns if OPT_PAT.search(c) and pd.api.types.is_numeric_dtype(df[c])]
     tgts   = [c for c in df.columns if TARGET_PAT.search(c)]
     leaks  = [c for c in df.columns if LEAK_PAT.search(c)]
@@ -245,4 +251,9 @@ def main(spec, do_plot=False, only_inspect=False, use_opt=False):
 if __name__ == "__main__":
     a = [x for x in sys.argv[1:] if not x.startswith("--")]
     if not a: print(__doc__)
-    else: main(a[0], "--plot" in sys.argv, "--inspect" in sys.argv, "--use-opt" in sys.argv)
+    else:
+        dr = []
+        for x in sys.argv:
+            if x.startswith("--drop="): dr = [t.strip() for t in x.split("=",1)[1].split(",")]
+        main(a[0], "--plot" in sys.argv, "--inspect" in sys.argv,
+             "--use-opt" in sys.argv, tuple(dr))

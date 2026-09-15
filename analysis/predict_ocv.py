@@ -61,24 +61,77 @@ def load_targets(path):
     return out.dropna(subset=["docv"])
 
 
+CH_NUM = re.compile(r"(\d+)")
+
+def norm_id(x):
+    """조인용 ID 정규화: 대문자, 공백·기호 제거, 앞자리 0 제거."""
+    s = re.sub(r"[^0-9A-Za-z]", "", str(x)).upper()
+    return s.lstrip("0") or s
+
+
+def load_curves(spec):
+    """파일 하나 / 여러 개 / 폴더를 모두 받는다.
+    파일이 여러 개면 파일 하나 = 트레이 하나로 보고 셀키를 '파일명:채널' 로 만든다."""
+    import glob, os
+    if os.path.isdir(spec):
+        files = sorted(glob.glob(os.path.join(spec, "*.csv")) +
+                       glob.glob(os.path.join(spec, "*.CSV")))
+    else:
+        files = sorted(glob.glob(spec)) or [spec]
+    print(f"  [곡선 입력] 파일 {len(files)}개")
+    T0, cols, mats, trays = None, [], [], []
+    for f in files:
+        d, *_ = read_any(f)
+        t, I, ids, fmt = to_matrix(d)
+        o = np.argsort(t); t = t[o]; I = I[:, o]
+        if T0 is None:
+            T0 = t
+        else:
+            L = min(len(T0), len(t)); T0 = T0[:L]
+            mats = [m[:, :L] for m in mats]; I = I[:, :L]
+        stem = os.path.splitext(os.path.basename(f))[0]
+        tray = stem if len(files) > 1 else None
+        mats.append(I)
+        for c in ids:
+            cols.append(f"{stem}:{c}" if len(files) > 1 else str(c))
+            trays.append(tray)
+    return T0 - T0[0], np.vstack(mats), cols, trays, len(files)
+
+
 def main(curve_path, target_path, win_min=15, do_plot=False, inspect=False):
     print("="*78); print(" 15분 SDM → 3일 ΔOCV 예측"); print("="*78)
     tg = load_targets(target_path)
-    df, enc, *_ = read_any(curve_path)
-    t, I, ids, fmt = to_matrix(df)
-    o = np.argsort(t); t = t[o]-t[o][0]; I = I[:, o]
-    print(f"  [곡선 파일] 형식 {fmt} / 셀 {I.shape[0]:,}개 / 시점 {I.shape[1]}개"
+    t, I, ids, file_trays, nfile = load_curves(curve_path)
+    print(f"  셀 {I.shape[0]:,}개 / 시점 {I.shape[1]}개"
           f" / 길이 {t[-1]/60:.1f}분 / 간격 {np.median(np.diff(t)):.0f}초")
 
     ids = [str(c).strip() for c in ids]
-    join = len(set(ids) & set(tg.cid))
-    print(f"  [조인] 셀ID 일치 {join:,}개")
-    if inspect or join < 10:
-        if join < 10:
-            print("\n  !! 셀ID 매칭이 거의 안 됩니다. 양쪽 ID 예시를 비교하세요:")
-            print("     곡선 파일 :", ids[:5])
-            print("     타깃 파일 :", list(tg.cid[:5]))
+    # 조인 전략을 순서대로 시도한다
+    tg["k1"] = tg.cid.map(norm_id)
+    strat, key = None, None
+    cand = {"원본 ID": ids,
+            "정규화 ID": [norm_id(c) for c in ids],
+            "채널 번호": [ (CH_NUM.search(c.split(":")[-1]).group(1).lstrip("0") or "0")
+                          if CH_NUM.search(c.split(":")[-1]) else c for c in ids ]}
+    for nm, kk in cand.items():
+        hit = len(set(kk) & set(tg.cid if nm=="원본 ID" else tg.k1))
+        print(f"  [조인 시도] {nm:<10} 일치 {hit:,}개")
+        if hit > (strat or 0): strat, key, sname = hit, kk, nm
+    if inspect or (strat or 0) < 10:
+        print("\n  !! 셀ID 매칭이 부족합니다. 양쪽 예시를 비교하세요:")
+        print("     곡선 :", ids[:5])
+        print("     타깃 :", list(tg.cid[:5]))
+        print("""
+  대응 방법
+    (a) 타깃 파일에 곡선 파일의 컬럼명(예: I(02))과 같은 값을 갖는
+        컬럼을 추가한다
+    (b) 곡선 파일이 트레이당 하나라면, 타깃 파일에도 트레이ID와
+        채널번호 컬럼을 두고 '트레이:채널' 로 맞춘다
+    (c) 채널번호 ↔ 셀 바코드 매핑 테이블이 있으면 타깃 파일에 미리 조인한다""")
         return
+    print(f"  → '{sname}' 방식으로 조인 ({strat:,}개)")
+    ids = list(key)
+    tg = tg.assign(cid=tg.cid if sname=="원본 ID" else tg.k1)
 
     good = np.isfinite(I).all(axis=1)
     flags, _ = find_outliers(t, I)
@@ -89,7 +142,10 @@ def main(curve_path, target_path, win_min=15, do_plot=False, inspect=False):
 
     F = feats(t, I, min(win_min*60, t[-1]))
     X = pd.DataFrame(F); X["cid"] = ids
-    D = X.merge(tg, on="cid", how="inner").dropna(subset=list(F.keys())+["docv"])
+    ft = [v for v, k in zip(file_trays, keep) if k]
+    if nfile > 1 and any(ft): X["tray_file"] = ft
+    D = X.merge(tg, on="cid", how="inner")
+    if "tray_file" in D and (D.tray == "ALL").all(): D["tray"] = D.tray_file.dropna(subset=list(F.keys())+["docv"])
     fn = list(F.keys())
     n, ntray = len(D), D.tray.nunique()
     print(f"\n  분석 대상 {n:,}셀 / 트레이 {ntray}개"

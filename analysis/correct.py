@@ -59,13 +59,58 @@ KB, EA_DEFAULT = 8.617333262e-5, 0.94      # eV/K, eV  (Keysight 2023 실측)
 
 
 # ──────────────────────────────────────────────────────────────────────
+#  수치 안전장치
+# ──────────────────────────────────────────────────────────────────────
+def safe_z(X, mu=None, sd=None):
+    """열 단위 표준화. 분산이 사실상 0인 열은 0으로 만든다.
+
+    ' + 1e-300' 으로 0 나누기를 피하는 방식은 안전하지 않다.
+    상수 열에 부동소수 잔차가 남아 있으면 10^283 급 값이 나오고,
+    그 뒤 최소제곱에서 overflow 나 NaN 이 되어 SVD 가 발산한다.
+    실데이터에서 트레이 간 상수인 조건 변수(층, 배선저항 등)는 흔하다.
+    """
+    X = np.asarray(X, float)
+    if mu is None: mu = np.nanmean(X, 0)
+    if sd is None: sd = np.nanstd(X, 0)
+    mu = np.nan_to_num(np.asarray(mu, float), nan=0.0)
+    sd = np.asarray(sd, float)
+    scale = np.nan_to_num(np.nanmean(np.abs(X), 0), nan=0.0)
+    dead = ~np.isfinite(sd) | (sd <= 1e-12 * np.maximum(scale, 1e-30))
+    sd_safe = np.where(dead, 1.0, sd)
+    Z = (X - mu) / sd_safe
+    Z[:, dead] = 0.0
+    return np.nan_to_num(Z, nan=0.0, posinf=0.0, neginf=0.0), mu, sd_safe, dead
+
+
+def r2_linear(x, y):
+    """단순 1차 회귀의 결정계수. 피어슨 상관의 제곱과 같다.
+
+    polyfit 을 쓰면 상수 입력에서 SVD 가 발산한다. 같은 값을 SVD 없이 구한다.
+    """
+    x = np.asarray(x, float); y = np.asarray(y, float)
+    ok = np.isfinite(x) & np.isfinite(y)
+    if ok.sum() < 3: return float("nan")
+    x, y = x[ok], y[ok]
+    sx, sy = x.std(), y.std()
+    if sx <= 0 or sy <= 0: return 0.0
+    return float((((x - x.mean()) * (y - y.mean())).mean() / (sx * sy)) ** 2)
+
+
+def safe_div(a, b, fill=0.0):
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return np.where(np.abs(b) > 0, np.asarray(a, float) / np.where(np.abs(b) > 0, b, 1.0), fill)
+
+
+# ──────────────────────────────────────────────────────────────────────
 #  지표
 # ──────────────────────────────────────────────────────────────────────
 def between_tray_share(x, tray):
     """전체 분산 중 트레이 간 분산이 차지하는 비중."""
-    s = pd.Series(x)
+    s = pd.Series(np.asarray(x, float))
     bt = s.groupby(pd.Series(tray).values).transform("median")
-    return float(np.var(bt) / max(np.var(s), 1e-300))
+    tot = np.nanvar(s.values)
+    if not np.isfinite(tot) or tot <= 0: return float("nan")
+    return float(np.nanvar(bt.values) / tot)
 
 
 def within_tray_rho(score, y, tray, min_n=20):
@@ -126,6 +171,11 @@ def main(spec, at=None, cov_req=None, do_sweep=False, ea=EA_DEFAULT):
     D = D.dropna(subset=icols).reset_index(drop=True)
     D["_upto"] = measured_upto(D[icols].values, mins)
     D = D[D["_upto"] >= mins[-1]].reset_index(drop=True)
+    if len(D) < 30:
+        print(f"\n  !! {mins[-1]}분까지 측정된 셀이 {len(D)}개뿐입니다. 분석을 건너뜁니다.")
+        print("     모든 시점의 전류가 같으면 '측정 조기 종료' 로 판정되어 전부 걸러집니다.")
+        print("     입력 엑셀의 i_XXmin 컬럼이 시점마다 다른 값인지 확인하십시오.")
+        return
     n = len(D)
 
     at = at or (15 if 15 in mins else mins[-1])
@@ -176,9 +226,11 @@ def main(spec, at=None, cov_req=None, do_sweep=False, ea=EA_DEFAULT):
           + ("   ← 열드리프트 가설과 부합" if abs(r_dt) > 0.2 else "   ← 상관이 약하다. 가설 기각 쪽"))
 
     if "delta_v" in D.columns:
-        iv = D[acol].values; dv = D["delta_v"].values
-        ok = np.abs(iv) > np.percentile(np.abs(iv), 50)
-        rimp = np.median(dv[ok] / iv[ok])
+        iv = pd.to_numeric(D[acol], errors="coerce").values.astype(float)
+        dv = pd.to_numeric(D["delta_v"], errors="coerce").values.astype(float)
+        fin = np.isfinite(iv) & np.isfinite(dv)
+        ok = fin & (np.abs(iv) > np.nanpercentile(np.abs(iv[fin]), 50)) if fin.any() else fin
+        rimp = float(np.median(dv[ok] / iv[ok])) if ok.sum() >= 3 else float("nan")
         print(f"\n    delta_v 대 I : rho {spearmanr(dv, iv, nan_policy='omit').statistic:+.3f}"
               f"   함의 저항 median(delta_v/I) = {rimp:.4g} ohm")
         print("      → 이 값이 장비 출력저항과 같으면 delta_v 와 I 는 옴의 법칙으로 묶인 "
@@ -193,18 +245,31 @@ def main(spec, at=None, cov_req=None, do_sweep=False, ea=EA_DEFAULT):
     cov = [c for c in cov if D[c].notna().sum() > 0 and D[c].nunique() > 2]
 
     T = D.groupby("_tray")[cov + [acol]].median()
-    ntray = len(T)
-    if ntray < 6:
-        print(f"    !! 트레이가 {ntray}개뿐이라 트레이 단위 회귀가 불안정합니다.")
+    n_all = len(T)
+    T = T[np.isfinite(T.values).all(1)]          # 결측 트레이 제거
+    if len(T) < n_all:
+        print(f"    조건 변수에 결측이 있는 트레이 {n_all - len(T)}개를 회귀에서 제외했습니다.")
+    if len(T) < 4:
+        print(f"    !! 회귀에 쓸 트레이가 {len(T)}개뿐입니다. 보정을 건너뜁니다.")
+        return
     Xt = T[cov].values.astype(float); yt = T[acol].values.astype(float)
-    mu, sd = np.nanmean(Xt, 0), np.nanstd(Xt, 0) + 1e-300
-    Zt = np.nan_to_num((Xt - mu) / sd)
+    Zt, mu, sd, dead = safe_z(Xt)
+    if dead.any():                                # 트레이 간 상수인 변수는 뺀다
+        drop_nm = [cov[j] for j in np.where(dead)[0]]
+        print(f"    트레이 간 변화가 없어 제외한 변수: "
+              f"{', '.join({'_dTdt': 'dT/dt', '_Tmean': 'T_mean'}.get(c, c) for c in drop_nm)}")
+        keep = ~dead
+        cov = [c for c, k in zip(cov, keep) if k]
+        Xt, Zt, mu, sd = Xt[:, keep], Zt[:, keep], mu[keep], sd[keep]
+    if not cov:
+        print("    !! 남은 설명변수가 없습니다. 보정을 건너뜁니다."); return
+    ntray = len(T)
 
     # 물리적 기준점. dT/dt = 0 (열평형), T = 25도. 나머지는 물리적 영점이 없어
     # 전체 중앙값을 기준으로 둔다. 기준점 선택은 모든 셀을 같은 양만큼 평행이동
     # 시킬 뿐이므로 순위는 바뀌지 않는다. 음수 비율을 물리적으로 읽기 위한 것이다.
     ref = np.array([0.0 if c == "_dTdt" else 25.0 if c == "_Tmean"
-                    else float(np.nanmedian(D[c])) for c in cov])
+                    else float(np.nan_to_num(np.nanmedian(D[c]), nan=0.0)) for c in cov])
 
     from sklearn.linear_model import RidgeCV
     reg = RidgeCV(alphas=np.logspace(-3, 3, 25)).fit(Zt, yt)
@@ -215,8 +280,7 @@ def main(spec, at=None, cov_req=None, do_sweep=False, ea=EA_DEFAULT):
     print(f"    {'변수':<10}{'표준화 계수':>14}{'단독 R2':>10}")
     print("    " + "-" * 34)
     for j, c in enumerate(cov):
-        s1 = 1 - np.sum((np.polyval(np.polyfit(Zt[:, j], yt, 1), Zt[:, j]) - yt) ** 2) \
-                 / max(np.sum((yt - yt.mean()) ** 2), 1e-300)
+        s1 = r2_linear(Zt[:, j], yt)
         nm = {"_dTdt": "dT/dt", "_Tmean": "T_mean"}.get(c, c)
         print(f"    {nm:<10}{reg.coef_[j]:>+14.4g}{s1:>10.3f}")
     print(f"\n    ★ 트레이 오프셋의 {r2 * 100:.1f}% 를 온도·전압 조건으로 설명한다  (R2)")
@@ -232,13 +296,15 @@ def main(spec, at=None, cov_req=None, do_sweep=False, ea=EA_DEFAULT):
         level='cell' 은 셀별 조건까지 쓰므로 트레이 내 순위도 바뀐다.
         기준점은 dT/dt=0, T=25도 이므로 결과는 '열평형 25도 조건의 전류' 로 읽는다.
         """
-        b = RidgeCV(alphas=np.logspace(-3, 3, 25)).fit(
-            Zt, D.groupby("_tray")[col].median().reindex(T.index).values)
+        yb = D.groupby("_tray")[col].median().reindex(T.index).values.astype(float)
+        if not np.isfinite(yb).all():
+            return D[col].values.astype(float)     # 보정 불가. 원값을 돌려준다.
+        b = RidgeCV(alphas=np.logspace(-3, 3, 25)).fit(Zt, yb)
         if level == "cell":
             Xc = D[cov].values.astype(float)
         else:
             Xc = D.groupby("_tray")[cov].transform("median").values.astype(float)
-        Zc = np.nan_to_num((Xc - ref) / sd)
+        Zc = np.nan_to_num((Xc - ref) / sd, nan=0.0, posinf=0.0, neginf=0.0)
         return D[col].values - (Zc @ b.coef_)
 
     y_grade = D[gcol].astype(str).str.strip().str.upper().isin(["E"]).values.astype(int) \
@@ -248,9 +314,10 @@ def main(spec, at=None, cov_req=None, do_sweep=False, ea=EA_DEFAULT):
 
     tn = lambda v: v - pd.Series(v).groupby(D["_tray"].values).transform("median").values
     ratio_col = f"i_{max(m for m in mins if m <= at // 2)}min" if any(m <= at // 2 for m in mins) else icols[0]
-    with np.errstate(divide="ignore", invalid="ignore"):
-        ratio = np.where(np.abs(D[ratio_col]) > 1e-12, D[acol] / D[ratio_col], np.nan)
-    ratio = np.nan_to_num(ratio, nan=np.nanmedian(ratio))
+    den = D[ratio_col].values.astype(float)
+    ratio = safe_div(D[acol].values, np.where(np.abs(den) > 1e-12, den, 0.0), np.nan)
+    ratio = np.nan_to_num(ratio, nan=float(np.nan_to_num(np.nanmedian(ratio), nan=0.0)),
+                          posinf=0.0, neginf=0.0)
 
     tk = D["_Tmean"].values + 273.15
     p2 = correct(acol, "tray")
@@ -309,9 +376,11 @@ def main(spec, at=None, cov_req=None, do_sweep=False, ea=EA_DEFAULT):
     print(f"    트레이 중앙값의 산포 (표준편차)")
     print(f"      원시      {tm_raw.std():.4g}")
     print(f"      물리보정  {tm_p2.std():.4g}"
-          f"   ({(1 - tm_p2.std() / max(tm_raw.std(), 1e-300)) * 100:.0f}% 축소)")
+          f"   ({(1 - tm_p2.std() / tm_raw.std()) * 100:.0f}% 축소)"
+          if tm_raw.std() > 0 else "")
     print(f"      TN        0        ← 정의상 전부 0. 트레이 간 비교가 불가능해진다.")
-    z_tray = (tm_p2 - tm_p2.median()) / (np.median(np.abs(tm_p2 - tm_p2.median())) * 1.4826 + 1e-300)
+    mad_t = float(np.median(np.abs(tm_p2 - tm_p2.median())) * 1.4826)
+    z_tray = (tm_p2 - tm_p2.median()) / mad_t if mad_t > 0 else tm_p2 * 0.0
     hi = z_tray.sort_values(ascending=False).head(3)
     print(f"\n    물리보정 후 트레이 단위 robust z 상위 3개")
     for t_, z_ in hi.items():

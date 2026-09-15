@@ -60,8 +60,17 @@ def main(spec, theta=0.98, tmin=5, band=0.10, floor=0.90):
     D = D.dropna(subset=icols).reset_index(drop=True)
     D["_upto"] = measured_upto(D[icols].values, mins)
     D = D[D["_upto"] >= mins[-1]].reset_index(drop=True)
+    if len(D) < 30:
+        print(f"\n  !! {mins[-1]}분까지 측정된 셀이 {len(D)}개뿐입니다. 분석을 건너뜁니다.")
+        print("     모든 시점의 전류가 같으면 '측정 조기 종료' 로 판정되어 전부 걸러집니다.")
+        print("     입력 엑셀의 i_XXmin 컬럼이 시점마다 다른 값인지 확인하십시오.")
+        return
     n = len(D); g = D["_tray"].values
     trays = list(pd.unique(g))
+    if not [t for t in trays if (g == t).sum() >= 10]:
+        print(f"\n  !! 10셀 이상인 트레이가 없습니다 (트레이 {len(trays)}개).")
+        print("     트레이 안에서 순위를 매기는 분석이므로 트레이당 셀 수가 필요합니다.")
+        return
     y = pd.to_numeric(D[tgts[-1]], errors="coerce").values if tgts else None
     ng = D[gcol].astype(str).str.strip().str.upper().isin(["E"]).values.astype(int) \
         if gcol else np.zeros(n, int)
@@ -89,6 +98,7 @@ def main(spec, theta=0.98, tmin=5, band=0.10, floor=0.90):
             r = spearmanr(R[m][i], R[last][i]).statistic
             if np.isfinite(r): rs.append(r)
         per_m[m] = np.array(rs)
+        if not rs: continue
         if m in (mins[0], 8, 10, 12, 15, 20, 25, last):
             print(f"    {m:>4}분{np.median(rs):>10.3f}{np.percentile(rs, 10):>15.3f}"
                   f"{np.mean(np.array(rs) >= 0.98) * 100:>16.0f}%")
@@ -212,7 +222,9 @@ def main(spec, theta=0.98, tmin=5, band=0.10, floor=0.90):
     print("    " + "-" * (44 + (9 if ng.sum() else 0)))
     for t1 in [m for m in (5, 8, 10, 12) if m in R]:
         z1 = R[t1] - pd.Series(R[t1]).groupby(g).transform("mean").values
-        nz = pd.Series(z1).groupby(g).transform(lambda v: v / (v.std() + 1e-300)).values
+        nz = pd.Series(z1).groupby(g).transform(
+            lambda v: v / v.std() if v.std() > 0 else v * 0.0).values
+        nz = np.nan_to_num(nz, nan=0.0, posinf=0.0, neginf=0.0)
         thr = np.nanquantile(nz, 1 - band)
         ext = nz >= thr
         cm = t1 + (last - t1) * ext.mean()

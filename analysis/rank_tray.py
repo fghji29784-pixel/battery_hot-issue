@@ -33,7 +33,7 @@ warnings.filterwarnings("ignore")
 import numpy as np, pandas as pd
 from scipy.stats import spearmanr
 from predict_xlsx import load, I_PAT, SLOPE_PAT, COND_PAT, TARGET_PAT, TRAY_PAT, measured_upto
-from correct import within_tray_rho, topk_recall
+from correct import within_tray_rho, topk_recall, safe_z, r2_linear
 
 GRADE_KEY = "판정등급"
 
@@ -84,6 +84,11 @@ def main(spec, at=None, ksig=3.0, no_cond=False):
     D = D.dropna(subset=icols + ["_y"]).reset_index(drop=True)
     D["_upto"] = measured_upto(D[icols].values, mins)
     D = D[D["_upto"] >= mins[-1]].reset_index(drop=True)
+    if len(D) < 30:
+        print(f"\n  !! {mins[-1]}분까지 측정된 셀이 {len(D)}개뿐입니다. 분석을 건너뜁니다.")
+        print("     모든 시점의 전류가 같으면 '측정 조기 종료' 로 판정되어 전부 걸러집니다.")
+        print("     입력 엑셀의 i_XXmin 컬럼이 시점마다 다른 값인지 확인하십시오.")
+        return
     n = len(D); g = D["_tray"].values
     at = at or (15 if 15 in mins else mins[-1])
     acol = f"i_{at}min" if f"i_{at}min" in D.columns else icols[-1]
@@ -132,8 +137,10 @@ def main(spec, at=None, ksig=3.0, no_cond=False):
     for c in feats:                                   # 트레이 내 중심화
         X[c] = X[c] - X[c].groupby(g).transform("median")
     X = X.fillna(0.0)
-    Xv = X.values
-    Xv = (Xv - Xv.mean(0)) / (Xv.std(0) + 1e-300)
+    Xv, _, _, dead_f = safe_z(X.values)
+    if dead_f.any():
+        print(f"    트레이 내 변화가 없어 제외한 피처 {int(dead_f.sum())}개"
+              f" (예: {', '.join([f for f, d in zip(feats, dead_f) if d][:4])})")
     yc = y - pd.Series(y).groupby(g).transform("median").values
 
     from sklearn.model_selection import GroupKFold
@@ -178,9 +185,7 @@ def main(spec, at=None, ksig=3.0, no_cond=False):
     print("    " + "-" * (49 + (20 if ng.sum() else 0)))
     for nm, s in cand:
         rw, used = within_tray_rho(s, y, g)
-        sv = (s - s.mean()) / (s.std() + 1e-300)
-        b = np.polyfit(sv, yc, 1)
-        r2 = 1 - np.sum((np.polyval(b, sv) - yc) ** 2) / max(np.sum((yc - yc.mean()) ** 2), 1e-300)
+        r2 = r2_linear(s, yc)
         line = f"    {nm:<24}{rw:>13.3f}{r2:>12.3f}"
         if ng.sum():
             t = topk_recall(s, ng)
@@ -190,7 +195,8 @@ def main(spec, at=None, ksig=3.0, no_cond=False):
 
     print(f"\n    쌍비교 모델 가중치 상위 8개  (부호가 곧 '크면 나쁘다/좋다')")
     for nm_, w_ in sorted(zip(feats, W / max(cv.get_n_splits(), 1)), key=lambda x: -abs(x[1]))[:8]:
-        bar = "█" * int(min(abs(w_) / (np.abs(W).max() / max(cv.get_n_splits(), 1) + 1e-300) * 22, 22))
+        wmax = float(np.abs(W).max()) / max(cv.get_n_splits(), 1)
+        bar = "█" * (int(min(abs(w_) / wmax * 22, 22)) if wmax > 0 else 0)
         print(f"      {nm_:<14}{w_:>+8.3f}  {bar}")
     print("""
     → '트레이내 R2' 는 트레이 기준선을 제거한 뒤의 결정계수다.
@@ -204,7 +210,8 @@ def main(spec, at=None, ksig=3.0, no_cond=False):
     s_best = p_rank if np.std(p_rank) > 0 else D[acol].values
     z_in = z_mad(s_best, g)
     tmed = pd.Series(s_best).groupby(g).median()
-    z_of = ((tmed - tmed.median()) / (np.median(np.abs(tmed - tmed.median())) * 1.4826 + 1e-300))
+    mad_o = float(np.median(np.abs(tmed - tmed.median())) * 1.4826)
+    z_of = (tmed - tmed.median()) / mad_o if mad_o > 0 else tmed * 0.0
     z_out = D["_tray"].map(z_of).values
     print(f"    트레이 내 z > {ksig:.0f}   : {int(np.nansum(z_in > ksig)):,}셀"
           f"  ({np.nanmean(z_in > ksig) * 100:.3f}%)")

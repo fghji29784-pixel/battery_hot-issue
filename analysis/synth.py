@@ -26,6 +26,7 @@ KB, EA = 8.617333262e-5, 0.94          # eV/K, eV
 def make(n_tray=41, per=142, n_bad=8, seed=0):
     rng = np.random.default_rng(seed)
     n = n_tray * per
+    n_bad = min(n_bad, n)
     tray = np.repeat([f"TRAY{i:03d}" for i in range(n_tray)], per)
 
     # ── 트레이 단위 조건 ──────────────────────────────────────────
@@ -72,7 +73,8 @@ def make(n_tray=41, per=142, n_bad=8, seed=0):
     docv = base + 2.6e4 * i_sd + rng.normal(0, 0.028, n)
 
     grade = np.array(["A"] * n, dtype=object)
-    grade[rng.choice(np.setdiff1d(np.arange(n), bad), 72, replace=False)] = "Q"
+    rest = np.setdiff1d(np.arange(n), bad)
+    grade[rng.choice(rest, min(72, len(rest)), replace=False)] = "Q"
     grade[bad] = "E"
 
     d = {"tray_id": tray, "cell_no": [f"C{i:06d}" for i in range(n)]}

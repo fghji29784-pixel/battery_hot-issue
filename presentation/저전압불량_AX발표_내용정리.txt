@@ -1297,3 +1297,8 @@
 
  급할 때
    python analysis/defects.py "데이터.xlsx" --no-model
+
+ 실측 소요 시간 (합성 데이터, 4코어 컨테이너)
+   defects.py 모델 포함   2,400셀  140초
+   defects.py --no-model  5,800셀   수 초
+   → 5,800셀 모델 포함이면 5분 내외로 예상됩니다. 한 번은 돌려볼 만합니다.

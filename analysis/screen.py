@@ -5,6 +5,7 @@
   python screen.py "데이터.xlsx"
   python screen.py "데이터.xlsx" --drop=layer
   python screen.py "데이터.xlsx" --plot
+  python screen.py "데이터.xlsx" --no-cond   # 조건 피처(층·온도·전압) 전부 제외
 
 왜 평가를 바꾸는가
   회귀(R²)는 모든 셀의 값을 맞히려 하지만, 우리 목적은 상위 소수를 골라내는 것이다.
@@ -23,6 +24,7 @@ import sys, warnings
 warnings.filterwarnings("ignore")
 import numpy as np, pandas as pd
 from scipy.stats import hypergeom
+import runlog
 from predict_xlsx import load, I_PAT, SLOPE_PAT, COND_PAT, TARGET_PAT, TRAY_PAT, measured_upto
 
 KS = [0.002, 0.005, 0.01, 0.02, 0.05]
@@ -45,13 +47,13 @@ def lift_table(score, y, n, label):
     return out
 
 
-def main(spec, do_plot=False, drop=()):
+def main(spec, do_plot=False, drop=(), no_cond=False):
     df, nfile = load(spec)
     icols = sorted([c for c in df.columns if I_PAT.match(c)], key=lambda c:int(I_PAT.match(c).group(1)))
     scols = sorted([c for c in df.columns if SLOPE_PAT.match(c)], key=lambda c:int(SLOPE_PAT.match(c).group(1)))
     mins  = [int(I_PAT.match(c).group(1)) for c in icols]
     dl    = [d.lower() for d in drop]
-    conds = [c for c in df.columns if COND_PAT.match(c)
+    conds = [] if no_cond else [c for c in df.columns if COND_PAT.match(c)
              and pd.api.types.is_numeric_dtype(df[c]) and c.lower() not in dl]
     tcol  = [c for c in df.columns if TARGET_PAT.search(c)][-1]
     tray  = next((c for c in df.columns if TRAY_PAT.search(c)), None)
@@ -68,6 +70,9 @@ def main(spec, do_plot=False, drop=()):
     print("="*78); print(" 선별 성능 평가"); print("="*78)
     print(f"  {n:,}셀 / 트레이 {ntray}개 / 전류 피처 {len(icols)}개 / 조건 {len(conds)}개")
     if drop: print(f"  제외: {', '.join(drop)}")
+    if no_cond:
+        print("  [--no-cond] 조건 피처(층·온도·전압·배선저항)를 전부 제외했습니다.")
+        print("             전류 형상만으로 얼마나 잡히는지 보기 위한 대조군입니다.")
 
     # 트레이 정규화
     for c in icols+scols:
@@ -135,4 +140,6 @@ if __name__ == "__main__":
         dr = []
         for x in sys.argv:
             if x.startswith("--drop="): dr = [t.strip() for t in x.split("=",1)[1].split(",")]
-        main(a[0], "--plot" in sys.argv, tuple(dr))
+        sv, en = runlog.parse(sys.argv)
+        with runlog.saving("screen", a[0], sys.argv, sv, en):
+            main(a[0], "--plot" in sys.argv, tuple(dr), "--no-cond" in sys.argv)

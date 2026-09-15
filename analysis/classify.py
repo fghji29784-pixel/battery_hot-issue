@@ -6,6 +6,7 @@
   python classify.py "데이터.xlsx" --drop=layer
   python classify.py "데이터.xlsx" --ng=E,D          # 불량으로 볼 등급 지정
   python classify.py "데이터.xlsx" --plot
+  python classify.py "데이터.xlsx" --no-cond   # 조건 피처(층·온도·전압) 전부 제외
 
 ΔOCV 회귀가 아니라 실제 판정 라벨을 타깃으로 쓴다.
 현장이 내리는 결정과 같은 단위로 평가하기 위함이다.
@@ -24,6 +25,7 @@ import sys, warnings
 warnings.filterwarnings("ignore")
 import numpy as np, pandas as pd
 from sklearn.metrics import average_precision_score, roc_auc_score
+import runlog
 from predict_xlsx import load, I_PAT, SLOPE_PAT, COND_PAT, TRAY_PAT, measured_upto
 
 GRADE_KEY = "판정등급"
@@ -53,13 +55,13 @@ def screening_curve(score, y, name):
     return average_precision_score(y, score)
 
 
-def main(spec, do_plot=False, drop=(), ng_codes=("E",)):
+def main(spec, do_plot=False, drop=(), ng_codes=("E",), no_cond=False):
     df, _ = load(spec)
     icols = sorted([c for c in df.columns if I_PAT.match(c)], key=lambda c:int(I_PAT.match(c).group(1)))
     scols = sorted([c for c in df.columns if SLOPE_PAT.match(c)], key=lambda c:int(SLOPE_PAT.match(c).group(1)))
     mins  = [int(I_PAT.match(c).group(1)) for c in icols]
     dl    = [d.lower() for d in drop]
-    conds = [c for c in df.columns if COND_PAT.match(c)
+    conds = [] if no_cond else [c for c in df.columns if COND_PAT.match(c)
              and pd.api.types.is_numeric_dtype(df[c]) and c.lower() not in dl]
     tray  = next((c for c in df.columns if TRAY_PAT.search(c)), None)
     gcol  = next((c for c in df.columns if GRADE_KEY in str(c)), None)
@@ -85,6 +87,9 @@ def main(spec, do_plot=False, drop=(), ng_codes=("E",)):
     print(f"\n  불량 {ngg}개 / 양품 {n-ngg:,}개  (불량률 {ngg/n*100:.3f}%)")
     print(f"  트레이 {ntray}개 / 전류 피처 {len(icols)}개 / 조건 {len(conds)}개")
     if drop: print(f"  제외: {', '.join(drop)}")
+    if no_cond:
+        print("  [--no-cond] 조건 피처(층·온도·전압·배선저항)를 전부 제외했습니다.")
+        print("             전류 형상만으로 얼마나 잡히는지 보기 위한 대조군입니다.")
     if ngg < 5:
         print("\n  !! 불량이 5개 미만이라 평가가 무의미합니다."); return
 
@@ -154,4 +159,6 @@ if __name__ == "__main__":
         for x in sys.argv:
             if x.startswith("--drop="): dr = [t.strip() for t in x.split("=",1)[1].split(",")]
             if x.startswith("--ng="):   ng = tuple(t.strip().upper() for t in x.split("=",1)[1].split(","))
-        main(a[0], "--plot" in sys.argv, tuple(dr), ng)
+        sv, en = runlog.parse(sys.argv)
+        with runlog.saving("classify", a[0], sys.argv, sv, en):
+            main(a[0], "--plot" in sys.argv, tuple(dr), ng, "--no-cond" in sys.argv)

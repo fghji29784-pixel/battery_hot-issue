@@ -5,6 +5,9 @@
   python defects.py "데이터.xlsx" --at=15 --ng=E
   python defects.py "데이터.xlsx" --no-model   # 모델 점수 생략 (빠르게 명부만)
 
+ ※ 모델 점수는 교차검증이라 5천 셀이면 몇 분 걸립니다. [1][3][4] 는
+   --no-model 로도 전부 나오므로, 급하면 그쪽을 먼저 보십시오.
+
 결과는 analysis/results/ 에 자동 저장된다 (--save=경로 / --no-save).
 
 ────────────────────────────────────────────────────────────────────────
@@ -114,6 +117,9 @@ def main(spec, at=None, ng_codes=("E",), no_model=False):
     # 교차검증이라 셀 수가 많으면 몇 분 걸린다. 명부만 빨리 보려면 --no-model.
     try:
         if no_model: raise RuntimeError("--no-model")
+        if n > 2000:
+            print(f"\n  모델 점수 계산 중... ({n:,}셀 교차검증. 몇 분 걸립니다."
+                  f" 명부만 필요하면 --no-model)", flush=True)
         from sklearn.model_selection import GroupKFold, cross_val_predict
         from sklearn.ensemble import HistGradientBoostingClassifier
         for c in icols + scols:

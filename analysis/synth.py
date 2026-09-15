@@ -72,14 +72,19 @@ def make(n_tray=41, per=142, n_bad=8, seed=0, layer_effect=0.0, grid_effect=0.0,
 
     # ── 열드리프트 인공전류 ──────────────────────────────────────
     #   I_th = Ceff * dU/dT * dT/dt.  여기서는 합쳐서 계수 K 하나로 둔다.
+    #   ★ dT/dt 는 온도가 안정되면서 사라지므로 이 항은 '올라갔다 감쇠' 한다.
+    #     실측 셀 140 의 U자 곡선이 그 모양이다. 자가방전(거의 직선)과
+    #     모양이 다르다는 것이 모양 분해의 전제이므로 그대로 재현한다.
     K_TH = 9.0e-4                                            # [A / (K/min)]
+    TAU_TH = 10.0                                            # [분] 열 항의 시정수
     i_th = K_TH * dTdt
 
     I = np.empty((n, len(MINS)))
     for j, m in enumerate(MINS):
         settle = 1.0 - np.exp(-m / tau)
         noise = rng.normal(0, 2.5e-7, n)
-        I[:, j] = i_sd_at_t * settle + i_th * (1.0 - np.exp(-m / 12.0)) + noise
+        shape_th = (m / TAU_TH) * np.exp(1.0 - m / TAU_TH)   # t=TAU_TH 에서 최대, 이후 감쇠
+        I[:, j] = i_sd_at_t * settle + i_th * shape_th + noise
 
     S = np.empty_like(I)
     for j, m in enumerate(MINS):

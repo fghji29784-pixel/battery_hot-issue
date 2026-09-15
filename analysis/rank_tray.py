@@ -7,6 +7,7 @@
   python rank_tray.py "데이터.xlsx" --k=3            # 판정 임계 sigma 배수
   python rank_tray.py "데이터.xlsx" --no-cond        # 조건 피처(온도·전압) 빼고 순위학습
 
+결과는 analysis/results/ 에 자동 저장된다 (--save=경로 / --no-save).
 ────────────────────────────────────────────────────────────────────────
  왜 다시 세우는가
 ────────────────────────────────────────────────────────────────────────
@@ -32,6 +33,7 @@ import sys, warnings
 warnings.filterwarnings("ignore")
 import numpy as np, pandas as pd
 from scipy.stats import spearmanr
+import runlog
 from predict_xlsx import load, I_PAT, SLOPE_PAT, COND_PAT, TARGET_PAT, TRAY_PAT, measured_upto
 from correct import within_tray_rho, topk_recall, safe_z, r2_linear
 
@@ -245,4 +247,6 @@ if __name__ == "__main__":
         for x in sys.argv:
             if x.startswith("--at="): at = int(x.split("=")[1])
             if x.startswith("--k="):  k = float(x.split("=")[1])
-        main(a[0], at, k, "--no-cond" in sys.argv)
+        sv, en = runlog.parse(sys.argv)
+        with runlog.saving("rank_tray", a[0], sys.argv, sv, en):
+            main(a[0], at, k, "--no-cond" in sys.argv)

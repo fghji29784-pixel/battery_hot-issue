@@ -7,6 +7,7 @@
   python adaptive.py "데이터.xlsx" --band=0.10     # 2단 선별의 재검 대역폭
   python adaptive.py "데이터.xlsx" --floor=0.95    # 조기종료 허용 하한 (최악 트레이 기준)
 
+결과는 analysis/results/ 에 자동 저장된다 (--save=경로 / --no-save).
 ────────────────────────────────────────────────────────────────────────
  문제 설정
 ────────────────────────────────────────────────────────────────────────
@@ -34,6 +35,7 @@ import sys, warnings
 warnings.filterwarnings("ignore")
 import numpy as np, pandas as pd
 from scipy.stats import spearmanr
+import runlog
 from predict_xlsx import load, I_PAT, COND_PAT, TARGET_PAT, TRAY_PAT, measured_upto
 
 GRADE_KEY = "판정등급"
@@ -287,4 +289,6 @@ if __name__ == "__main__":
             if x.startswith("--tmin="):  tm = int(x.split("=")[1])
             if x.startswith("--band="):  bd = float(x.split("=")[1])
             if x.startswith("--floor="): fl = float(x.split("=")[1])
-        main(a[0], th, tm, bd, fl)
+        sv, en = runlog.parse(sys.argv)
+        with runlog.saving("adaptive", a[0], sys.argv, sv, en):
+            main(a[0], th, tm, bd, fl)

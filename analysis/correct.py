@@ -8,6 +8,7 @@ SDM 전류 물리 보정 — 음수 전류와 트레이 오프셋의 정체를 �
   python correct.py "데이터.xlsx" --cov=dTdt,t_init  # 보정에 쓸 조건 변수
   python correct.py "데이터.xlsx" --sweep            # 시점별 비교표까지
 
+결과는 analysis/results/ 에 자동 저장된다 (--save=경로 / --no-save).
 ────────────────────────────────────────────────────────────────────────
  가설
 ────────────────────────────────────────────────────────────────────────
@@ -51,6 +52,7 @@ import sys, re, warnings
 warnings.filterwarnings("ignore")
 import numpy as np, pandas as pd
 from scipy.stats import spearmanr
+import runlog
 from predict_xlsx import load, I_PAT, SLOPE_PAT, COND_PAT, TARGET_PAT, TRAY_PAT, measured_upto
 
 TMIN_PAT = re.compile(r"^t[_\s]*(\d+)\s*min$", re.I)
@@ -94,6 +96,35 @@ def r2_linear(x, y):
     sx, sy = x.std(), y.std()
     if sx <= 0 or sy <= 0: return 0.0
     return float((((x - x.mean()) * (y - y.mean())).mean() / (sx * sy)) ** 2)
+
+
+def resolution(v):
+    """값이 놓인 눈금 간격을 추정한다.
+
+    3일 ΔOCV 가 0.1 mV 급 분해능으로 기록되면, 트레이 정규화 후 남는 산포가
+    눈금 몇 칸 안에 들어가 버린다. 그러면 전류를 아무리 잘 보정해도
+    상관에는 상한이 생긴다. 그 상한을 먼저 확인하기 위한 것이다.
+
+    간격의 중앙값을 쓰면 안 된다. 눈금이 비어 있는 자리가 있으면 1칸과 2칸이
+    섞여 1.5칸이 중앙값으로 나온다. 모든 간격을 나누어떨어지게 하는 가장 큰
+    값(최대공약수에 해당)을 찾는다.
+    """
+    x = np.unique(np.asarray(v, float))
+    x = x[np.isfinite(x)]
+    if len(x) < 10: return None
+    d = np.diff(x); d = d[d > 0]
+    if len(d) == 0: return None
+    scale = max(float(np.max(np.abs(x))), 1e-30)
+    tol = scale * 1e-9
+    step, frac = float(np.median(d)), 0.0
+    for c in np.unique(np.round(d / tol) * tol)[:200]:
+        if c <= tol: continue
+        f = float(np.mean(np.abs(d / c - np.round(d / c)) < 1e-6))
+        if f > frac: step, frac = float(c), f
+        if f >= 0.999: break                      # 가장 작은 쪽부터 보므로 첫 합격이 정답
+    z = (x - x.min()) / step                      # 격자가 어긋나 있어도 되도록 최솟값 기준
+    on = float(np.mean(np.abs(z - np.round(z)) < 1e-6))
+    return len(x), step, float(np.min(d)), on
 
 
 def safe_div(a, b, fill=0.0):
@@ -218,9 +249,11 @@ def main(spec, at=None, cov_req=None, do_sweep=False, ea=EA_DEFAULT):
 
     print(f"\n    dT/dt   중앙값 {np.median(D['_dTdt']):+.4f} K/min"
           f"   5~95% {np.percentile(D['_dTdt'], 5):+.4f} ~ {np.percentile(D['_dTdt'], 95):+.4f}")
-    print(f"    트레이 중앙 dT/dt 의 분산 비중 "
-          f"{between_tray_share(D['_dTdt'].values, D['_tray'].values) * 100:.1f}%"
-          "   ← 온도 이력은 거의 트레이 단위로 결정된다")
+    bs_dt = between_tray_share(D["_dTdt"].values, D["_tray"].values)
+    print(f"    트레이 중앙 dT/dt 의 분산 비중 {bs_dt * 100:.1f}%"
+          + ("   ← 온도 이력이 대부분 트레이 단위로 결정된다" if bs_dt > 0.6 else
+             "   ← 트레이 단위 성분은 일부다. 나머지는 셀별 편차" if bs_dt > 0.25 else
+             "   ← 온도 이력은 트레이와 거의 무관하다"))
     r_dt = spearmanr(D["_dTdt"], D[acol], nan_policy="omit").statistic
     print(f"    rho(dT/dt , I_{at}min) = {r_dt:+.3f}"
           + ("   ← 열드리프트 가설과 부합" if abs(r_dt) > 0.2 else "   ← 상관이 약하다. 가설 기각 쪽"))
@@ -235,6 +268,44 @@ def main(spec, at=None, cov_req=None, do_sweep=False, ea=EA_DEFAULT):
               f"   함의 저항 median(delta_v/I) = {rimp:.4g} ohm")
         print("      → 이 값이 장비 출력저항과 같으면 delta_v 와 I 는 옴의 법칙으로 묶인 "
               "같은 측정이다.\n        독립 피처로 세면 안 된다.")
+
+    # ── [1-b] 타깃의 분해능 상한 ──────────────────────────────────
+    if tgts:
+        yv0 = pd.to_numeric(D[tgts[-1]], errors="coerce")
+        res = resolution(yv0.values)
+        print("\n" + "-" * 78)
+        print(" [1-b] ★ 타깃(3일 ΔOCV)의 분해능 — 상관에 상한이 있는가")
+        print("-" * 78)
+        if res is None:
+            print("    고유값이 너무 적어 눈금을 추정할 수 없습니다.")
+        else:
+            nu, step, dmin, on = res
+            ytn = (yv0 - yv0.groupby(D["_tray"].values).transform("median")).values
+            sd_tn = float(np.nanstd(ytn))
+            print(f"    고유값 {nu:,}개 / {len(D):,}셀   눈금 간격 중앙 {step:.4g}"
+                  f"   최소 {dmin:.4g}")
+            print(f"    값이 그 눈금 격자 위에 놓이는 비율 {on * 100:.1f}%"
+                  + ("   ← 눈금 위에 찍힌 양자화된 기록이다" if on > 0.9 else
+                     "   ← 일부만 격자에 맞는다" if on > 0.3 else "   ← 연속값에 가깝다"))
+            print(f"    트레이 정규화 후 표준편차 {sd_tn:.4g}"
+                  f"   =  눈금 {sd_tn / step if step > 0 else float('nan'):.1f}칸")
+            var_q = step ** 2 / 12.0
+            var_y = sd_tn ** 2
+            cap = float(np.sqrt(max(0.0, 1.0 - var_q / var_y))) if var_y > 0 else float("nan")
+            print(f"\n    ★ 분해능만으로 생기는 상관 상한  r <= {cap:.3f}")
+            print("      (기록값 = 참값 + 양자화잡음 으로 보고, 잡음 분산을 눈금^2/12 로 둔 값.")
+            print("       완벽한 예측기라도 이 값을 넘을 수 없다.)")
+            if not np.isfinite(cap) or cap < 0.6:
+                print("""
+      → 상한 자체가 낮다. 전류를 아무리 잘 보정해도 상관은 여기서 막힌다.
+        '상관을 올린다' 를 목표로 두면 안 되고, 목표를 다시 잡아야 한다.
+        ① 타깃을 3일 ΔOCV 가 아니라 판정등급(불량 여부)으로 둔다 — 양자화 무관
+        ② ΔOCV 기록 분해능을 높인다 (Zheng 2026 은 0.1 mV 구성)
+        ③ 보관을 늘려 ΔOCV 자체를 키운다 (신호 대 눈금 비를 올린다)""")
+            elif cap < 0.85:
+                print("\n      → 상한이 어느 정도 낮다. 관측 상관을 이 값으로 나눠서 읽을 것.")
+            else:
+                print("\n      → 분해능은 병목이 아니다. 상관이 낮다면 다른 원인이다.")
 
     # ── [2] 트레이 중앙값 회귀 ────────────────────────────────────
     print("\n" + "-" * 78)
@@ -286,7 +357,10 @@ def main(spec, at=None, cov_req=None, do_sweep=False, ea=EA_DEFAULT):
     print(f"\n    ★ 트레이 오프셋의 {r2 * 100:.1f}% 를 온도·전압 조건으로 설명한다  (R2)")
     if r2 > 0.5:
         print("      → 트레이 정규화가 듣는 이유가 '트레이라는 라벨' 때문이 아니라")
-        print("        측정 가능한 물리량 때문임을 뜻한다. 그러면 라벨 대신 물리량으로 뺄 수 있다.")
+        print("        측정 가능한 물리량 때문임을 뜻한다.")
+        print(f"      ※ 다만 설명되지 않는 {(1 - r2) * 100:.0f}% 가 남는다. 이것이 선별에 중요한")
+        print("        부분인지는 R2 가 아니라 아래 [3] 의 검출 성능으로 판단할 것.")
+        print("        ④가 ②에 못 미치면 '설명은 되지만 대체는 안 된다' 가 결론이다.")
 
     # ── [3] 보정된 전류 만들기 ────────────────────────────────────
     def correct(col, level):
@@ -411,8 +485,10 @@ def main(spec, at=None, cov_req=None, do_sweep=False, ea=EA_DEFAULT):
    1. 음수 전류는 불량이 아니라 온도 드리프트의 부호다.
    2. 트레이 오프셋의 상당 부분은 '트레이'가 아니라 '온도 이력'이다.
       위 [2] 의 R2 가 그 근거다.
-   3. 그러므로 트레이 중앙값 빼기는 물리 보정으로 대체할 수 있고,
-      대체하면 트레이 전체가 불량인 경우도 볼 수 있게 된다 ([4]).
+   3. 트레이 중앙값 빼기를 물리 보정으로 대체할 수 있는지는 [3] 이 답한다.
+      ④가 ②에 이르면 대체 가능하고, 그러면 트레이 전체가 불량인 경우도
+      볼 수 있게 된다 ([4]). 못 이르면 '설명은 되지만 대체는 안 된다' 이고,
+      그때도 [4] 의 트레이 간 z 는 TN 이 원리적으로 못 보는 신호로 남는다.
  반증 조건 — 아래면 이 가설은 틀린 것이다
    · [1] 의 rho(dT/dt, I) 가 0 근처
    · [2] 의 R2 가 0.3 미만
@@ -429,4 +505,6 @@ if __name__ == "__main__":
             if x.startswith("--at="):  at = int(x.split("=")[1])
             if x.startswith("--cov="): cv = [t.strip() for t in x.split("=", 1)[1].split(",")]
             if x.startswith("--ea="):  ea = float(x.split("=")[1])
-        main(a[0], at, cv, "--sweep" in sys.argv, ea)
+        sv, en = runlog.parse(sys.argv)
+        with runlog.saving("correct", a[0], sys.argv, sv, en):
+            main(a[0], at, cv, "--sweep" in sys.argv, ea)

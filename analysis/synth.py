@@ -23,7 +23,9 @@ MINS = list(range(5, 31))
 KB, EA = 8.617333262e-5, 0.94          # eV/K, eV
 
 
-def make(n_tray=41, per=142, n_bad=8, seed=0):
+def make(n_tray=41, per=142, n_bad=8, seed=0, layer_effect=0.0):
+    """layer_effect: 트레이 안에서 층이 3일 ΔOCV 를 흔드는 크기 [mV/층].
+    0 이면 층 효과 없음. 실데이터에서 층이 순위를 지배하는지 검정할 때 쓴다."""
     rng = np.random.default_rng(seed)
     n = n_tray * per
     n_bad = min(n_bad, n)
@@ -32,12 +34,12 @@ def make(n_tray=41, per=142, n_bad=8, seed=0):
     # ── 트레이 단위 조건 ──────────────────────────────────────────
     t0_tray   = rng.normal(28.0, 1.6, n_tray)              # 투입 온도 [degC]
     drift_tray= (25.0 - t0_tray) / 260.0                   # 챔버 25도로 수렴 [K/min]
-    layer_tray= rng.integers(1, 9, n_tray)
 
     ti = np.repeat(t0_tray, per) + rng.normal(0, 0.12, n)   # 셀별 초기온도
     dTdt = np.repeat(drift_tray, per) + rng.normal(0, 0.0012, n)
     tf = ti + dTdt * 30.0
-    layer = np.repeat(layer_tray, per) + rng.integers(0, 2, n)
+    # 층은 트레이 '안에서' 갈린다. 한 트레이에 여러 층이 섞여 있다.
+    layer = np.tile(np.arange(1, 9), n // 8 + 1)[:n]
 
     v_init = rng.normal(3.860, 0.004, n)
     rwiring = rng.normal(0.031, 0.002, n)
@@ -70,7 +72,8 @@ def make(n_tray=41, per=142, n_bad=8, seed=0):
     # ── 타깃: 3일 ΔOCV ───────────────────────────────────────────
     #   자가방전에만 연결. 트레이마다 기준선(전압대)이 다르다.
     base = np.repeat(rng.normal(1.60, 0.09, n_tray), per)
-    docv = base + 2.6e4 * i_sd + rng.normal(0, 0.028, n)
+    docv = (base + 2.6e4 * i_sd + rng.normal(0, 0.028, n)
+            + layer_effect * (layer - layer.mean()))
 
     grade = np.array(["A"] * n, dtype=object)
     rest = np.setdiff1d(np.arange(n), bad)
@@ -85,6 +88,7 @@ def make(n_tray=41, per=142, n_bad=8, seed=0):
     d.update({"rwiring": rwiring, "v_init": v_init,
               "v_final": v_init - 0.5 * I[:, -1],
               "t_init": ti, "t_final": tf, "delta_t": tf - ti, "layer": layer,
+              **{f"dummy_L{L}": (layer == L).astype(int) for L in range(1, 9)},
               "delta OCV(3day)": docv, "판정등급": grade})
     d["delta_v"] = d["v_final"] - d["v_init"]
     return pd.DataFrame(d)
@@ -97,6 +101,7 @@ if __name__ == "__main__":
         if x.startswith("--trays="): kw["n_tray"] = int(x.split("=")[1])
         if x.startswith("--per="):   kw["per"] = int(x.split("=")[1])
         if x.startswith("--seed="):  kw["seed"] = int(x.split("=")[1])
+        if x.startswith("--layer="):  kw["layer_effect"] = float(x.split("=")[1])
     out = a[0] if a else "synth.xlsx"
     df = make(**kw)
     df.to_excel(out, index=False) if out.lower().endswith((".xlsx", ".xlsm")) \

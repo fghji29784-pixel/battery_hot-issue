@@ -29,7 +29,7 @@
 
 원본/셀단위 값은 출력하지 않는다.
 """
-import sys, warnings
+import sys, re, warnings
 warnings.filterwarnings("ignore")
 import numpy as np, pandas as pd
 from scipy.stats import spearmanr
@@ -38,6 +38,7 @@ from predict_xlsx import load, I_PAT, SLOPE_PAT, COND_PAT, TARGET_PAT, TRAY_PAT,
 from correct import within_tray_rho, topk_recall, safe_z, r2_linear
 
 GRADE_KEY = "판정등급"
+LAYER_PAT = re.compile(r"^(layer|dummy[_\s]*l\d+)$", re.I)
 
 
 def z_mean(v, tray):
@@ -121,12 +122,29 @@ def main(spec, at=None, ksig=3.0, no_cond=False):
         line = f"    {nm:<34}{np.nansum(f):>9,.0f}{np.nanmean(f) * 100:>8.3f}%"
         if ng.sum(): line += f"{int(np.nansum(f & (ng == 1))):>6}/{int(ng.sum())}"
         print(line)
-    add = int(np.nansum(f_m & ~f_i))
-    print(f"""
+    n_i, n_l, n_m = int(np.nansum(f_i)), int(np.nansum(f_l)), int(np.nansum(f_m))
+    e_i, e_l, e_m = [int(np.nansum(f & (ng == 1))) for f in (f_i, f_l, f_m)]
+    print("""
     → 자기 자신을 통계량에 넣으면, 크게 튀는 셀일수록 자기 트레이의 sigma 를 키운다.
-      셀 수가 적은 트레이일수록 심하다. median/MAD 는 원리적으로 이 영향을 받지 않는다.
-      median/MAD 로 바꾸면 현행이 놓치던 셀 {add:,}개가 새로 적출된다.
-      ★ 코드 한 줄 교체로 끝나는 개선이다. 측정도 설비도 바꾸지 않는다.""")
+      개선A(LOO)는 그 영향만 제거한다. 임계값의 눈금은 그대로다.
+      개선B(median/MAD)는 자기가림도 없애지만 산포 추정 자체가 달라져
+      적출 기준이 함께 움직인다. 둘을 같은 개선으로 묶어 말하면 안 된다.""")
+    if ng.sum():
+        print(f"""
+    이 데이터에서의 판정
+      자기가림의 크기      : 현행 {n_i}셀 → LOO {n_l}셀 ({n_l - n_i:+d}셀)
+                            E 검출 {e_i}/{int(ng.sum())} → {e_l}/{int(ng.sum())}""")
+        if e_m > e_i:
+            print(f"      median/MAD           : 적출 {n_i}→{n_m}셀, E 검출 {e_i}→{e_m}"
+                  f"  ★ 검출이 늘었다. 채택 검토할 것.")
+        else:
+            print(f"      median/MAD           : 적출 {n_i}→{n_m}셀"
+                  f" ({(n_m / max(n_i, 1) - 1) * 100:+.0f}%), E 검출 {e_i}→{e_m} 로 변화 없음")
+            print(f"""      ★ 이 데이터에서는 개선이 아니다. 과검만 늘고 검출 이득이 없다.
+        현행 규칙이 이미 E 를 {e_i}/{int(ng.sum())} 잡고 있어 올릴 여지가 없다.
+        자기가림 보정이 필요하다면 눈금을 바꾸지 않는 LOO 만 채택하는 것이 맞다.
+      ※ 등급 E 가 이 ΔOCV 로 매겨졌다면 이 표는 부분적으로 동어반복이다.
+        E 판정에 다른 기준이 함께 쓰였는지 확인할 것.""")
 
     # ── [2] 순위 학습 ─────────────────────────────────────────────
     print("\n" + "-" * 78)
@@ -153,30 +171,63 @@ def main(spec, at=None, ksig=3.0, no_cond=False):
     idx_by_tray = {t: np.where(g == t)[0] for t in np.unique(g)}
 
     def make_pairs(rows, n_pair=40000):
-        """같은 트레이 안에서만 쌍을 뽑는다. 트레이 기준선은 차분으로 사라진다."""
-        rs = set(rows); A, B = [], []
-        pools = [v[np.isin(v, list(rs))] for v in idx_by_tray.values()]
+        """같은 트레이 안에서만 쌍을 뽑는다. 트레이 기준선은 차분으로 사라진다.
+
+        n_pair 번 반복하지 않고 트레이별로 묶어 한 번에 뽑는다.
+        셀이 5천 개를 넘으면 반복문으로는 느려서 쓸 수 없다.
+        """
+        sel = np.zeros(n, bool); sel[rows] = True
+        pools = [v[sel[v]] for v in idx_by_tray.values()]
         pools = [p for p in pools if len(p) >= 2]
         if not pools: return np.array([], int), np.array([], int)
         w = np.array([len(p) for p in pools], float); w /= w.sum()
         pick = rng.choice(len(pools), n_pair, p=w)
-        for pi in pick:
-            a, b = rng.choice(pools[pi], 2, replace=False)
-            A.append(a); B.append(b)
-        return np.array(A), np.array(B)
+        A = np.empty(n_pair, int); B = np.empty(n_pair, int)
+        for pi in np.unique(pick):
+            m = pick == pi; k = int(m.sum()); p = pools[pi]
+            a = rng.integers(0, len(p), k)
+            b = (a + 1 + rng.integers(0, len(p) - 1, k)) % len(p)   # a != b 보장
+            A[m], B[m] = p[a], p[b]
+        return A, B
 
     cv = GroupKFold(n_splits=min(5, max(D["_tray"].nunique(), 2)))
-    p_rank = np.zeros(n); p_gbm = np.zeros(n)
-    W = np.zeros(len(feats))
+    # 폴드와 쌍을 한 번만 만들어 둔다. 절제 변형들이 같은 쌍을 써야
+    # 피처 구성의 차이만 비교된다.
+    folds = []
     for tr, te in cv.split(Xv, yc, groups=g):
         A, B = make_pairs(tr)
-        if len(A) == 0: continue
-        dX = Xv[A] - Xv[B]; dy = (y[A] > y[B]).astype(int)
-        keep = np.abs(y[A] - y[B]) > 0
-        lr = LogisticRegression(max_iter=2000, C=0.1).fit(dX[keep], dy[keep])
+        keep = np.abs(y[A] - y[B]) > 0 if len(A) else np.array([], bool)
+        folds.append((tr, te, A[keep] if len(A) else A, B[keep] if len(A) else B))
+
+    p_rank = np.zeros(n); p_gbm = np.zeros(n)
+    W = np.zeros(len(feats))
+    for tr, te, A, B in folds:
+        if len(A) < 50: continue
+        lr = LogisticRegression(max_iter=2000, C=0.1).fit(
+            Xv[A] - Xv[B], (y[A] > y[B]).astype(int))
         p_rank[te] = Xv[te] @ lr.coef_[0]; W += lr.coef_[0]
         p_gbm[te] = HistGradientBoostingRegressor(random_state=0).fit(
             Xv[tr], yc[tr]).predict(Xv[te])
+
+    # ── 절제 실험 — 순위상관이 어디에서 오는가 ──────────────────
+    #   조건 피처(특히 층)가 점수를 만들고 있는지 자동으로 가른다.
+    #   --no-cond 를 따로 돌리지 않아도 여기서 보인다.
+    def fit_rank(cols):
+        """같은 폴드·같은 쌍으로 피처 구성만 바꿔 다시 학습한다."""
+        if not cols: return np.zeros(n)
+        Z, _, _, _ = safe_z(X[cols].values)
+        out = np.zeros(n)
+        for tr, te, A, B in folds:
+            if len(A) < 50: continue
+            lr = LogisticRegression(max_iter=2000, C=0.1).fit(
+                Z[A] - Z[B], (y[A] > y[B]).astype(int))
+            out[te] = Z[te] @ lr.coef_[0]
+        return out
+
+    lay = [c for c in feats if LAYER_PAT.match(c)]
+    abl = [("전체 피처", feats)]
+    if lay: abl.append((f"층 계열 제외 ({len(lay)}개)", [c for c in feats if c not in lay]))
+    if conds: abl.append(("조건 전체 제외 (전류만)", [c for c in feats if c not in conds]))
 
     base = [("원시 전류 (현행)", D[acol].values),
             ("트레이 정규화 전류", D[acol].values - pd.Series(D[acol].values).groupby(g).transform("median").values)]
@@ -195,6 +246,36 @@ def main(spec, at=None, ksig=3.0, no_cond=False):
         print(line)
     print(f"    (트레이 {used}개가 평가에 쓰였습니다. 20셀 미만 트레이는 제외)")
 
+    if len(abl) > 1:
+        print(f"\n    ★ 절제 실험 — 그 순위상관은 어디에서 오는가 (쌍비교 선형 모델)")
+        print(f"    {'쓴 피처':<26}{'트레이내 rho':>13}"
+              + (f"{'상위1% E':>10}{'상위5% E':>10}" if ng.sum() else ""))
+        print("    " + "-" * (39 + (20 if ng.sum() else 0)))
+        rho_full, rho_cur = None, None
+        for nm, cols in abl:
+            sc = fit_rank(cols)
+            rw, _ = within_tray_rho(sc, y, g)
+            if rho_full is None: rho_full = rw
+            if nm.startswith("조건 전체 제외"): rho_cur = rw
+            line = f"    {nm:<26}{rw:>13.3f}"
+            if ng.sum():
+                t = topk_recall(sc, ng); line += f"{t[0.01] * 100:>9.0f}%{t[0.05] * 100:>9.0f}%"
+            print(line)
+            if lay and nm.startswith("층 계열 제외") and np.isfinite(rho_full) and abs(rho_full) > 0.2:
+                drop = 1 - abs(rw) / abs(rho_full) if abs(rho_full) > 0 else 0
+                if drop > 0.5:
+                    print(f"""
+      ★ 층을 빼면 상관이 {abs(rho_full):.3f} → {abs(rw):.3f} 로 {drop * 100:.0f}% 무너진다.
+        이 모델은 자가방전이 아니라 '트레이 안에서 몇 층인가' 를 학습한 것이다.
+        상관 숫자 자체는 진짜지만, SDM 전류의 성과로 말하면 안 된다.""")
+        if rho_cur is not None and rho_full is not None and abs(rho_full) > 1e-9:
+            keep = abs(rho_cur) / abs(rho_full)
+            print(f"""
+      ★ SDM 전류만으로 남는 상관은 {abs(rho_cur):.3f} 이다.
+        전체 {abs(rho_full):.3f} 의 {keep * 100:.0f}%.  나머지 {(1 - keep) * 100:.0f}% 는
+        측정이 아니라 조건 변수(층·온도·전압)가 만든 것이다.
+        발표에서 쓸 숫자는 {abs(rho_cur):.3f} 쪽이다.""")
+
     print(f"\n    쌍비교 모델 가중치 상위 8개  (부호가 곧 '크면 나쁘다/좋다')")
     for nm_, w_ in sorted(zip(feats, W / max(cv.get_n_splits(), 1)), key=lambda x: -abs(x[1]))[:8]:
         wmax = float(np.abs(W).max()) / max(cv.get_n_splits(), 1)
@@ -205,9 +286,49 @@ def main(spec, at=None, ksig=3.0, no_cond=False):
       원래 회귀의 R2 가 음수였던 것은 트레이 기준선을 맞히지 못해서였다.
       목적(트레이 상대평가)에 맞춰 문제를 다시 세우면 같은 데이터에서 양수가 나온다.""")
 
-    # ── [3] 계층 판정 ─────────────────────────────────────────────
+    # ── [3] 층 효과 ───────────────────────────────────────────────
+    lcol = next((c for c in D.columns if str(c).strip().lower() == "layer"), None)
+    tl_score = None
+    if lcol is not None and pd.to_numeric(D[lcol], errors="coerce").nunique() > 1:
+        print("\n" + "-" * 78)
+        print(" [3] ★ 층 효과 — 같은 트레이 안에서도 층마다 기준선이 다른가")
+        print("-" * 78)
+        L = pd.to_numeric(D[lcol], errors="coerce")
+        tot = float(np.nanvar(yc))
+        bl = pd.Series(yc).groupby(L.values).transform("mean").values
+        eta = float(np.nanvar(bl) / tot) if tot > 0 else float("nan")
+        print(f"    트레이 기준선을 뺀 ΔOCV 의 분산 중 층이 설명하는 비중  eta^2 = {eta * 100:.1f}%")
+        prof = pd.Series(yc).groupby(L.values).agg(["median", "count"])
+        print(f"\n    층별 ΔOCV 중앙값 (트레이 중앙값 기준 편차)")
+        print(f"    {'층':>5}{'셀 수':>9}{'중앙 편차':>12}")
+        print("    " + "-" * 26)
+        for lv, r in prof.iterrows():
+            print(f"    {lv:>5}{int(r['count']):>9,}{r['median']:>12.4f}")
+
+        # 트레이x층 정규화가 검출을 개선하는가 — 이것이 실무 판정
+        tl = pd.Series(y).groupby([pd.Series(g), L.values]).transform("median").values
+        tl_score = y - tl
+        tn_score = D[acol].values - pd.Series(D[acol].values).groupby(g).transform("median").values
+        i_tl = D[acol].values - pd.Series(D[acol].values).groupby(
+            [pd.Series(g), L.values]).transform("median").values
+        if ng.sum():
+            print(f"\n    판정 기준을 바꾸면 불량 검출이 어떻게 되는가 (SDM 전류 기준)")
+            print(f"    {'정규화 단위':<24}{'상위1% E':>10}{'상위5% E':>10}")
+            print("    " + "-" * 44)
+            for nm_, sc_ in [("트레이 (현행)", tn_score), ("트레이 x 층", i_tl)]:
+                t = topk_recall(sc_, ng)
+                print(f"    {nm_:<24}{t[0.01] * 100:>9.0f}%{t[0.05] * 100:>9.0f}%")
+        print(f"""
+    → eta^2 가 크면 같은 트레이 안에서도 층이 다른 셀을 직접 비교하면 안 된다.
+      현행 판정(트레이 내 mu+3sigma)은 층을 무시하므로, 기준선이 높은 층의 셀은
+      계통적으로 과검되고 낮은 층의 셀은 미검된다.
+      위 표에서 '트레이 x 층' 이 나으면 판정 단위를 그렇게 바꾸는 것이 개선이다.
+      나아지지 않으면 층은 ΔOCV 를 흔들 뿐 불량과는 무관하다는 뜻이고,
+      그 경우 층은 모델 피처에서 빼야 한다 (순위는 맞히고 불량은 못 잡으므로).""")
+
+    # ── [4] 계층 판정 ─────────────────────────────────────────────
     print("\n" + "-" * 78)
-    print(" [3] 계층 판정 — 트레이 내 z 와 트레이 간 z 를 함께 본다")
+    print(" [4] 트레이 간 판정 — 셀 순위와 섞지 말 것")
     print("-" * 78)
     s_best = p_rank if np.std(p_rank) > 0 else D[acol].values
     z_in = z_mad(s_best, g)
@@ -216,26 +337,38 @@ def main(spec, at=None, ksig=3.0, no_cond=False):
     z_of = (tmed - tmed.median()) / mad_o if mad_o > 0 else tmed * 0.0
     z_out = D["_tray"].map(z_of).values
     print(f"    트레이 내 z > {ksig:.0f}   : {int(np.nansum(z_in > ksig)):,}셀"
-          f"  ({np.nanmean(z_in > ksig) * 100:.3f}%)")
+          f"  ({np.nanmean(z_in > ksig) * 100:.3f}%)   → 셀 단위 적출 대상")
     print(f"    트레이 간 z > {ksig:.0f}   : {int((z_of > ksig).sum())}트레이"
-          f"  {list(z_of[z_of > ksig].index)[:5]}")
-    comb = np.fmax(np.nan_to_num(z_in, nan=-9), np.nan_to_num(z_out, nan=-9))
+          f"  {list(z_of[z_of > ksig].index)[:5]}   → 트레이 단위 재확인 대상")
     if ng.sum():
-        for nm, s in [("트레이 내 z 만", np.nan_to_num(z_in, nan=-9)),
-                      ("계층 (내/간 최대)", comb)]:
-            t = topk_recall(s, ng)
-            print(f"    {nm:<20} 상위1% {t[0.01] * 100:>5.0f}%   상위5% {t[0.05] * 100:>5.0f}%")
+        comb = np.fmax(np.nan_to_num(z_in, nan=-9), np.nan_to_num(z_out, nan=-9))
+        a = topk_recall(np.nan_to_num(z_in, nan=-9), ng); b = topk_recall(comb, ng)
+        print(f"\n    {'점수':<24}{'상위1% E':>10}{'상위5% E':>10}")
+        print("    " + "-" * 44)
+        print(f"    {'트레이 내 z 만':<24}{a[0.01] * 100:>9.0f}%{a[0.05] * 100:>9.0f}%")
+        print(f"    {'max(내, 간) 로 합침':<24}{b[0.01] * 100:>9.0f}%{b[0.05] * 100:>9.0f}%")
+        if b[0.01] < a[0.01] or b[0.05] < a[0.05]:
+            print(f"""
+      ★ 합치면 나빠진다. 당연하다 — 트레이 간 z 는 그 트레이의 모든 셀에 같은 값이라
+        셀을 구별하지 못한다. max 로 합치면 z 가 높은 트레이의 평범한 셀들이
+        상위로 올라와 진짜 불량을 밀어낸다.
+        두 z 는 쓰임이 다르므로 합치지 말고 따로 쓸 것.
+          트레이 내 z  →  셀 적출 (기존 흐름)
+          트레이 간 z  →  그 트레이 전체 재확인·재측정 (별도 조치)""")
     print("""
-    → 현행은 트레이 내 z 만 본다. 그래서 '그 트레이가 통째로 나쁜 경우' 를
-      원리적으로 못 잡는다 (다 같이 나쁘면 아무도 튀지 않는다).
-      트레이 간 z 를 함께 보면 그 사각지대가 닫힌다.
+    → 현행은 트레이 내 z 만 본다. '그 트레이가 통째로 나쁜 경우' 는 원리적으로
+      못 잡는다 (다 같이 나쁘면 아무도 튀지 않는다). 트레이 간 z 가 그 사각지대를
+      닫지만, 셀 순위와 같은 축에 놓아서는 안 된다.
       단, 트레이 간 비교는 온도 보정이 먼저다. correct.py 의 P2 점수를 쓸 것.""")
 
     print("\n" + "=" * 78)
-    print(""" 정리
-   · 지표를 바꾸는 것만으로 결과가 달라진다. 값이 아니라 순위를 맞히면 된다.
-   · mu+3sigma 를 median/MAD 로 바꾸는 것은 코드 한 줄이고 즉시 적용 가능하다.
-   · 트레이 간 판정을 더하면 현행이 원리적으로 못 보던 사각지대가 닫힌다.""")
+    print(""" 읽는 순서
+   1. [2] 의 절제 실험을 먼저 볼 것. 순위상관이 전류에서 온 것인지,
+      층 같은 조건 변수에서 온 것인지가 거기서 갈린다.
+      조건 변수에서 온 것이면 '예측했다' 고 말하면 안 된다.
+   2. [1] 과 [3] 은 판정 규칙을 바꿀지 말지의 근거다.
+      검출이 늘지 않고 적출만 늘면 개선이 아니다.
+   3. [4] 의 두 z 는 쓰임이 다르다. 합치지 말 것.""")
     print("=" * 78)
 
 

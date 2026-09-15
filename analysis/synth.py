@@ -23,11 +23,15 @@ MINS = list(range(5, 31))
 KB, EA = 8.617333262e-5, 0.94          # eV/K, eV
 
 
-def make(n_tray=41, per=142, n_bad=8, seed=0, layer_effect=0.0, grid_effect=0.0):
+def make(n_tray=41, per=142, n_bad=8, seed=0, layer_effect=0.0, grid_effect=0.0,
+         grid_flip=0.0):
     """layer_effect: 트레이 안에서 층이 3일 ΔOCV 를 흔드는 크기 [mV/층].
     grid_effect: 트레이 안 '자리'(행)에 따른 냉각 구배 [K/min per 행].
       실데이터 히트맵처럼 한쪽 행이 더 많이 식게 만든다.
-      0 이면 공간 구배 없음. rescue.py 검정용."""
+      0 이면 공간 구배 없음. rescue.py 검정용.
+    grid_flip: 구배의 부호가 트레이마다 뒤집힐 확률 (0~1).
+      0 이면 모든 트레이가 같은 방향. 0.5 면 절반이 반대 방향.
+      '자리 보정' 의 전제가 깨진 경우를 만들기 위한 것."""
     rng = np.random.default_rng(seed)
     n = n_tray * per
     n_bad = min(n_bad, n)
@@ -42,10 +46,13 @@ def make(n_tray=41, per=142, n_bad=8, seed=0, layer_effect=0.0, grid_effect=0.0)
     pos = np.tile(np.arange(per), n_tray)
     grow = pos // ncol                                      # 행 인덱스
 
+    # 트레이마다 구배 방향이 뒤집힐 수 있다
+    sgn = np.repeat(np.where(rng.random(n_tray) < grid_flip, -1.0, 1.0), per)
+    gnorm = sgn * grow / max(grow.max(), 1)
     ti = np.repeat(t0_tray, per) + rng.normal(0, 0.12, n) \
-         + grid_effect * 30.0 * grow / max(grow.max(), 1)   # 뒤쪽 행이 뜨겁게 들어옴
+         + grid_effect * 30.0 * gnorm                       # 한쪽 행이 뜨겁게 들어옴
     dTdt = np.repeat(drift_tray, per) + rng.normal(0, 0.0012, n) \
-           - grid_effect * grow / max(grow.max(), 1)        # 그만큼 더 식는다
+           - grid_effect * gnorm                            # 그만큼 더 식는다
     tf = ti + dTdt * 30.0
     # 층은 트레이 '안에서' 갈린다. 한 트레이에 여러 층이 섞여 있다.
     layer = np.tile(np.arange(1, 9), n // 8 + 1)[:n]
@@ -112,6 +119,7 @@ if __name__ == "__main__":
         if x.startswith("--seed="):  kw["seed"] = int(x.split("=")[1])
         if x.startswith("--layer="):  kw["layer_effect"] = float(x.split("=")[1])
         if x.startswith("--grid="):   kw["grid_effect"] = float(x.split("=")[1])
+        if x.startswith("--flip="):   kw["grid_flip"] = float(x.split("=")[1])
     out = a[0] if a else "synth.xlsx"
     df = make(**kw)
     df.to_excel(out, index=False) if out.lower().endswith((".xlsx", ".xlsm")) \

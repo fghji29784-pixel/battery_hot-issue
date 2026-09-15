@@ -24,8 +24,15 @@
  그리고 셀 번호가 곧 자리다. 140 -> L08 (열-우선 12x12).
  즉 우리는 이미 모든 셀의 트레이 내 물리적 위치를 알고 있다.
 
- → 온도를 재서 보정하는 대신, '자리' 로 보정할 수 있다.
+ → 온도를 재서 보정하는 대신, '자리' 로 보정할 수 있을지 모른다.
    온도 측정은 잡음이 크지만(셀당 ±0.05 K 요동) 자리는 정확하다.
+
+ ★ 단, 전제가 있다 — 그 구배가 트레이마다 같아야 한다
+   트레이 하나의 히트맵만 보고 '자리로 보정하면 된다' 고 말할 수는 없다.
+   트레이마다 챔버 위치·투입 방향·대기시간이 다르면 구배도 다르다.
+   구배의 부호가 트레이마다 뒤집히면, 전체 공통 보정은 오히려 해가 된다.
+   → [2-b] 에서 이 전제를 먼저 검정한다. 전제가 깨지면 트레이별 보정을 쓴다.
+     [3] 에서 '전체 공통' 과 '트레이별' 을 나란히 놓고 비교한다.
 
 ────────────────────────────────────────────────────────────────────────
  또 하나 — 곡선 형상
@@ -148,13 +155,94 @@ def main(spec, at=None, rows=None, cols=None, order="col"):
         print(f"\n    행별 전류 와 행별 냉각량(T_start-T_final) 의 순위상관 = {rr:+.3f}")
         print("      → 음수면 '많이 식은 행일수록 전류가 낮다' 는 뜻이다. 열드리프트와 부합.")
 
+    # ── [2-b] 그 구배가 트레이마다 같은가 ─────────────────────────
+    print("\n" + "-" * 78)
+    print(" [2-b] ★ 그 구배가 트레이마다 같은가  —  자리 보정의 전제")
+    print("-" * 78)
+    trays = list(pd.unique(g))
+    B = np.full((len(trays), 2), np.nan)          # 트레이별 (행 기울기, 열 기울기)
+    for k, t in enumerate(trays):
+        i = np.where((g == t) & (R >= 0))[0]
+        if len(i) < 20: continue
+        A = np.c_[np.ones(len(i)), R[i], C[i]].astype(float)
+        try:
+            coef, *_ = np.linalg.lstsq(A, tnI[i], rcond=None)
+            B[k] = coef[1:]
+        except np.linalg.LinAlgError:
+            pass
+    fin = np.isfinite(B).all(1)
+    print(f"    트레이마다 전류에 평면을 맞춘다:  I = a + b x 행 + c x 열")
+    print(f"    맞춘 트레이 {int(fin.sum())} / {len(trays)}개\n")
+    print(f"    {'기울기':<10}{'중앙':>13}{'5~95%':>26}{'같은 부호':>11}")
+    print("    " + "-" * 60)
+    for j, nm in ((0, "행 방향 b"), (1, "열 방향 c")):
+        v = B[fin, j]
+        if len(v) == 0: continue
+        same = max(np.mean(v > 0), np.mean(v < 0))
+        print(f"    {nm:<10}{np.median(v):>13.3g}"
+              f"{f'{np.percentile(v,5):.3g} ~ {np.percentile(v,95):.3g}':>26}"
+              f"{same*100:>10.0f}%")
+    b_same = max(np.mean(B[fin, 0] > 0), np.mean(B[fin, 0] < 0)) if fin.any() else float("nan")
+
+    # 행 프로파일의 공통 성분 대 트레이별 성분
+    rowg = pd.Series(tnI).groupby(R).transform("mean").values
+    rowt = pd.Series(tnI).groupby([pd.Series(g), pd.Series(R)]).transform("mean").values
+    tot = float(np.nanvar(tnI))
+    v_com = float(np.nanvar(rowg)) / tot if tot > 0 else np.nan
+    v_dev = float(np.nanvar(rowt - rowg)) / tot if tot > 0 else np.nan
+    print(f"\n    행 프로파일의 분산 분해 (트레이 기준선을 뺀 전류 기준)")
+    print(f"      모든 트레이에 공통인 구배    {v_com*100:>6.1f}%")
+    print(f"      트레이마다 다른 부분        {v_dev*100:>6.1f}%")
+
+    from scipy.stats import spearmanr as _sp
+    cors = []
+    gp = pd.Series(tnI).groupby(R).mean()
+    for t in trays:
+        i = np.where((g == t) & (R >= 0))[0]
+        if len(i) < 20: continue
+        tp = pd.Series(tnI[i]).groupby(R[i]).mean()
+        common = tp.index.intersection(gp.index)
+        if len(common) < 4: continue
+        r_ = _sp(tp[common].values, gp[common].values).statistic
+        if np.isfinite(r_): cors.append(r_)
+    if cors:
+        cors = np.array(cors)
+        print(f"\n    트레이별 행 프로파일 과 전체 평균 프로파일의 순위상관")
+        print(f"      중앙 {np.median(cors):.3f}   하위10% {np.percentile(cors,10):.3f}"
+              f"   음수인 트레이 {int((cors<0).sum())} / {len(cors)}개")
+
+    if np.isfinite(b_same) and b_same > 0.85 and v_com > v_dev:
+        print(f"""
+    ★ 전제가 성립한다. 행 기울기의 부호가 {b_same*100:.0f}% 트레이에서 같고,
+      공통 구배가 트레이별 차이보다 크다.
+      → 전체 공통 보정을 써도 된다. [3] 의 ② 를 볼 것.""")
+    else:
+        print(f"""
+    ☠ 전제가 약하다. 행 기울기의 부호가 같은 트레이는 {b_same*100:.0f}% 이고,
+      공통 {v_com*100:.1f}% 대 트레이별 {v_dev*100:.1f}% 다.
+      → 전체 공통 보정(②)은 구배가 반대인 트레이를 오히려 망친다.
+        트레이별 보정(②')을 쓸 것. [3] 에서 둘을 비교한다.""")
+    print("""
+    ※ 트레이별 보정에는 대가가 있다. 그 트레이 안의 진짜 공간 불량
+      (예: 특정 자리만 실제로 나쁜 경우)까지 같이 지워진다.
+      [4] 의 행 분포와 함께 읽을 것.""")
+
     # ── [3] 점수 비교 ────────────────────────────────────────────
     print("\n" + "-" * 78)
     print(" [3] 공간 보정과 곡선 형상이 검출을 바꾸는가")
     print("-" * 78)
-    # 공간 보정: 트레이 정규화 전류에서 '그 자리의 전체 평균' 을 뺀다
+    # ② 전체 공통 보정 — 모든 트레이가 같은 구배를 갖는다고 본다
     pos = pd.Series(tnI).groupby(D["_rc"].values).transform("median").values
     sp = tnI - pos
+
+    # ②' 트레이별 보정 — 트레이마다 평면을 따로 맞춰 뺀다
+    #    구배가 트레이마다 다를 때 쓴다. 대신 그 트레이의 진짜 공간 불량도 지운다.
+    sp_t = tnI.copy()
+    for k, t in enumerate(trays):
+        i = np.where((g == t) & (R >= 0))[0]
+        if len(i) < 20 or not np.isfinite(B[k]).all(): continue
+        pl = B[k, 0] * R[i] + B[k, 1] * C[i]
+        sp_t[i] = tnI[i] - (pl - np.mean(pl))
 
     # 곡선 형상: 후반 기울기와 최저점 대비 회복량
     V = D[icols].values
@@ -166,7 +254,8 @@ def main(spec, at=None, rows=None, cols=None, order="col"):
     rec = V[:, upto[-1]] - V[:, upto].min(1)
 
     cand = [("① 트레이 정규화 전류", tnI),
-            ("② + 자리 보정", sp),
+            ("② 자리 보정 (전체 공통)", sp),
+            ("②' 자리 보정 (트레이별)", sp_t),
             (f"③ 후반 기울기 ({mins[lateA]}~{mins[lateB]}분)", late),
             ("④ 후반 기울기 + 자리보정", late - pd.Series(late).groupby(D["_rc"].values).transform("median").values),
             ("⑤ 최저점 대비 회복량", rec),
@@ -210,8 +299,9 @@ def main(spec, at=None, rows=None, cols=None, order="col"):
     print("\n" + "=" * 78)
     print(""" 이 스크립트가 시험하는 것
    1. 셀 번호로 트레이 내 자리를 복원할 수 있다 (히트맵이 근거).
-   2. 자리로 보정하면 온도를 재지 않고도 열드리프트를 지울 수 있다.
-      온도 측정은 셀당 ±0.05 K 로 요동하지만 자리는 정확하다.
+   2. 자리로 보정하면 온도를 재지 않고도 열드리프트를 지울 수 있는가.
+      단 [2-b] 의 전제 검정을 먼저 통과해야 한다. 구배가 트레이마다
+      다르면 전체 공통 보정(②)은 해가 되고 트레이별 보정(②')을 써야 한다.
    3. 값이 아니라 곡선 형상(회복 기울기)이 신호일 수 있다.
       열드리프트에 눌린 셀은 값은 낮아도 회복은 빠르다.
  [3] 의 '최악셀 검사율' 이 ① 보다 뚜렷이 낮아지면 그 방법이 답이다.""")

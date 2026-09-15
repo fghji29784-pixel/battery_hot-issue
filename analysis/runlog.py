@@ -13,9 +13,17 @@ RESULT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results")
 
 
 class _Tee:
+    """화면과 파일에 동시에 쓴다. 쓸 때마다 파일을 flush 한다.
+
+    flush 하지 않으면 파이썬이 출력을 버퍼에 모아두었다가 끝날 때 한 번에
+    쓴다. 중간에 죽거나 사용자가 끊으면 저장 파일이 비어 버린다.
+    오래 걸리는 스크립트일수록 그 구간이 길다.
+    """
     def __init__(self, f, stream): self.f, self.s = f, stream
     def write(self, t):
-        self.s.write(t); self.f.write(t); return len(t)
+        self.s.write(t)
+        self.f.write(t); self.f.flush()
+        return len(t)
     def flush(self): self.s.flush(); self.f.flush()
     def isatty(self): return getattr(self.s, "isatty", lambda: False)()
 
@@ -47,9 +55,14 @@ def saving(script, spec, argv=None, save=None, enabled=True):
         if argv: print(f"# 명령: {' '.join(argv)}")
         print()
         yield path
+    except BaseException as e:                     # Ctrl+C 도 포함
+        print(f"\n# 중단됨: {type(e).__name__}: {e}")
+        print("# 여기까지의 출력은 위에 남아 있습니다.")
+        raise
     finally:
         sys.stdout = old
-        f.close()
+        try: f.close()
+        except OSError: pass
         print(f"\n  결과 저장: {path}")
 
 

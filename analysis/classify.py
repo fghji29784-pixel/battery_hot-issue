@@ -108,13 +108,45 @@ def main(spec, do_plot=False, drop=(), ng_codes=("E",), no_cond=False):
     g = D["_tray"].values
     p = cross_val_predict(HistGradientBoostingClassifier(random_state=0, class_weight="balanced"),
                           D[F].values, y, cv=cv, groups=g, method="predict_proba")[:,1]
-    screening_curve(p, y, "③ 전체 피처 모델")
+    ap3 = screening_curve(p, y, "③ 전체 피처 모델")
+
+    # ── 절제 — ③ 의 성능이 전류에서 온 것인가 조건 변수에서 온 것인가 ──
+    need = lambda sc: (np.searchsorted(np.cumsum(y[np.argsort(-sc)]), ngg) + 1) / n
+    if conds and not no_cond:
+        Fc = icols+scols+[c+"_tn" for c in icols+scols]        # 조건 피처 제외
+        pc = cross_val_predict(HistGradientBoostingClassifier(random_state=0, class_weight="balanced"),
+                               D[Fc].values, y, cv=cv, groups=g, method="predict_proba")[:,1]
+        apc = average_precision_score(y, pc)
+        print("\n" + "-"*78)
+        print(" [A-2] ★ 절제 — ③ 의 성능은 전류에서 오는가, 조건 변수에서 오는가")
+        print("-"*78)
+        print(f"    {'쓴 피처':<20}{'PR-AUC':>9}{'ROC-AUC':>9}{'상위5%':>9}{'상위20%':>9}{'100%검출 검사비율':>18}")
+        print("    " + "-"*74)
+        for nm_, sc_ in [("전체 (조건 포함)", p), (f"전류만 (조건 {len(conds)}개 제외)", pc)]:
+            h = np.cumsum(y[np.argsort(-sc_)])
+            print(f"    {nm_:<20}{average_precision_score(y,sc_):>9.4f}{roc_auc_score(y,sc_):>9.4f}"
+                  f"{h[max(int(round(n*0.05)),1)-1]:>6}/{ngg}{h[max(int(round(n*0.20)),1)-1]:>6}/{ngg}"
+                  f"{need(sc_)*100:>17.2f}%")
+        print(f"""
+    ★ PR-AUC 가 {'전류만' if apc > ap3 else '전체'} 쪽이 높다 ({max(apc,ap3):.4f} vs {min(apc,ap3):.4f}).
+      불량이 희소할 때는 ROC-AUC 보다 PR-AUC 가 믿을 만하다.
+      ROC-AUC 는 음성 {n-ngg:,}개를 잘 정렬해도 올라가지만, 우리가 보는 것은
+      양성 {ngg}개가 어디 있느냐다.
+    ※ 이 표의 차이가 불량 한두 개에서 온다면 결론으로 쓰지 말 것.
+      한 개가 {100/max(ngg,1):.1f}%p 다.""")
+        if need(pc) > need(p) * 1.3:
+            print(f"""
+    ☠ '100% 검출에 필요한 검사 비율' 은 조건 피처가 있을 때만 좋다
+      ({need(p)*100:.2f}% vs {need(pc)*100:.2f}%). 그 차이는 가장 애매한 불량
+      몇 개의 위치에서 나온다. 운영 결론을 이 숫자로 쓰려면, 조건 변수(층·온도·
+      전압)가 라인이 바뀌어도 같은 방향으로 작동한다는 근거가 따로 있어야 한다.""")
 
     print("\n" + "-"*78)
     print(" [B] ★ 몇 분이면 충분한가 — 불량 검출 기준")
     print("-"*78)
     print(f"    {'구간':>6}{'PR-AUC':>9}{'상위1% 검출률':>14}{'상위5% 검출률':>14}")
     print("    " + "-"*44)
+    rows = []
     for m in mins:
         if m not in (5,8,10,12,15,20,25,30): continue
         ci = [c for c,mm in zip(icols,mins) if mm <= m]
@@ -125,8 +157,18 @@ def main(spec, do_plot=False, drop=(), ng_codes=("E",), no_cond=False):
         hits = np.cumsum(y[np.argsort(-pm)])
         r1 = hits[max(int(round(n*0.01)),1)-1]/ngg
         r5 = hits[max(int(round(n*0.05)),1)-1]/ngg
-        print(f"    {m:>4}분{average_precision_score(y,pm):>9.4f}{r1*100:>13.1f}%{r5*100:>13.1f}%")
-    print("\n    → 검출률이 포화되는 구간이 최소 필요 측정시간")
+        ap = average_precision_score(y, pm); rows.append((m, ap, r1, r5))
+        print(f"    {m:>4}분{ap:>9.4f}{r1*100:>13.1f}%{r5*100:>13.1f}%")
+    if rows:
+        bm, bap, _, _ = max(rows, key=lambda r: r[1])
+        print(f"\n    ★ PR-AUC 최고 구간: {bm}분 ({bap:.4f})")
+        if bm <= rows[0][0] + 2 and bap > rows[-1][1] * 1.2:
+            print(f"""      → 가장 짧은 구간이 가장 좋고, 길어질수록 나빠진다 ({bap:.4f} → {rows[-1][1]:.4f}).
+        '정착을 기다릴수록 좋아진다' 가 성립하지 않는다는 뜻이다.
+        열드리프트가 시간에 따라 쌓이므로 초기 전류가 덜 오염된 신호일 수 있다.
+        correct.py 의 시점별 트레이간 분산 비중과 함께 볼 것.""")
+        else:
+            print("      → 검출률이 포화되는 구간이 최소 필요 측정시간")
 
     if do_plot:
         import matplotlib; matplotlib.use("Agg")

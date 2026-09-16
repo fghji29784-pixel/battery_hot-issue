@@ -170,17 +170,18 @@ def main(spec, at=None, which="tnrow", rows=None, cols=None, order="col"):
     print("\n" + "-" * 78)
     print(" [2] 자기 마스킹 — 불량이 자기 트레이의 문턱을 밀어올리는가")
     print("-" * 78)
-    print(f"    {'불량 셀':>8}{'트레이':>16}{'제 자신 포함 z':>15}{'자신 제외 z':>14}{'차이':>10}")
-    print("    " + "-" * 64)
+    print(f"    {'불량 셀':>8}{'트레이':>16}{'전역 순위':>10}{'자신 포함 z':>13}{'자신 제외 z':>13}{'차이':>9}")
+    print("    " + "-" * 71)
     worst_in, worst_ex = [], []
-    for i in np.where(y == 1)[0]:
+    for i in sorted(np.where(y == 1)[0], key=lambda j: -int(np.sum(s > s[j]))):
         m = (g == g[i])
         v = s[m]
         z_in = (s[i] - v.mean()) / (v.std(ddof=1) or 1e-12)
         vo = s[m & (np.arange(n) != i)]
         z_ex = (s[i] - vo.mean()) / (vo.std(ddof=1) or 1e-12)
         worst_in.append(z_in); worst_ex.append(z_ex)
-        print(f"    {int(D['_num'][i]):>8}{str(g[i]):>16}{z_in:>15.2f}{z_ex:>14.2f}{z_ex - z_in:>10.2f}")
+        rk = int(np.sum(s > s[i])) + 1
+        print(f"    {int(D['_num'][i]):>8}{str(g[i]):>16}{rk:>9}위{z_in:>13.2f}{z_ex:>13.2f}{z_ex - z_in:>9.2f}")
     infl = float(np.mean(np.array(worst_ex) - np.array(worst_in)))
     print(f"\n    평균 z 상승폭 {infl:+.2f}  (자신을 빼고 재면 이만큼 더 튄다)")
     need_k = float(np.min(worst_in))
@@ -242,6 +243,44 @@ def main(spec, at=None, which="tnrow", rows=None, cols=None, order="col"):
                     print(f"        뒤집힌다. 규칙을 바꿀 근거로는 약하다.")
         elif base:
             print(f"      트레이 상대평가로 바꿔도 줄지 않는다. [1][2] 가 이유다.")
+
+    # ── [3-b] 어느 불량이 비용을 만드는가 ───────────────────────
+    idx = list(np.where(y == 1)[0])
+    base_cnt = worst_rank(s, y)
+    print("\n" + "-" * 78)
+    print(f" [3-b] 하나씩 빼 보면 — 적출 {base_cnt}셀을 누가 끌고 오는가")
+    print("-" * 78)
+    print(f"    {'뺀 셀':>8}{'남은 불량':>10}{'적출':>8}{'과검':>8}{'수율손실':>10}{'절감':>9}")
+    print("    " + "-" * 55)
+    print(f"    {'(없음)':>8}{len(idx):>9}개{base_cnt:>7}셀{base_cnt - len(idx):>7}셀"
+          f"{(base_cnt - len(idx)) / n * 100:>9.2f}%{'—':>9}")
+    drops = []
+    for i in idx:
+        if len(idx) < 2: break
+        y2 = y.copy(); y2[i] = 0
+        c2 = worst_rank(s, y2)
+        over2 = c2 - int(y2.sum()); drops.append(base_cnt - c2)
+        print(f"    {int(D['_num'][i]):>8}{int(y2.sum()):>9}개{c2:>7}셀{over2:>7}셀"
+              f"{over2 / n * 100:>9.2f}%{base_cnt - c2:>8}셀")
+    # 한 셀이 전부를 끌고 오는지, 여럿이 뒤에 몰려 있는지 판정한다
+    big = max(drops) if drops else 0
+    print(f"""
+    ※ 이것은 감도 분석이지 운영 방안이 아니다. 실제로 그 셀을 빼면
+      그 불량은 그대로 흘러나간다. '누가 비용을 만드는가' 만 보는 것이다.""")
+    frac = big / max(base_cnt, 1)
+    if frac >= 0.5:
+        print(f"""    → 한 셀이 적출의 {frac*100:.0f}% 를 혼자 끌고 온다 ({base_cnt}셀 → {base_cnt-big}셀).
+      그 셀의 점수만 끌어올리면 과검이 크게 준다. 개선 여지가 거기 있다.""")
+    elif frac >= 0.2:
+        print(f"""    → 한 셀이 적출의 {frac*100:.0f}% 를 끌고 온다 ({base_cnt}셀 → {base_cnt-big}셀).
+      그 셀을 고치면 도움이 되지만, 그래도 {base_cnt-big}셀이 남는다.
+      뒤쪽에 다른 불량이 더 있다는 뜻이다.""")
+    else:
+        print(f"""    → 가장 큰 절감이 {big}셀({frac*100:.0f}%)뿐이다. 뒤쪽에 여러 개가 몰려 있다.
+      특정 셀 하나를 고쳐서 과검을 없앨 수는 없다. 과검을 줄이려면
+      점수 전체를 올리거나(측정시간·Rout) 지금 예산을 받아들여야 한다.""")
+    print(f"""    ※ 과검이 0 이 되려면 불량 {len(idx)}개가 정확히 1~{len(idx)}위여야 한다.
+      선별에서 그런 일은 사실상 없다. 0 을 목표로 잡지 말 것.""")
 
     # ── [4] 같은 예산에서 몇 개를 잡는가 ─────────────────────────
     print("\n" + "-" * 78)

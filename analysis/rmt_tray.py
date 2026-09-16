@@ -47,18 +47,102 @@ CH_PAT = {
 TIME_PAT = re.compile(r"^time$", re.I)
 
 
-# ── 파싱 ────────────────────────────────────────────────────────────────
+def _looks_like_header_token(tok):
+    return bool(TIME_PAT.match(tok) or any(p.match(tok) for p in CH_PAT.values()))
+
+
+def _read_text_any_encoding(path):
+    """실측 장비 TXT는 cp949/euc-kr(윈도우 한글)로 저장된 경우가 흔하다."""
+    last_err = None
+    for enc in ("utf-8-sig", "utf-8", "cp949", "euc-kr", "latin-1"):
+        try:
+            with open(path, "r", encoding=enc) as f:
+                return f.read(), enc
+        except (UnicodeDecodeError, UnicodeError) as e:
+            last_err = e
+    raise ValueError(f"'{path}' 인코딩을 판별하지 못했습니다 (utf-8/cp949/euc-kr 모두 실패): {last_err}")
+
+
+def _parse_by_token_stream(text):
+    """구분자가 무엇이든, 헤더·데이터가 몇 줄에 걸쳐 접혀 있든 상관없이 복원한다.
+
+    줄바꿈을 무시하고 파일 전체를 공백 기준 토큰 스트림으로 본 뒤,
+    앞에서부터 TIME/I(..)/V(..)/T(..) 패턴에 맞는 토큰이 계속되는 구간을
+    헤더로 인식하고(처음으로 패턴에 안 맞는 토큰이 나오면 헤더 끝),
+    그 뒤 토큰을 헤더 길이만큼씩 잘라 데이터 행으로 되돌린다.
+    실제 장비가 한 줄에 다 못 쓰고 여러 줄로 줄바꿈해 출력하는 포맷도
+    이 방식이면 줄 경계와 무관하게 그대로 복원된다.
+    """
+    toks = text.split()
+    ncol = 0
+    for tok in toks:
+        if _looks_like_header_token(tok):
+            ncol += 1
+        else:
+            break
+    if ncol < 4:
+        raise ValueError("헤더(TIME, I(..), V(..), T(..)) 패턴을 토큰 스트림 앞부분에서 찾지 못했습니다. "
+                          "컬럼 이름 표기가 예상과 다를 수 있습니다 (예: I(01) 대신 다른 표기).")
+    header, body = toks[:ncol], toks[ncol:]
+    nrow, rem = divmod(len(body), ncol)
+    if nrow < 1:
+        raise ValueError(f"헤더는 {ncol}개 인식했는데 그 뒤 데이터 토큰이 {len(body)}개뿐이라 행을 하나도 못 만듭니다.")
+    if rem:
+        body = body[:nrow * ncol]          # 마지막 불완전한 행(파일 끝 잘림 등)은 버림
+    arr = np.array(body, dtype=object).reshape(nrow, ncol)
+    return pd.DataFrame(arr, columns=header)
+
+
+def _looks_structurally_sane(df):
+    """I/V/T 채널 개수가 서로 같고, 컬럼이 TIME+I+V+T 딱 그만큼인지 확인.
+
+    행이 여러 줄에 걸쳐 접힌 파일을 '한 줄=한 레코드'로 잘못 읽으면
+    컬럼이 일부만 잡히거나(예: I(01)~I(09)만) TIME 파싱에 NaN이 쏟아지므로,
+    이런 구조적 모순을 걸러 fast-path 오탐을 막는다.
+    """
+    cols = list(df.columns)
+    if not any(TIME_PAT.match(c) for c in cols):
+        return False
+    counts = {s: sum(1 for c in cols if p.match(c)) for s, p in CH_PAT.items()}
+    if any(v == 0 for v in counts.values()) or len(set(counts.values())) != 1:
+        return False
+    if 1 + sum(counts.values()) != len(cols):
+        return False
+    tcol = next(c for c in cols if TIME_PAT.match(c))
+    tnum = pd.to_numeric(df[tcol], errors="coerce")
+    if tnum.isna().mean() > 0.05:
+        return False
+    return True
+
+
 def load_tray_txt(path):
-    """구분자를 자동 판별해서 읽는다 (탭/콤마/여러 칸 공백 모두 대응)."""
+    """탭/콤마/여러 칸 공백, 그리고 헤더·데이터가 여러 줄로 접힌 포맷까지 대응."""
+    text, enc = _read_text_any_encoding(path)
+
+    # 1차: 한 줄 = 한 레코드인 정상적인 표 형태를 빠르게 시도
+    from io import StringIO
     for sep in ("\t", ",", r"\s+"):
         try:
-            df = pd.read_csv(path, sep=sep, engine="python")
-            if df.shape[1] > 3:
-                df.columns = [str(c).strip() for c in df.columns]
+            df = pd.read_csv(StringIO(text), sep=sep, engine="python")
+            df.columns = [str(c).strip() for c in df.columns]
+            if df.shape[1] > 3 and _looks_structurally_sane(df):
                 return df
         except Exception:
             continue
-    raise ValueError(f"'{path}' 구분자를 판별하지 못했습니다 (탭/콤마/공백 모두 실패)")
+
+    # 2차: 줄 경계를 무시하고 토큰 스트림으로 재구성 (여러 줄로 접힌 헤더/데이터 대응)
+    try:
+        df = _parse_by_token_stream(text)
+        if not _looks_structurally_sane(df):
+            raise ValueError(f"재구성은 됐지만 I/V/T 채널 개수가 서로 다르거나 TIME이 숫자로 안 읽힙니다 "
+                              f"(컬럼 {df.shape[1]}개, 행 {df.shape[0]}개) — 줄바꿈 폭 추정이 실패했을 수 있습니다.")
+        print(f"  [참고] 표 형태로 바로 안 읽혀서 줄바꿈을 무시하고 토큰 단위로 재구성했습니다."
+              f" (인코딩={enc}, 컬럼 {df.shape[1]}개, 행 {df.shape[0]}개)")
+        return df
+    except Exception as e:
+        head = text[:200].replace("\n", "\\n")
+        raise ValueError(f"'{path}' 구조를 인식하지 못했습니다 (인코딩={enc}). "
+                          f"파일 시작 200자: {head!r}\n원인: {e}")
 
 
 def to_matrix(df, signal="I"):

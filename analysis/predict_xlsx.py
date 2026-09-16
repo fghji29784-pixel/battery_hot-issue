@@ -26,12 +26,64 @@ from scipy.stats import spearmanr
 
 I_PAT     = re.compile(r"^i[_\s]*(\d+)\s*min$", re.I)
 SLOPE_PAT = re.compile(r"^slope[_\s]*0[_\s]*(\d+)$", re.I)
-TARGET_PAT= re.compile(r"delta\s*ocv", re.I)
+# 3일 ΔOCV 컬럼 이름. 현장에서 쓰이는 표기가 여러 가지라 넓게 잡는다.
+#   Delta OCV_Delta OCV #07 / delta_OCV / DOCV / dOCV_3day / ΔOCV …
+# 'd' 또는 'delta' 또는 'Δ' 가 앞에 붙은 OCV 만 잡는다. 맨 OCV 는 시작전압
+# 같은 다른 컬럼일 수 있으므로 일부러 뺀다. 앞 글자가 알파벳이면 단어 중간에
+# 걸린 것이므로(period_ocv 등) 제외한다.
+TARGET_PAT= re.compile(r"(?:^|[^a-z])(?:delta|d|\u0394)[\s_\-.]*ocv", re.I)
+OCV_ANY   = re.compile(r"ocv", re.I)
 COND_PAT  = re.compile(r"^(rwiring|v_init|v_final|delta_v|t_init|t_final|delta_t|layer|dummy_l\d+)$", re.I)
 OPT_PAT   = re.compile(r"(보정값|z_score)", re.I)
-LEAK_PAT  = re.compile(r"(ocv_ocv|^ocv\d|end\s*voltage|charge_end|판정|grade|delta\s*ocv|^y$)", re.I)
+# 누출 차단. 타깃 표기를 넓혔으니 여기도 같이 넓힌다 — 안 그러면 DOCV 로
+# 적힌 타깃이 입력 피처로 들어가 자기 자신을 예측하게 된다.
+LEAK_PAT  = re.compile(r"(ocv_ocv|^ocv\d|end\s*voltage|charge_end|판정|grade"
+                       r"|(?:^|[^a-z])(?:delta|d|\u0394)[\s_\-.]*ocv|^y$)", re.I)
 TRAY_PAT  = re.compile(r"tray", re.I)
 CELL_PAT  = re.compile(r"^(cell_no|cell\s*id|lot\s*id|device_no|channel_no)$", re.I)
+
+
+_WANT = None            # --target= 으로 지정한 컬럼명. set_target() 이 채운다.
+
+
+def set_target(name):
+    """--target=컬럼명 을 전역에 기록한다. 패턴이 못 알아본 표기를 구제한다."""
+    global _WANT
+    _WANT = name or None
+    return _WANT
+
+
+def parse_target(argv):
+    """argv 에서 --target= 를 읽어 등록한다. 각 스크립트의 인자 처리에서 부른다."""
+    return set_target(next((a.split("=", 1)[1] for a in argv
+                            if a.startswith("--target=")), None))
+
+
+def find_targets(df, want=None, quiet=False):
+    """3일 ΔOCV 컬럼을 찾는다. 못 찾으면 조용히 넘어가지 말고 말해 준다.
+
+    못 찾은 것과 '값이 없어서 판정 불가' 인 것은 다른 일이다. 이름을 못
+    알아본 것이라면 후보를 보여 주고 --target= 으로 지정할 길을 알려준다.
+    """
+    want = want if want is not None else _WANT
+    if want:
+        hit = [c for c in df.columns if str(c).strip().lower() == want.strip().lower()]
+        if hit: return hit
+        near = [c for c in df.columns if want.strip().lower() in str(c).lower()]
+        if near:
+            if not quiet: print(f"  타깃 '{want}' 와 정확히 같은 컬럼이 없어 부분일치를 씁니다: {near[-1]}")
+            return near
+        print(f"  !! --target={want} 에 해당하는 컬럼이 없습니다.")
+        return []
+    tgts = [c for c in df.columns if TARGET_PAT.search(str(c))]
+    if tgts or quiet: return tgts
+    cand = [c for c in df.columns if OCV_ANY.search(str(c))]
+    if cand:
+        print(f"  !! ΔOCV 로 인식된 컬럼이 없습니다. 'ocv' 가 들어간 컬럼은 있습니다:")
+        for c in cand[:8]: print(f"       {c}")
+        if len(cand) > 8: print(f"       … 외 {len(cand) - 8}개")
+        print(f"     이 중 3일 ΔOCV 가 있으면  --target=\"컬럼명\"  으로 지정하십시오.")
+    return []
 
 
 def read_table(p):
@@ -85,7 +137,7 @@ def main(spec, do_plot=False, only_inspect=False, use_opt=False, drop=()):
         conds = [c for c in conds if c.lower() not in dl]
         if rm: print(f"  [--drop] 제외한 조건 피처: {', '.join(rm)}")
     opts   = [c for c in df.columns if OPT_PAT.search(c) and pd.api.types.is_numeric_dtype(df[c])]
-    tgts   = [c for c in df.columns if TARGET_PAT.search(c)]
+    tgts   = find_targets(df)
     leaks  = [c for c in df.columns if LEAK_PAT.search(c)]
     tray   = next((c for c in df.columns if TRAY_PAT.search(c)), None)
 
@@ -255,5 +307,6 @@ if __name__ == "__main__":
         dr = []
         for x in sys.argv:
             if x.startswith("--drop="): dr = [t.strip() for t in x.split("=",1)[1].split(",")]
+        parse_target(sys.argv)
         main(a[0], "--plot" in sys.argv, "--inspect" in sys.argv,
              "--use-opt" in sys.argv, tuple(dr))

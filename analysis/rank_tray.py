@@ -28,14 +28,16 @@
        — 트레이 전체가 나쁜 경우는 전자가 못 잡고 후자가 잡는다.
 
 원본/셀단위 값은 출력하지 않는다.
+
+  --target="컬럼명"   3일 ΔOCV 컬럼을 직접 지정 (DOCV 처럼 표기가 다를 때)
 """
 import sys, re, warnings
 warnings.filterwarnings("ignore")
 import numpy as np, pandas as pd
 from scipy.stats import spearmanr
 import runlog
-from predict_xlsx import load, I_PAT, SLOPE_PAT, COND_PAT, TARGET_PAT, TRAY_PAT, measured_upto
-from correct import within_tray_rho, topk_recall, safe_z, r2_linear
+from predict_xlsx import load, I_PAT, SLOPE_PAT, COND_PAT, TARGET_PAT, TRAY_PAT, measured_upto, find_targets, parse_target
+from correct import target_report, within_tray_rho, topk_recall, safe_z, r2_linear
 
 GRADE_KEY = "판정등급"
 LAYER_PAT = re.compile(r"^(layer|dummy[_\s]*l\d+)$", re.I)
@@ -74,7 +76,7 @@ def main(spec, at=None, ksig=3.0, no_cond=False):
     mins  = [int(I_PAT.match(c).group(1)) for c in icols]
     conds = [] if no_cond else [c for c in df.columns
                                 if COND_PAT.match(c) and pd.api.types.is_numeric_dtype(df[c])]
-    tgts  = [c for c in df.columns if TARGET_PAT.search(c)]
+    tgts  = find_targets(df)
     tray  = next((c for c in df.columns if TRAY_PAT.search(c)), None)
     gcol  = next((c for c in df.columns if GRADE_KEY in str(c)), None)
     if not icols or not tgts:
@@ -84,6 +86,7 @@ def main(spec, at=None, ksig=3.0, no_cond=False):
     D["_tray"] = D[tray].astype(str) if tray else "ALL"
     for c in icols + scols + conds: D[c] = pd.to_numeric(D[c], errors="coerce")
     D["_y"] = pd.to_numeric(D[tgts[-1]], errors="coerce")
+    target_report(D["_y"].values, D[tray].astype(str).values if tray else "ALL", str(tgts[-1]))
     D = D.dropna(subset=icols + ["_y"]).reset_index(drop=True)
     D["_upto"] = measured_upto(D[icols].values, mins)
     D = D[D["_upto"] >= mins[-1]].reset_index(drop=True)
@@ -405,5 +408,6 @@ if __name__ == "__main__":
             if x.startswith("--at="): at = int(x.split("=")[1])
             if x.startswith("--k="):  k = float(x.split("=")[1])
         sv, en = runlog.parse(sys.argv)
+        parse_target(sys.argv)
         with runlog.saving("rank_tray", a[0], sys.argv, sv, en):
             main(a[0], at, k, "--no-cond" in sys.argv)

@@ -47,13 +47,15 @@ SDM 전류 물리 보정 — 음수 전류와 트레이 오프셋의 정체를 �
    TN 은 그 경우를 원리적으로 못 잡는다 (다 같이 빼버리므로).
 
 원본/셀단위 값은 출력하지 않는다.
+
+  --target="컬럼명"   3일 ΔOCV 컬럼을 직접 지정 (DOCV 처럼 표기가 다를 때)
 """
 import sys, re, warnings
 warnings.filterwarnings("ignore")
 import numpy as np, pandas as pd
 from scipy.stats import spearmanr
 import runlog
-from predict_xlsx import load, I_PAT, SLOPE_PAT, COND_PAT, TARGET_PAT, TRAY_PAT, measured_upto
+from predict_xlsx import load, I_PAT, SLOPE_PAT, COND_PAT, TARGET_PAT, TRAY_PAT, measured_upto, find_targets, parse_target
 
 TMIN_PAT = re.compile(r"^t[_\s]*(\d+)\s*min$", re.I)
 GRADE_KEY = "판정등급"
@@ -178,20 +180,57 @@ def between_tray_share(x, tray):
     return float(np.nanvar(bt.values) / tot)
 
 
+def target_report(y, tray, name="3일 ΔOCV", min_n=20):
+    """타깃 컬럼이 실제로 얼마나 채워져 있는지 찍는다.
+
+    컬럼이 없는 것과 컬럼은 있는데 값이 비어 있는 것은 다른 일이다.
+    둘 다 rho=NaN 으로 끝나므로, 구분해서 말해주지 않으면 원인을 못 찾는다.
+
+    반환: (값 있는 셀 수, 쓸 수 있는 트레이 수)
+    """
+    y = pd.to_numeric(pd.Series(y), errors="coerce").values
+    n, ok = len(y), int(np.isfinite(y).sum())
+    tv = pd.Series(tray).values
+    good = [t for t in pd.unique(tv) if np.isfinite(y[tv == t]).sum() >= min_n]
+    ntray = len(pd.unique(tv))
+    print(f"  {name}: 값 있는 셀 {ok:,}/{n:,} ({ok / max(n, 1):.1%})"
+          f"   트레이내 상관에 쓸 수 있는 트레이 {len(good)}/{ntray}개")
+    if ok == 0:
+        print(f"    !! 컬럼은 있는데 값이 하나도 없습니다. 상관은 전부 NaN 이 됩니다.")
+    elif not good:
+        print(f"    !! 어느 트레이도 값이 {min_n}개가 안 됩니다. 트레이내 상관을 못 냅니다.")
+        print(f"       (트레이간 상관은 낼 수 있지만 트레이 오프셋에 오염됩니다)")
+    elif ok < n * 0.5:
+        print(f"    ※ 절반 이상이 비어 있습니다. 상관값은 채워진 셀만의 것입니다.")
+        print(f"      불량 검출(최악셀 검사율)은 판정등급으로 재므로 영향받지 않습니다.")
+    return ok, len(good)
+
+
 def within_tray_rho(score, y, tray, min_n=20):
     """트레이 안에서만 잰 순위상관. Fisher-z 로 트레이를 가로질러 합친다.
 
     현장 판정이 트레이 상대평가이므로, 이것이 목적에 맞는 상관이다.
     전체 풀링 상관은 트레이 간 오프셋에 오염된다.
+
+    ★ 타깃(ΔOCV)에 빈칸이 있어도 돈다.
+      예전에는 트레이의 셀 수로 min_n 관문을 통과시킨 뒤 통째로 상관을
+      구했다. 그러면 빈칸이 하나만 있어도 spearmanr 이 NaN 을 돌려주고,
+      그 트레이가 조용히 버려졌다. ΔOCV 가 71% 채워진 데이터에서도
+      20개 트레이가 전부 버려져 rho=NaN 이 나왔다.
+      이제 양쪽이 다 있는 셀만 남긴 뒤, 그 개수로 관문을 본다.
     """
-    zs, ws, used = [], [], 0
-    for _, idx in pd.Series(np.arange(len(y))).groupby(pd.Series(tray).values):
+    score = np.asarray(score, float); y = np.asarray(y, float)
+    tv = pd.Series(tray).values
+    zs, ws, used, npair = [], [], 0, 0
+    for _, idx in pd.Series(np.arange(len(y))).groupby(tv):
         i = idx.values
+        i = i[np.isfinite(score[i]) & np.isfinite(y[i])]    # 양쪽 다 있는 셀만
         if len(i) < min_n: continue
         r = spearmanr(score[i], y[i]).statistic
-        if not np.isfinite(r): continue
+        if not np.isfinite(r): continue                     # 한쪽이 상수인 경우
         r = np.clip(r, -0.999999, 0.999999)
-        zs.append(np.arctanh(r)); ws.append(len(i) - 3); used += 1
+        zs.append(np.arctanh(r)); ws.append(len(i) - 3)
+        used += 1; npair += len(i)
     if not zs: return float("nan"), 0
     return float(np.tanh(np.average(zs, weights=ws))), used
 
@@ -224,7 +263,7 @@ def main(spec, at=None, cov_req=None, do_sweep=False, ea=EA_DEFAULT):
     mins  = [int(I_PAT.match(c).group(1)) for c in icols]
     tmins = sorted([c for c in df.columns if TMIN_PAT.match(c)], key=lambda c: int(TMIN_PAT.match(c).group(1)))
     conds = [c for c in df.columns if COND_PAT.match(c) and pd.api.types.is_numeric_dtype(df[c])]
-    tgts  = [c for c in df.columns if TARGET_PAT.search(c)]
+    tgts  = find_targets(df)
     tray  = next((c for c in df.columns if TRAY_PAT.search(c)), None)
     gcol  = next((c for c in df.columns if GRADE_KEY in str(c)), None)
     if not icols:
@@ -311,6 +350,7 @@ def main(spec, at=None, cov_req=None, do_sweep=False, ea=EA_DEFAULT):
     # ── [1-b] 타깃의 분해능 상한 ──────────────────────────────────
     if tgts:
         yv0 = pd.to_numeric(D[tgts[-1]], errors="coerce")
+        target_report(yv0.values, D["_tray"].values, str(tgts[-1]))
         res = resolution(yv0.values)
         print("\n" + "-" * 78)
         print(" [1-b] ★ 타깃(3일 ΔOCV)의 분해능 — 상관에 상한이 있는가")
@@ -545,5 +585,6 @@ if __name__ == "__main__":
             if x.startswith("--cov="): cv = [t.strip() for t in x.split("=", 1)[1].split(",")]
             if x.startswith("--ea="):  ea = float(x.split("=")[1])
         sv, en = runlog.parse(sys.argv)
+        parse_target(sys.argv)
         with runlog.saving("correct", a[0], sys.argv, sv, en):
             main(a[0], at, cv, "--sweep" in sys.argv, ea)

@@ -59,13 +59,15 @@
  위 분해에서 '공통 모양' 을 뺀 잔차의 크기는 라벨 없이 계산된다.
  양품 5,807개가 만드는 정상 범위에서 얼마나 벗어났는지가 곧 이상 점수다.
  불량 개수에 의존하지 않고, 처음 보는 불량 유형에도 반응한다.
+
+  --target="컬럼명"   3일 ΔOCV 컬럼을 직접 지정 (DOCV 처럼 표기가 다를 때)
 """
 import sys, warnings
 warnings.filterwarnings("ignore")
 import numpy as np, pandas as pd
 import runlog
-from predict_xlsx import load, I_PAT, COND_PAT, TARGET_PAT, TRAY_PAT, measured_upto
-from correct import (between_tray_share, within_tray_rho, topk_recall,
+from predict_xlsx import load, I_PAT, COND_PAT, TARGET_PAT, TRAY_PAT, measured_upto, find_targets, parse_target
+from correct import (target_report, between_tray_share, within_tray_rho, topk_recall,
                      derive_conds)
 
 GRADE_KEY = "판정등급"
@@ -110,7 +112,7 @@ def main(spec, at=None, k=2):
     icols = sorted([c for c in df.columns if I_PAT.match(c)], key=lambda c: int(I_PAT.match(c).group(1)))
     mins  = [int(I_PAT.match(c).group(1)) for c in icols]
     conds = [c for c in df.columns if COND_PAT.match(c) and pd.api.types.is_numeric_dtype(df[c])]
-    tgts  = [c for c in df.columns if TARGET_PAT.search(c)]
+    tgts  = find_targets(df)
     tray  = next((c for c in df.columns if TRAY_PAT.search(c)), None)
     gcol  = next((c for c in df.columns if GRADE_KEY in str(c)), None)
     if len(icols) < 6:
@@ -138,6 +140,7 @@ def main(spec, at=None, k=2):
     X = D[icols].values.astype(float)
     y = D[gcol].astype(str).str.strip().str.upper().eq("E").values.astype(int) if gcol else np.zeros(n, int)
     yv = pd.to_numeric(D[tgts[-1]], errors="coerce").values if tgts else None
+    if tgts: target_report(yv, D["_tray"].values, str(tgts[-1]))
 
     print("=" * 78); print(" 곡선만으로 교란을 분리한다 — 보정 변수를 쓰지 않는 접근"); print("=" * 78)
     print(f"  {n:,}셀 / 트레이 {D['_tray'].nunique()}개 / 시점 {len(mins)}개 / 평가 {at}분"
@@ -181,10 +184,17 @@ def main(spec, at=None, k=2):
         # 대조할 변수가 없으면 '분리 안 됨' 이 아니라 '판정 불가' 다. 구분해야 한다.
         if not np.isfinite(rY[0]) or not rT:
             miss = []
-            if not np.isfinite(rY[0]): miss.append("3일 ΔOCV")
+            if not np.isfinite(rY[0]):
+                if yv is None:
+                    miss.append("3일 ΔOCV (컬럼 자체가 없다)")
+                elif not np.isfinite(yv).any():
+                    miss.append("3일 ΔOCV (컬럼은 있는데 값이 전부 비어 있다)")
+                else:
+                    miss.append(f"3일 ΔOCV (값이 {int(np.isfinite(yv).sum()):,}개뿐이라"
+                                f" 트레이내 상관을 못 낸다)")
             if not rT: miss.append("온도(delta_t / t_init)")
-            print(f"      → ※ 판정 불가 — 대조할 변수가 없다: {', '.join(miss)}")
-            print(f"        이것은 '분리가 안 된다' 와 다르다. 붙이고 다시 볼 것.")
+            print(f"      → ※ 판정 불가 — 대조할 것이 없다: {', '.join(miss)}")
+            print(f"        이것은 '분리가 안 된다' 와 다르다. 채우고 다시 볼 것.")
             return aL_, aC_, None
         ok = (abs(rY[0]) > abs(rY[1]) and max(r[1] for r in rT) > max(r[0] for r in rT))
         print(f"      → {'★ 두 성분이 서로 다른 것과 묶인다. 분리 성립.' if ok else '☠ 두 성분이 같은 것과 묶인다. 이 창에서는 분리가 안 된다.'}")
@@ -201,9 +211,14 @@ def main(spec, at=None, k=2):
         측정시간 단축과 상충하므로, 둘 중 무엇을 택할지는 [2][3] 으로 판단할 것.""")
         elif ok_full is None or ok_at is None:
             print("""
-    ※ 판정을 못 했다. 위에 적힌 대로 대조할 변수를 붙인 뒤 다시 돌릴 것.
-      ingest.py 로 합친 파일이라면 본체 엑셀의 ΔOCV 를 tray_id + cell_no 로
-      붙이면 된다. 온도는 시계열에서 자동으로 만들어진다.""")
+    ※ 판정을 못 했다. 모양 분해가 기각된 게 아니라 채점을 못 한 것이다.
+      · ΔOCV 컬럼이 없으면 : ingest.py --join="본체.xlsx" 로 붙인다.
+      · 값이 비어 있으면   : 그 셀들은 3일 보관 ΔOCV 가 안 찍힌 것이다.
+        채워진 셀만으로도 트레이당 20개 이상이면 상관이 나온다.
+        그보다 적으면 로트를 더 모으는 수밖에 없다.
+      · 온도는 시계열에서 자동으로 만들어진다.
+      ※ 불량 검출력(최악셀 검사율)은 판정등급으로 재므로 ΔOCV 가 비어도
+        그대로 나온다. [2][3] 표는 유효하다.""")
         elif not ok_full and not ok_at:
             print(f"""
     ☠ 두 창 모두에서 안 갈린다. 15~30분 구간에서 자가방전과 열드리프트의
@@ -330,5 +345,6 @@ if __name__ == "__main__":
             if x.startswith("--at="): at = int(x.split("=")[1])
             if x.startswith("--k="):  k = int(x.split("=")[1])
         sv, en = runlog.parse(sys.argv)
+        parse_target(sys.argv)
         with runlog.saving("decompose", a[0], sys.argv, sv, en):
             main(a[0], at, k)

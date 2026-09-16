@@ -3,6 +3,7 @@
 
   python ingest.py "폴더"  --inspect        # ★ 먼저 이것부터. 구조만 확인
   python ingest.py "폴더"  -o 모은것.xlsx    # 표준 스키마(i_XXmin)로 합치기
+  python ingest.py "폴더"  -o 모은것.xlsx --join="본체.xlsx"  # 판정등급·ΔOCV 까지 붙여서
   python ingest.py "폴더"  -o 모은것.xlsx --step=0.5   # 0.5분 간격으로
   python ingest.py "폴더"  --fine=원본해상도.csv       # 원해상도 long 도 함께
   python ingest.py "폴더"  -o 모은것.xlsx --interp      # 평균 대신 보간 (권장 안 함)
@@ -222,7 +223,57 @@ def to_minutes(tv):
     return tv, "분(추정)"
 
 
-def main(spec, out=None, step=1.0, fine=None, inspect=False, limit=None, how="mean"):
+def attach(D, path):
+    """본체 엑셀의 판정등급·ΔOCV 를 tray_id + cell_no 로 붙인다.
+
+    원시 트레이 파일에는 TIME / I / V / T 밖에 없다. 정답(3일 ΔOCV)과
+    현행 판정등급은 본체 엑셀에만 있으므로 여기서 붙여야 한다.
+    안 붙이면 decompose.py 가 '분리 실패' 가 아니라 '판정 불가' 로 끝난다.
+
+    셀 번호 표기가 서로 다를 수 있어(001 vs 1) 양쪽을 정수로 맞춘 뒤 붙인다.
+    """
+    from predict_xlsx import read_table, find_targets, TRAY_PAT, CELL_PAT
+    try:
+        M = read_table(path)
+    except Exception as e:
+        print(f"  !! --join 파일을 못 읽었습니다: {e}"); return D
+    tr = next((c for c in M.columns if TRAY_PAT.search(str(c))), None)
+    cl = next((c for c in M.columns if CELL_PAT.match(str(c).strip())), None)
+    if not tr or not cl:
+        print(f"  !! --join 파일에서 트레이/셀 컬럼을 못 찾았습니다"
+              f" (트레이={tr}, 셀={cl}). 붙이지 않습니다."); return D
+    want = find_targets(M) + [c for c in M.columns if "판정등급" in str(c)]
+    if not want:
+        print("  !! --join 파일에 ΔOCV·판정등급이 없습니다. 붙일 것이 없습니다.")
+        return D
+
+    def key(s_):
+        """'001' 과 1 과 'C-001' 을 같은 것으로 본다. 숫자만 남겨 정수로."""
+        x = pd.to_numeric(s_, errors="coerce")
+        if x.notna().mean() > 0.9: return x.astype("Int64").astype(str)
+        return (s_.astype(str).str.extract(r"(\d+)", expand=False)
+                .pipe(pd.to_numeric, errors="coerce").astype("Int64").astype(str))
+
+    L = D.copy()
+    L["_k"] = L["tray_id"].astype(str).str.strip() + "|" + key(L["cell_no"])
+    R = M[[tr, cl] + want].copy()
+    R["_k"] = R[tr].astype(str).str.strip() + "|" + key(R[cl])
+    R = R.drop_duplicates("_k").drop(columns=[tr, cl])
+    out = L.merge(R, on="_k", how="left").drop(columns=["_k"])
+    hit = int(out[want[0]].notna().sum())
+    print(f"\n  본체 엑셀 붙이기: {', '.join(map(str, want))}")
+    print(f"    {hit:,} / {len(out):,}셀 매칭 ({hit / max(len(out), 1):.1%})")
+    if hit == 0:
+        print("    !! 하나도 안 붙었습니다. 트레이 ID 표기가 서로 다른지 보십시오.")
+        print(f"       원시: {sorted(set(L['tray_id'].astype(str)))[:3]}")
+        print(f"       본체: {sorted(set(R['_k'].str.split('|').str[0]))[:3]}")
+    elif hit < len(out) * 0.9:
+        print("    !! 매칭률이 낮습니다. 셀 번호 규칙이 다를 수 있습니다.")
+    return out
+
+
+def main(spec, out=None, step=1.0, fine=None, inspect=False, limit=None,
+         how="mean", join=None):
     files = sorted(sum([glob.glob(os.path.join(spec, e)) for e in
                         ("*.csv", "*.CSV", "*.txt", "*.xlsx", "*.xls")], [])) \
         if os.path.isdir(spec) else sorted(glob.glob(spec))
@@ -305,15 +356,22 @@ def main(spec, out=None, step=1.0, fine=None, inspect=False, limit=None, how="me
     print(f"    0분 시점 {'있음' if t0 else '없음'}"
           + ("   ← 5분 창에 여러 점이 생긴다" if t0 else "   ← 여전히 시작 시점부터다"))
 
+    if join:
+        D = attach(D, join)
+
     if out:
         (D.to_excel(out, index=False) if str(out).lower().endswith((".xlsx", ".xlsm"))
          else D.to_csv(out, index=False, encoding="utf-8-sig"))
         print(f"\n  저장: {out}   {D.shape[0]:,}행 x {D.shape[1]}열")
-        print("""
-  다음
-    · 본체 엑셀의 판정등급·ΔOCV 를 tray_id + cell_no 로 붙이십시오.
-      (엑셀에서 VLOOKUP 이든, pandas merge 든)
-    · 그 다음 기존 스크립트를 그대로 돌릴 수 있습니다.
+        print("\n  다음")
+        if join:
+            print("    · 판정등급·ΔOCV 가 붙었습니다. 바로 돌릴 수 있습니다.")
+        else:
+            print("""    · 본체 엑셀의 판정등급·ΔOCV 를 붙이십시오.
+      --join="본체.xlsx" 로 한 번에 붙거나, VLOOKUP / merge 로 직접 붙여도 됩니다.
+      ※ 안 붙이면 decompose.py 가 '판정 불가' 로 끝납니다. 모양 분해가
+        기각된 게 아니라, 대조할 정답이 없다는 뜻입니다.""")
+        print("""    · 기존 스크립트를 그대로 돌릴 수 있습니다.
         python analysis/short.py  "합친것.xlsx" --at=5
         python analysis/rescue.py "합친것.xlsx"
         python analysis/decompose.py "합친것.xlsx"
@@ -329,13 +387,14 @@ if __name__ == "__main__":
     a = [x for x in sys.argv[1:] if not x.startswith("-")]
     if not a: print(__doc__)
     else:
-        out = fine = None; step = 1.0; lim = None
+        out = fine = jn = None; step = 1.0; lim = None
         for i, x in enumerate(sys.argv):
             if x == "-o" and i + 1 < len(sys.argv): out = sys.argv[i + 1]
             if x.startswith("--out="):  out = x.split("=", 1)[1]
             if x.startswith("--fine="): fine = x.split("=", 1)[1]
             if x.startswith("--step="): step = float(x.split("=")[1])
             if x.startswith("--limit="): lim = int(x.split("=")[1])
+            if x.startswith("--join="): jn = x.split("=", 1)[1]
         outs = {out, fine} - {None}
         main(a[0], out, step, fine, "--inspect" in sys.argv, lim,
-             "interp" if "--interp" in sys.argv else "mean")
+             "interp" if "--interp" in sys.argv else "mean", jn)

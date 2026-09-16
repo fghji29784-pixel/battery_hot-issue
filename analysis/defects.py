@@ -31,14 +31,17 @@
      각 점수에서 '이 셀을 잡으려면 몇 % 를 검사해야 하는가' 를 낸다
  [3] ★ 가장 안 잡히는 셀은 다른 불량과 무엇이 다른가
  [4] 트레이별 불량 분포 — 한 트레이에 몰려 있는가
+
+  --target="컬럼명"   3일 ΔOCV 컬럼을 직접 지정 (DOCV 처럼 표기가 다를 때)
 """
 import sys, re, warnings
 warnings.filterwarnings("ignore")
 import numpy as np, pandas as pd
 import runlog
 from predict_xlsx import (load, I_PAT, SLOPE_PAT, COND_PAT, TARGET_PAT,
-                          TRAY_PAT, CELL_PAT, measured_upto)
-from correct import between_tray_share
+                          TRAY_PAT, CELL_PAT, measured_upto,
+                          find_targets, parse_target)
+from correct import target_report, between_tray_share
 
 GRADE_KEY = "판정등급"
 DUMMY_PAT = re.compile(r"^dummy[_\s]*l\d+$", re.I)   # layer 와 중복이라 표에서 뺀다
@@ -55,7 +58,7 @@ def main(spec, at=None, ng_codes=("E",), no_model=False):
     scols = sorted([c for c in df.columns if SLOPE_PAT.match(c)], key=lambda c: int(SLOPE_PAT.match(c).group(1)))
     mins  = [int(I_PAT.match(c).group(1)) for c in icols]
     conds = [c for c in df.columns if COND_PAT.match(c) and pd.api.types.is_numeric_dtype(df[c])]
-    tgts  = [c for c in df.columns if TARGET_PAT.search(c)]
+    tgts  = find_targets(df)
     tray  = next((c for c in df.columns if TRAY_PAT.search(c)), None)
     cell  = next((c for c in df.columns if CELL_PAT.match(str(c).strip())), None)
     gcol  = next((c for c in df.columns if GRADE_KEY in str(c)), None)
@@ -141,6 +144,7 @@ def main(spec, at=None, ng_codes=("E",), no_model=False):
     # ── [1] 명부 ─────────────────────────────────────────────────
     print("\n" + "-" * 78); print(" [1] 불량 셀 명부"); print("-" * 78)
     yv = pd.to_numeric(D[tgts[-1]], errors="coerce").values if tgts else None
+    if tgts: target_report(yv, D["_tray"].values, str(tgts[-1]))
     lay = pd.to_numeric(D["layer"], errors="coerce").values if "layer" in D.columns else None
     hdr = f"    {'#':>2} {'트레이':<16}{'셀ID':<14}{'층':>4}"
     if yv is not None: hdr += f"{'ΔOCV':>9}{'트레이내 순위':>14}"
@@ -257,5 +261,6 @@ if __name__ == "__main__":
             if x.startswith("--at="): at = int(x.split("=")[1])
             if x.startswith("--ng="): ng = tuple(t.strip().upper() for t in x.split("=", 1)[1].split(","))
         sv, en = runlog.parse(sys.argv)
+        parse_target(sys.argv)
         with runlog.saving("defects", a[0], sys.argv, sv, en):
             main(a[0], at, ng, "--no-model" in sys.argv)

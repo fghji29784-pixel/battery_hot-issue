@@ -30,13 +30,15 @@
  ① 트레이 단위 조기 종료 — 트레이 전체를 일찍 뺀다. 설비 점유시간이 줄어든다.
  ② 2단 선별 — 1단 짧게 전수, 애매한 대역만 2단으로 연장.
     채널을 재배치할 수 있을 때만 유효하다. 절감 단위는 '셀-분'.
+
+  --target="컬럼명"   3일 ΔOCV 컬럼을 직접 지정 (DOCV 처럼 표기가 다를 때)
 """
 import sys, warnings
 warnings.filterwarnings("ignore")
 import numpy as np, pandas as pd
 from scipy.stats import spearmanr
 import runlog
-from predict_xlsx import load, I_PAT, COND_PAT, TARGET_PAT, TRAY_PAT, measured_upto
+from predict_xlsx import load, I_PAT, COND_PAT, TARGET_PAT, TRAY_PAT, measured_upto, find_targets, parse_target
 
 GRADE_KEY = "판정등급"
 
@@ -49,7 +51,7 @@ def main(spec, theta=0.98, tmin=5, band=0.10, floor=0.90):
     df, _ = load(spec)
     icols = sorted([c for c in df.columns if I_PAT.match(c)], key=lambda c: int(I_PAT.match(c).group(1)))
     mins  = [int(I_PAT.match(c).group(1)) for c in icols]
-    tgts  = [c for c in df.columns if TARGET_PAT.search(c)]
+    tgts  = find_targets(df)
     tray  = next((c for c in df.columns if TRAY_PAT.search(c)), None)
     gcol  = next((c for c in df.columns if GRADE_KEY in str(c)), None)
     conds = [c for c in df.columns if COND_PAT.match(c) and pd.api.types.is_numeric_dtype(df[c])]
@@ -290,5 +292,6 @@ if __name__ == "__main__":
             if x.startswith("--band="):  bd = float(x.split("=")[1])
             if x.startswith("--floor="): fl = float(x.split("=")[1])
         sv, en = runlog.parse(sys.argv)
+        parse_target(sys.argv)
         with runlog.saving("adaptive", a[0], sys.argv, sv, en):
             main(a[0], th, tm, bd, fl)

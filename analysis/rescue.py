@@ -45,14 +45,17 @@
  그렇다면 '값' 이 아니라 '회복 기울기' 가 신호일 수 있다.
 
  값 피처(i_XXmin)로는 이 셀이 양품보다도 낮게 나온다. 형상 피처는 다르다.
+
+  --target="컬럼명"   3일 ΔOCV 컬럼을 직접 지정 (DOCV 처럼 표기가 다를 때)
 """
 import sys, re, warnings
 warnings.filterwarnings("ignore")
 import numpy as np, pandas as pd
 import runlog
 from predict_xlsx import (load, I_PAT, COND_PAT, TARGET_PAT, TRAY_PAT,
-                          CELL_PAT, measured_upto)
-from correct import (between_tray_share, within_tray_rho, topk_recall,
+                          CELL_PAT, measured_upto,
+                          find_targets, parse_target)
+from correct import (target_report, between_tray_share, within_tray_rho, topk_recall,
                      safe_z, derive_conds)
 
 GRADE_KEY = "판정등급"
@@ -76,7 +79,7 @@ def main(spec, at=None, rows=None, cols=None, order="col"):
     icols = sorted([c for c in df.columns if I_PAT.match(c)], key=lambda c: int(I_PAT.match(c).group(1)))
     mins  = [int(I_PAT.match(c).group(1)) for c in icols]
     conds = [c for c in df.columns if COND_PAT.match(c) and pd.api.types.is_numeric_dtype(df[c])]
-    tgts  = [c for c in df.columns if TARGET_PAT.search(c)]
+    tgts  = find_targets(df)
     tray  = next((c for c in df.columns if TRAY_PAT.search(c)), None)
     cellc = next((c for c in df.columns if CELL_PAT.match(str(c).strip())), None)
     gcol  = next((c for c in df.columns if GRADE_KEY in str(c)), None)
@@ -100,6 +103,7 @@ def main(spec, at=None, rows=None, cols=None, order="col"):
     acol = f"i_{at}min" if f"i_{at}min" in D.columns else icols[-1]
     y = D[gcol].astype(str).str.strip().str.upper().eq("E").values.astype(int) if gcol else np.zeros(n, int)
     yv = pd.to_numeric(D[tgts[-1]], errors="coerce").values if tgts else None
+    if tgts: target_report(yv, D["_tray"].values, str(tgts[-1]))
 
     print("=" * 78); print(" 안 잡히는 셀을 살릴 수 있는가 — 공간 보정과 곡선 형상"); print("=" * 78)
     print(f"  {n:,}셀 / 트레이 {D['_tray'].nunique()}개 / 평가 시점 {at}분"
@@ -465,5 +469,6 @@ if __name__ == "__main__":
                 m = re.match(r"(\d+)\s*[xX*]\s*(\d+)", x.split("=")[1])
                 if m: rw, cl = int(m.group(1)), int(m.group(2))
         sv, en = runlog.parse(sys.argv)
+        parse_target(sys.argv)
         with runlog.saving("rescue", a[0], sys.argv, sv, en):
             main(a[0], at, rw, cl, od)

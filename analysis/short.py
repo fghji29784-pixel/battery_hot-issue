@@ -37,13 +37,15 @@
    여러 점을 합치면 잡음이 줄어든다. 5분처럼 신호가 작을수록 이득이 크다.
 
  ★ 모든 셀이 같은 시간을 측정하고 같은 계산을 받는다. 동일 과정 제약과 맞는다.
+
+  --target="컬럼명"   3일 ΔOCV 컬럼을 직접 지정 (DOCV 처럼 표기가 다를 때)
 """
 import sys, re, warnings
 warnings.filterwarnings("ignore")
 import numpy as np, pandas as pd
 import runlog
-from predict_xlsx import load, I_PAT, TARGET_PAT, TRAY_PAT, CELL_PAT, measured_upto
-from correct import within_tray_rho, topk_recall
+from predict_xlsx import load, I_PAT, TARGET_PAT, TRAY_PAT, CELL_PAT, measured_upto, find_targets, parse_target
+from correct import target_report, within_tray_rho, topk_recall
 from rescue import grid_pos
 
 GRADE_KEY = "판정등급"
@@ -78,7 +80,7 @@ def main(spec, at=None, rows=None, cols=None, order="col"):
     df, _ = load(spec)
     icols = sorted([c for c in df.columns if I_PAT.match(c)], key=lambda c: int(I_PAT.match(c).group(1)))
     mins  = [int(I_PAT.match(c).group(1)) for c in icols]
-    tgts  = [c for c in df.columns if TARGET_PAT.search(c)]
+    tgts  = find_targets(df)
     tray  = next((c for c in df.columns if TRAY_PAT.search(c)), None)
     cellc = next((c for c in df.columns if CELL_PAT.match(str(c).strip())), None)
     gcol  = next((c for c in df.columns if GRADE_KEY in str(c)), None)
@@ -96,6 +98,7 @@ def main(spec, at=None, rows=None, cols=None, order="col"):
     n = len(D); g = D["_tray"].values
     y = D[gcol].astype(str).str.strip().str.upper().eq("E").values.astype(int)
     yv = pd.to_numeric(D[tgts[-1]], errors="coerce").values if tgts else None
+    if tgts: target_report(yv, D["_tray"].values, str(tgts[-1]))
     if n < 30 or y.sum() < 3:
         print(f"\n  !! 셀 {n}개 / 불량 {int(y.sum())}개. 평가가 어렵습니다."); return
 
@@ -226,5 +229,6 @@ if __name__ == "__main__":
                 m = re.match(r"(\d+)\s*[xX*]\s*(\d+)", x.split("=")[1])
                 if m: rw, cl = int(m.group(1)), int(m.group(2))
         sv, en = runlog.parse(sys.argv)
+        parse_target(sys.argv)
         with runlog.saving("short", a[0], sys.argv, sv, en):
             main(a[0], at, rw, cl, od)

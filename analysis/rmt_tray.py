@@ -52,15 +52,30 @@ def _looks_like_header_token(tok):
 
 
 def _read_text_any_encoding(path):
-    """실측 장비 TXT는 cp949/euc-kr(윈도우 한글)로 저장된 경우가 흔하다."""
+    """BOM 바이트를 직접 봐서 인코딩을 정한다. UTF-16(LE/BE)은 latin-1 같은
+    '뭐든 받아주는' 인코딩으로 잘못 읽으면 예외 없이 조용히 깨진 텍스트가
+    나오므로(널바이트가 낀 형태), 추측 순회가 아니라 BOM으로 먼저 확정한다.
+    실측 장비 TXT는 cp949/euc-kr(윈도우 한글)이거나, 엑셀에서 저장한
+    'Unicode 텍스트'(UTF-16)인 경우도 흔하다.
+    """
+    with open(path, "rb") as f:
+        head = f.read(4)
+    if head[:2] in (b"\xff\xfe", b"\xfe\xff"):
+        candidates = ("utf-16",)
+    elif head[:3] == b"\xef\xbb\xbf":
+        candidates = ("utf-8-sig",)
+    else:
+        candidates = ("utf-8", "cp949", "euc-kr")
+    candidates = candidates + tuple(e for e in ("utf-16", "utf-8-sig", "utf-8", "cp949", "euc-kr", "latin-1")
+                                     if e not in candidates)
     last_err = None
-    for enc in ("utf-8-sig", "utf-8", "cp949", "euc-kr", "latin-1"):
+    for enc in candidates:
         try:
             with open(path, "r", encoding=enc) as f:
                 return f.read(), enc
         except (UnicodeDecodeError, UnicodeError) as e:
             last_err = e
-    raise ValueError(f"'{path}' 인코딩을 판별하지 못했습니다 (utf-8/cp949/euc-kr 모두 실패): {last_err}")
+    raise ValueError(f"'{path}' 인코딩을 판별하지 못했습니다: {last_err}")
 
 
 def _parse_by_token_stream(text):

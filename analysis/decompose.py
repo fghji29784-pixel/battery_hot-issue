@@ -142,49 +142,60 @@ def main(spec, at=None, k=2):
 
     # ── [1] 모양 분해 ────────────────────────────────────────────
     Xw = X[:, :ai + 1]
-    tw = np.asarray(mins[:ai + 1], float)
     print("\n" + "-" * 78)
-    print(f" [1] 모양으로 가른다 — 직선 성분과 곡률 성분  ({at}분 창)")
+    print(" [1] 모양으로 가른다 — 직선 성분과 곡률 성분")
     print("-" * 78)
-    # 기저 두 개. 직선은 자가방전, 곡률은 열드리프트를 담는다고 본다.
-    L = tw - tw.mean()
-    tau = max(tw[-1] / 3.0, 1.0)
-    Cb = 1.0 - np.exp(-tw / tau)
-    Cb = Cb - Cb.mean()
-    Cb = Cb - (Cb @ L) / (L @ L) * L                  # 직선과 직교시킨다
-    Xc = Xw - pd.DataFrame(Xw).groupby(g).transform("mean").values   # 트레이 공통 궤적 제거
-    aL = (Xc @ L) / (L @ L)                           # 직선 계수 = 자가방전 후보
-    aC = (Xc @ Cb) / (Cb @ Cb)                        # 곡률 계수 = 열드리프트 후보
-    print(f"    곡률 기저의 시정수 {tau:.0f}분 (창의 1/3). 직선과 직교하도록 만들었다.")
+
+    def shape_split(jend):
+        """창 [0, jend] 에서 직선 계수와 곡률 계수를 뽑는다."""
+        tw = np.asarray(mins[:jend + 1], float)
+        L = tw - tw.mean()
+        tau = max(tw[-1] / 3.0, 1.0)
+        Cb = 1.0 - np.exp(-tw / tau); Cb = Cb - Cb.mean()
+        Cb = Cb - (Cb @ L) / (L @ L) * L                  # 직선과 직교
+        Xc = X[:, :jend + 1] - pd.DataFrame(X[:, :jend + 1]).groupby(g).transform("mean").values
+        return (Xc @ L) / (L @ L), (Xc @ Cb) / (Cb @ Cb)
 
     from scipy.stats import spearmanr
-    print(f"\n    두 성분이 서로 다른 것과 묶이는가  ← 이 접근이 성립하는 근거")
-    print(f"    {'':<22}{'직선 계수':>12}{'곡률 계수':>12}")
-    print("    " + "-" * 46)
-    rows = []
-    if yv is not None:
-        rows.append(("3일 ΔOCV (트레이내)",
-                     within_tray_rho(aL, yv, g)[0], within_tray_rho(aC, yv, g)[0]))
-    for c in ("delta_t", "t_init", "delta_v", "v_init"):
-        if c in D.columns and D[c].nunique() > 2:
-            rows.append((c, spearmanr(aL, D[c], nan_policy="omit").statistic,
-                         spearmanr(aC, D[c], nan_policy="omit").statistic))
-    for nm, r1, r2 in rows:
-        print(f"    {nm:<22}{r1:>+12.3f}{r2:>+12.3f}")
-    if rows and yv is not None:
-        tsel = [r for r in rows if r[0] in ("delta_t", "t_init")]
-        if tsel:
-            okA = abs(rows[0][1]) > abs(rows[0][2])
-            okB = max(abs(r[2]) for r in tsel) > max(abs(r[1]) for r in tsel)
-            if okA and okB:
-                print("""
-    ★ 근거가 섰다. 직선 계수는 ΔOCV 쪽에, 곡률 계수는 온도 쪽에 더 묶인다.
-      두 성분이 서로 다른 물리를 담고 있다는 뜻이고, 그러면 분리가 성립한다.""")
-            else:
-                print("""
-    ☠ 근거가 약하다. 직선·곡률 두 성분이 같은 것과 묶인다.
-      15분 창에서 두 모양이 충분히 다르지 않다는 뜻이다.
-      창을 늘리거나, 더 촘촘한 원시 샘플이 필요하다.""")
+    tcols = [c for c in ("delta_t", "t_init") if c in D.columns and D[c].nunique() > 2]
+
+    def verdict(jend, label):
+        aL_, aC_ = shape_split(jend)
+        print(f"\n    ── {label} ({mins[jend]}분 창) ──")
+        print(f"    {'':<22}{'직선 계수':>12}{'곡률 계수':>12}")
+        print("    " + "-" * 46)
+        rY = (np.nan, np.nan)
+        if yv is not None:
+            rY = (within_tray_rho(aL_, yv, g)[0], within_tray_rho(aC_, yv, g)[0])
+            print(f"    {'3일 ΔOCV (트레이내)':<22}{rY[0]:>+12.3f}{rY[1]:>+12.3f}")
+        rT = []
+        for c in tcols + [c for c in ("delta_v", "v_init") if c in D.columns]:
+            r1 = spearmanr(aL_, D[c], nan_policy="omit").statistic
+            r2 = spearmanr(aC_, D[c], nan_policy="omit").statistic
+            print(f"    {c:<22}{r1:>+12.3f}{r2:>+12.3f}")
+            if c in tcols: rT.append((abs(r1), abs(r2)))
+        ok = (np.isfinite(rY[0]) and abs(rY[0]) > abs(rY[1])
+              and rT and max(r[1] for r in rT) > max(r[0] for r in rT))
+        print(f"      → {'★ 두 성분이 서로 다른 것과 묶인다. 분리 성립.' if ok else '☠ 두 성분이 같은 것과 묶인다. 이 창에서는 분리가 안 된다.'}")
+        return aL_, aC_, ok
+
+    aL, aC, ok_at = verdict(ai, "평가 창")
+    if ai < len(mins) - 1:
+        aLf, aCf, ok_full = verdict(len(mins) - 1, "전체 창")
+        if ok_full and not ok_at:
+            print(f"""
+    ★★ 평가 창({at}분)에서는 안 갈리는데 전체 창({mins[-1]}분)에서는 갈린다.
+      열 항의 변곡점이 {at}분 부근이라 짧은 창에서는 곡률이 잘려 나간 것이다.
+      → 이 접근을 쓰려면 창을 {mins[-1]}분까지 열어야 한다.
+        측정시간 단축과 상충하므로, 둘 중 무엇을 택할지는 [2][3] 으로 판단할 것.""")
+        elif not ok_full and not ok_at:
+            print(f"""
+    ☠ 두 창 모두에서 안 갈린다. 15~30분 구간에서 자가방전과 열드리프트의
+      시간 모양이 충분히 다르지 않다는 뜻이다.
+      → 더 촘촘한 원시 샘플(1 Hz)이 있어야 모양 차이를 볼 수 있다.
+        지금은 1분 평균 {len(mins)}점뿐이다.""")
+        if ok_full and not ok_at:
+            aL, aC = aLf, aCf
 
     # ── [1-b] 공통모드 제거의 함정 검사 ──────────────────────────
     Rm, pc1, ev = tray_svd(Xw, g, k)
@@ -193,7 +204,9 @@ def main(spec, at=None, k=2):
     print("-" * 78)
     if ev:
         e1 = np.array([v[0] for v in ev.values()])
-        amp = abs(spearmanr(pc1, Xc[:, -1], nan_policy="omit").statistic)
+        # 평가 창에서 트레이 공통 궤적을 뺀 전류 진폭
+        amp_ref = (Xw - pd.DataFrame(Xw).groupby(g).transform("mean").values)[:, -1]
+        amp = abs(spearmanr(pc1, amp_ref, nan_policy="omit").statistic)
         print(f"    첫 성분이 설명하는 비율   중앙 {np.median(e1)*100:.1f}%")
         print(f"    첫 성분 점수와 전류 진폭의 상관  |rho| = {amp:.3f}")
         if amp > 0.8:

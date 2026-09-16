@@ -103,12 +103,22 @@ def main(spec, at=None, rows=None, cols=None, order="col"):
 
     # ── [1] 격자 복원 ────────────────────────────────────────────
     sz = int(D.groupby("_tray").size().median())
+    # 격자 크기는 '셀 수' 가 아니라 '셀 번호의 최대값' 으로 잡아야 한다.
+    # 결측이 있으면 셀 수가 격자보다 작고, 그 수가 소수면 엉뚱한 격자가 나온다.
+    # (142 셀 -> 2 x 71 이 되지만 실제 격자는 12 x 12 = 144 이다)
+    mx = int(np.nanmax(D.groupby("_tray")["_num"].max().values))
     if rows is None or cols is None:
-        r0 = int(round(np.sqrt(sz)))
-        while r0 > 1 and sz % r0: r0 -= 1
-        rows, cols = (r0, sz // r0) if r0 > 1 else (1, sz)
+        cand = [(abs(r - mx / r), r, mx // r) for r in range(1, mx + 1) if mx % r == 0]
+        _, rows, cols = min(cand) if cand else (0, 1, mx)
     print("\n" + "-" * 78); print(" [1] 셀 번호에서 트레이 내 자리 복원"); print("-" * 78)
-    print(f"    트레이당 셀 수 중앙 {sz}  →  격자 {rows} x {cols}  (순서: {order}-우선)")
+    print(f"    트레이당 셀 수 중앙 {sz},  셀 번호 최대 {mx}")
+    print(f"    →  격자 {rows} x {cols}  (순서: {order}-우선)")
+    if rows < 3 or cols < 3:
+        print(f"""    ☠ 격자가 {rows} x {cols} 로 한쪽이 지나치게 얇다. 셀 번호 최대값 {mx} 이
+      소수이거나 그에 가까워서 생기는 일이다. 실제 격자를 --grid 로 지정할 것.
+      (예: --grid=12x12).  아래 [2] 이후 수치는 격자가 맞아야 의미가 있다.""")
+    elif abs(rows - cols) > max(rows, cols) / 2:
+        print(f"    ※ 격자가 {rows} x {cols} 로 한쪽이 길다. 실제와 다르면 --grid 로 지정할 것.")
     R, C = grid_pos(D["_num"].values, rows, cols, order)
     D["_r"], D["_c"] = R, C
     ok = (R >= 0).mean()

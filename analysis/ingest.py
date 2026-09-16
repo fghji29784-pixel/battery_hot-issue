@@ -58,6 +58,68 @@ TRAY_PAT = re.compile(r"(tray|트레이|rack|lot|랏|batch)", re.I)
 IDX_PAT  = re.compile(r"(\d+)")
 
 
+ENCS = ("utf-8-sig", "cp949", "euc-kr", "utf-8", "utf-16", "latin-1")
+
+
+def _read_text(path):
+    for e in ENCS:
+        try:
+            with open(path, "r", encoding=e, errors="strict") as f:
+                return f.read(), e
+        except (UnicodeDecodeError, LookupError, UnicodeError):
+            continue
+    with open(path, "r", encoding="latin-1", errors="replace") as f:
+        return f.read(), "latin-1(대체)"
+
+
+def _is_num(tok):
+    try: float(tok); return True
+    except ValueError: return False
+
+
+def read_wide_txt(path):
+    """공백·탭 구분 wide 텍스트를 읽는다.
+
+    BT2152 계열 txt 는 한 줄에 433개 컬럼이 들어가 매우 길다. 그래서
+      · 구분자가 쉼표가 아니라 공백인 경우가 있고
+      · 헤더나 데이터 한 줄이 여러 물리 줄로 접혀 있는 경우가 있다
+    둘 다 견디도록, 줄 단위가 아니라 '토큰 단위' 로 읽고 컬럼 수만큼
+    끊어서 표를 만든다.
+
+    실패하면 None 을 돌려주고, 호출한 쪽이 일반 리더로 넘어간다.
+    """
+    raw, enc = _read_text(path)
+    lines = [l for l in raw.splitlines() if l.strip()]
+    if not lines: return None
+
+    # 헤더 시작 줄: TIME 이 있는 줄. 없으면 숫자가 아닌 토큰이 3개 이상인 첫 줄.
+    st = next((i for i, l in enumerate(lines) if re.search(r"\bTIME\b", l, re.I)), None)
+    if st is None:
+        st = next((i for i, l in enumerate(lines)
+                   if sum(not _is_num(t) for t in l.split()) >= 3), None)
+    if st is None: return None
+
+    # 헤더 토큰: 데이터 줄(토큰이 전부 숫자)이 나오기 전까지 이어 붙인다
+    hdr, i = [], st
+    while i < len(lines):
+        tk = lines[i].split()
+        if tk and all(_is_num(t) for t in tk): break
+        hdr += tk; i += 1
+    if len(hdr) < 3 or i >= len(lines): return None
+
+    # 데이터: 남은 토큰을 전부 이어서 컬럼 수만큼 끊는다 (줄 접힘에 무관)
+    toks = []
+    for l in lines[i:]: toks += l.split()
+    nc = len(hdr); nr = len(toks) // nc
+    if nr < 2: return None
+    arr = np.array(toks[:nr * nc], dtype=object).reshape(nr, nc)
+    df = pd.DataFrame(arr, columns=[str(c).strip() for c in hdr])
+    for c in df.columns:
+        df[c] = pd.to_numeric(df[c], errors="coerce")
+    if df.iloc[:, 0].notna().sum() < 2: return None
+    return df, enc, "공백/탭", st
+
+
 def tray_from_name(path):
     """파일명에서 트레이 ID 를 뽑는다. 영문+숫자 덩어리 중 가장 긴 것."""
     stem = os.path.splitext(os.path.basename(path))[0]
@@ -93,7 +155,13 @@ def cell_key(name):
 
 def load_one(path):
     """파일 하나 → (시간[분], {종류: DataFrame(셀번호 x 시간)}, 형식, 트레이)."""
-    df, enc, sep, hdr = read_any(path)
+    got = None
+    try: got = read_wide_txt(path)
+    except Exception: got = None
+    if got is None:
+        df, enc, sep, hdr = read_any(path)
+    else:
+        df, enc, sep, hdr = got
     cols = [str(c) for c in df.columns]
     tray = next((c for c in cols if TRAY_PAT.search(c)), None)
     tray_id = str(df[tray].dropna().iloc[0]) if tray and df[tray].notna().any() else tray_from_name(path)

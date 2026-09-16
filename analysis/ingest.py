@@ -5,6 +5,12 @@
   python ingest.py "폴더"  -o 모은것.xlsx    # 표준 스키마(i_XXmin)로 합치기
   python ingest.py "폴더"  -o 모은것.xlsx --step=0.5   # 0.5분 간격으로
   python ingest.py "폴더"  --fine=원본해상도.csv       # 원해상도 long 도 함께
+  python ingest.py "폴더"  -o 모은것.xlsx --interp      # 평균 대신 보간 (권장 안 함)
+
+ ※ 단위는 원본 그대로 둔다 (전류 uA, 전압 mV, 온도 섭씨).
+   본체 엑셀의 전류는 A 단위라 1e6 배 차이가 난다. 두 출처의 전류 값을
+   같은 표에 섞지 말 것. 분석은 전부 순위·상대값 기반이라 단위 자체는
+   결과에 영향이 없다.
 
 ────────────────────────────────────────────────────────────────────────
  왜 필요한가
@@ -117,6 +123,29 @@ def load_one(path):
     return tv, out, "wide", tray_id, enc
 
 
+def bin_mean(x, y, grid, step, how="mean"):
+    """격자 점마다 그 구간 안의 원본 값을 평균한다.
+
+    1 Hz 원본을 1분 격자로 옮길 때, 그 시각의 값 하나만 쓰면(보간) 잡음이
+    그대로 남는다. 구간 안 60점을 평균하면 잡음이 sqrt(60) = 7.7배 준다.
+    1 Hz 를 받아오는 이득의 대부분이 여기서 나온다.
+    원본이 이미 성기면(격자보다 간격이 크면) 자동으로 보간으로 넘어간다.
+    """
+    x = np.asarray(x, float); y = np.asarray(y, float)
+    if how == "interp" or len(x) < 2 or np.median(np.diff(x)) >= step * 0.75:
+        return np.interp(grid, x, y, left=np.nan, right=np.nan)
+    edges = np.concatenate([grid - step / 2.0, [grid[-1] + step / 2.0]])
+    idx = np.clip(np.searchsorted(edges, x, "right") - 1, 0, len(grid) - 1)
+    ok = (x >= edges[0]) & (x <= edges[-1])
+    ssum = np.bincount(idx[ok], y[ok], minlength=len(grid))
+    cnt = np.bincount(idx[ok], minlength=len(grid)).astype(float)
+    out = np.where(cnt > 0, ssum / np.maximum(cnt, 1), np.nan)
+    if np.isnan(out).any():                       # 빈 칸은 보간으로 메운다
+        m = ~np.isnan(out)
+        if m.sum() >= 2: out[~m] = np.interp(grid[~m], grid[m], out[m])
+    return out
+
+
 def to_minutes(tv):
     """시간축 단위를 추정해 분으로 바꾼다."""
     tv = np.asarray(tv, float); span = np.nanmax(tv) - np.nanmin(tv)
@@ -125,7 +154,7 @@ def to_minutes(tv):
     return tv, "분(추정)"
 
 
-def main(spec, out=None, step=1.0, fine=None, inspect=False, limit=None):
+def main(spec, out=None, step=1.0, fine=None, inspect=False, limit=None, how="mean"):
     files = sorted(sum([glob.glob(os.path.join(spec, e)) for e in
                         ("*.csv", "*.CSV", "*.txt", "*.xlsx", "*.xls")], [])) \
         if os.path.isdir(spec) else sorted(glob.glob(spec))
@@ -188,7 +217,7 @@ def main(spec, out=None, step=1.0, fine=None, inspect=False, limit=None):
                 y = np.asarray(W.loc[c].values, float)[o]
                 m = np.isfinite(y)
                 if m.sum() < 2: continue
-                yi = np.interp(grid, cm[o][m], y[m], left=np.nan, right=np.nan)
+                yi = bin_mean(cm[o][m], y[m], grid, step, how)
                 for gi, gv in zip(grid, yi):
                     rec[c][f"{k}_{gi:g}min"] = gv
                 if fine is not None and k == "i":
@@ -198,6 +227,7 @@ def main(spec, out=None, step=1.0, fine=None, inspect=False, limit=None):
     if not rows:
         print("  !! 읽어낸 셀이 없습니다. --inspect 로 구조를 확인해 주세요."); return
     D = pd.DataFrame(rows)
+    print(f"    구간 처리: {'구간 평균 (잡음 감소)' if how == 'mean' else '보간 (--interp)'}")
     print(f"    합친 셀 {len(D):,}개 / 트레이 {D['tray_id'].nunique()}개"
           + (f"  (읽기 실패 {bad}개)" if bad else ""))
     print(f"    측정 길이 중앙 {np.median(tmax):.1f}분")
@@ -239,4 +269,5 @@ if __name__ == "__main__":
             if x.startswith("--step="): step = float(x.split("=")[1])
             if x.startswith("--limit="): lim = int(x.split("=")[1])
         outs = {out, fine} - {None}
-        main(a[0], out, step, fine, "--inspect" in sys.argv, lim)
+        main(a[0], out, step, fine, "--inspect" in sys.argv, lim,
+             "interp" if "--interp" in sys.argv else "mean")

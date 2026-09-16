@@ -406,6 +406,37 @@ def main(spec, at=None, rows=None, cols=None, order="col"):
         if n_small:
             print(f"    ※ (트레이,행) 묶음 중 셀 5개 미만이라 보정하지 않은 셀 {n_small}개")
 
+        # ── [6] 운영 판정 — 검사 셀 수와 과검 ─────────────────────
+        print("\n" + "-" * 78)
+        print(" [6] 운영 판정 — 그래서 몇 셀을 보고 몇 개가 헛걸음인가")
+        print("-" * 78)
+        ng_ = int(y.sum())
+        # 아래 표는 ②'' (트레이별 행 프로파일) 하나만 계산한다. 라벨을 그에 맞춘다.
+        # 어느 점수가 가장 좋은지는 [5] 표에서 고를 것.
+        best = min(cand, key=lambda c: need(c[1]))
+        print("    기준 점수: ②'' 자리 보정 (트레이별 행프로파일)")
+        if not best[0].startswith("②''"):
+            print(f"    ※ [5] 에서는 '{best[0]}' 가 더 낮았다. 그쪽을 쓸지 함께 검토할 것.")
+        print(f"    {'구간':>6}{'검사 셀':>10}{'검출':>8}{'과검 셀':>10}{'과검률':>9}")
+        print("    " + "-" * 43)
+        for m in mins:
+            if m not in (5, 8, 10, 15, 20, 30) or m > mins[-1]: continue
+            cm = f"i_{m}min"
+            if cm not in D.columns: continue
+            v = D[cm].values.astype(float)
+            t0 = v - pd.Series(v).groupby(g).transform("median").values
+            pt = pd.Series(t0).groupby(key).transform("median").values
+            ct = pd.Series(t0).groupby(key).transform("count").values
+            sc = np.where(ct >= 5, t0 - np.nan_to_num(pt, nan=0.0), t0)
+            kk = int(round(n * need(sc)))
+            print(f"    {m:>4}분{kk:>9,}셀{ng_:>5}/{ng_}{kk - ng_:>9,}셀"
+                  f"{(kk - ng_) / max(n - ng_, 1) * 100:>8.2f}%")
+        print("""
+    → '검사 셀' 은 불량을 전부 잡으려면 봐야 하는 셀 수, '과검' 은 그중 양품이다.
+      현행 공정(3일 보관 후 ΔOCV 판정)의 적출 셀 수와 직접 비교할 것.
+      3일이 15분으로 줄어드는 대신 몇 셀을 더 보게 되는지가 그 교환 조건이다.
+    ※ 불량이 {0}개뿐이므로 과검률의 신뢰구간은 넓다. 방향만 읽을 것.""".format(ng_))
+
     print("\n" + "=" * 78)
     print(""" 이 스크립트가 시험하는 것
    1. 셀 번호로 트레이 내 자리를 복원할 수 있다 (히트맵이 근거).

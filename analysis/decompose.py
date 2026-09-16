@@ -61,12 +61,14 @@
  불량 개수에 의존하지 않고, 처음 보는 불량 유형에도 반응한다.
 
   --target="컬럼명"   3일 ΔOCV 컬럼을 직접 지정 (DOCV 처럼 표기가 다를 때)
+  --drop-tray=A,B     특정 트레이 제외
+  --drop-empty-target ΔOCV 가 20개 미만인 트레이 자동 제외 (=N 으로 기준 변경)
 """
 import sys, warnings
 warnings.filterwarnings("ignore")
 import numpy as np, pandas as pd
 import runlog
-from predict_xlsx import load, I_PAT, COND_PAT, TARGET_PAT, TRAY_PAT, measured_upto, find_targets, parse_target
+from predict_xlsx import load, I_PAT, COND_PAT, TARGET_PAT, TRAY_PAT, measured_upto, find_targets, parse_target, drop_trays
 from correct import (target_report, between_tray_share, within_tray_rho, topk_recall,
                      derive_conds)
 
@@ -120,6 +122,7 @@ def main(spec, at=None, k=2):
 
     D = df.copy()
     D["_tray"] = D[tray].astype(str) if tray else "ALL"
+    D = drop_trays(D)
     for c in icols + conds: D[c] = pd.to_numeric(D[c], errors="coerce")
     D = D.dropna(subset=icols).reset_index(drop=True)
     D["_upto"] = measured_upto(D[icols].values, mins)

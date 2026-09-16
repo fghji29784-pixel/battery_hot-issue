@@ -54,9 +54,58 @@ def set_target(name):
 
 
 def parse_target(argv):
-    """argv 에서 --target= 를 읽어 등록한다. 각 스크립트의 인자 처리에서 부른다."""
+    """argv 에서 --target= / --drop-tray= / --drop-empty-target 을 읽어 등록한다."""
+    global _DROP, _DROP_EMPTY
+    d = next((a.split("=", 1)[1] for a in argv if a.startswith("--drop-tray=")), "")
+    _DROP = tuple(t.strip() for t in d.split(",") if t.strip())
+    de = next((a for a in argv if a.startswith("--drop-empty-target")), None)
+    _DROP_EMPTY = (int(de.split("=", 1)[1]) if de and "=" in de else 20) if de else 0
     return set_target(next((a.split("=", 1)[1] for a in argv
                             if a.startswith("--target=")), None))
+
+
+_DROP = ()              # --drop-tray= 로 뺄 트레이. parse_target() 이 같이 채운다.
+_DROP_EMPTY = 0         # --drop-empty-target: ΔOCV 가 이만큼도 없는 트레이는 뺀다.
+
+
+def drop_trays(D, col="_tray"):
+    """--drop-tray= 로 지정한 트레이를 뺀다. 무엇을 뺐는지 반드시 찍는다.
+
+    ΔOCV 가 아예 없는 트레이를 빼는 용도다. 다만 뺄 때 셀과 불량도 같이
+    빠지므로, 검출 지표(최악셀 검사율·검출 개수)는 뺀 전후를 그대로
+    비교하면 안 된다. 그래서 불량이 몇 개 빠지는지 같이 찍는다.
+    """
+    if col not in D.columns or not (_DROP or _DROP_EMPTY): return D
+    tv = D[col].astype(str).str.strip()
+    want = {str(t).strip() for t in _DROP}
+    m = tv.isin(want)
+    if _DROP_EMPTY:
+        # ΔOCV 가 (거의) 없는 트레이를 이름 없이 자동으로 뺀다.
+        tg = find_targets(D, quiet=True)
+        if not tg:
+            print("  !! --drop-empty-target: ΔOCV 컬럼을 못 찾아 아무것도 못 뺍니다.")
+        else:
+            y = pd.to_numeric(D[tg[-1]], errors="coerce")
+            cnt = y.notna().groupby(tv).transform("sum")
+            auto = cnt < _DROP_EMPTY
+            if auto.any():
+                print(f"  --drop-empty-target: ΔOCV 값이 {_DROP_EMPTY}개 미만인 트레이"
+                      f" {tv[auto].nunique()}개를 뺍니다"
+                      f" ({', '.join(sorted(tv[auto].unique())[:6])}"
+                      + (" …" if tv[auto].nunique() > 6 else "") + ")")
+            m = m | auto
+    miss = want - set(tv.unique())
+    if miss:
+        print(f"  !! --drop-tray 에 없는 트레이가 있습니다: {', '.join(sorted(miss))}")
+    if not m.any(): return D
+    gcol = next((c for c in D.columns if "판정등급" in str(c)), None)
+    nE = int(D.loc[m, gcol].astype(str).str.strip().str.upper().eq("E").sum()) if gcol else 0
+    print(f"  --drop-tray: {m.sum():,}셀 제외"
+          f" ({', '.join(sorted(tv[m].unique()))})"
+          + (f"   ※ 이 중 불량(E) {nE}개가 같이 빠집니다" if nE else ""))
+    if nE:
+        print(f"     불량 개수가 달라지므로 검출 지표는 뺀 전후를 직접 비교하지 마십시오.")
+    return D[~m].reset_index(drop=True)
 
 
 def find_targets(df, want=None, quiet=False):

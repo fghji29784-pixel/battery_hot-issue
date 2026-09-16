@@ -49,13 +49,15 @@ SDM 전류 물리 보정 — 음수 전류와 트레이 오프셋의 정체를 �
 원본/셀단위 값은 출력하지 않는다.
 
   --target="컬럼명"   3일 ΔOCV 컬럼을 직접 지정 (DOCV 처럼 표기가 다를 때)
+  --drop-tray=A,B     특정 트레이 제외
+  --drop-empty-target ΔOCV 가 20개 미만인 트레이 자동 제외 (=N 으로 기준 변경)
 """
 import sys, re, warnings
 warnings.filterwarnings("ignore")
 import numpy as np, pandas as pd
 from scipy.stats import spearmanr
 import runlog
-from predict_xlsx import load, I_PAT, SLOPE_PAT, COND_PAT, TARGET_PAT, TRAY_PAT, measured_upto, find_targets, parse_target
+from predict_xlsx import load, I_PAT, SLOPE_PAT, COND_PAT, TARGET_PAT, TRAY_PAT, measured_upto, find_targets, parse_target, drop_trays
 
 TMIN_PAT = re.compile(r"^t[_\s]*(\d+)\s*min$", re.I)
 GRADE_KEY = "판정등급"
@@ -271,6 +273,7 @@ def main(spec, at=None, cov_req=None, do_sweep=False, ea=EA_DEFAULT):
 
     D = df.copy()
     D["_tray"] = D[tray].astype(str) if tray else "ALL"
+    D = drop_trays(D)
     for c in icols + conds + tmins: D[c] = pd.to_numeric(D[c], errors="coerce")
     D = D.dropna(subset=icols).reset_index(drop=True)
     D["_upto"] = measured_upto(D[icols].values, mins)

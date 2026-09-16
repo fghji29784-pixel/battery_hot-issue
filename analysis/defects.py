@@ -33,6 +33,8 @@
  [4] 트레이별 불량 분포 — 한 트레이에 몰려 있는가
 
   --target="컬럼명"   3일 ΔOCV 컬럼을 직접 지정 (DOCV 처럼 표기가 다를 때)
+  --drop-tray=A,B     특정 트레이 제외
+  --drop-empty-target ΔOCV 가 20개 미만인 트레이 자동 제외 (=N 으로 기준 변경)
 """
 import sys, re, warnings
 warnings.filterwarnings("ignore")
@@ -40,7 +42,7 @@ import numpy as np, pandas as pd
 import runlog
 from predict_xlsx import (load, I_PAT, SLOPE_PAT, COND_PAT, TARGET_PAT,
                           TRAY_PAT, CELL_PAT, measured_upto,
-                          find_targets, parse_target)
+                          find_targets, parse_target, drop_trays)
 from correct import target_report, between_tray_share
 
 GRADE_KEY = "판정등급"
@@ -67,6 +69,7 @@ def main(spec, at=None, ng_codes=("E",), no_model=False):
 
     D = df.copy()
     D["_tray"] = D[tray].astype(str) if tray else "ALL"
+    D = drop_trays(D)
     D["_cell"] = D[cell].astype(str) if cell else pd.Series(np.arange(len(D))).astype(str)
     for c in icols + scols + conds: D[c] = pd.to_numeric(D[c], errors="coerce")
     D = D.dropna(subset=icols).reset_index(drop=True)

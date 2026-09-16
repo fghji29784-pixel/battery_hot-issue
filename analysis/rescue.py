@@ -52,7 +52,8 @@ import numpy as np, pandas as pd
 import runlog
 from predict_xlsx import (load, I_PAT, COND_PAT, TARGET_PAT, TRAY_PAT,
                           CELL_PAT, measured_upto)
-from correct import between_tray_share, within_tray_rho, topk_recall, safe_z
+from correct import (between_tray_share, within_tray_rho, topk_recall,
+                     safe_z, derive_conds)
 
 GRADE_KEY = "판정등급"
 
@@ -89,6 +90,9 @@ def main(spec, at=None, rows=None, cols=None, order="col"):
     D = D.dropna(subset=icols + ["_num"]).reset_index(drop=True)
     D["_upto"] = measured_upto(D[icols].values, mins)
     D = D[D["_upto"] >= mins[-1]].reset_index(drop=True)
+    made = derive_conds(D, "t") + derive_conds(D, "v")
+    if made:
+        print(f"  시계열에서 만든 조건 변수 {len(made)}개: {', '.join(made)}")
     n = len(D); g = D["_tray"].values
     if n < 30:
         print(f"\n  !! {mins[-1]}분까지 측정된 셀이 {n}개뿐입니다."); return

@@ -127,6 +127,40 @@ def resolution(v):
     return len(x), step, float(np.min(d)), on
 
 
+def derive_conds(D, prefix="t"):
+    """시계열 컬럼(t_0min…)에서 스칼라 조건 변수를 만든다.
+
+    ingest.py 로 합친 파일에는 t_init / t_final 대신 t_0min…t_30min 이 있다.
+    정보가 부족한 게 아니라 오히려 많은데(두 점 대신 31점) 이름이 달라서
+    기존 스크립트가 못 쓰고 있었을 뿐이다. 여기서 이름을 맞춰 준다.
+
+      t_init, t_final, delta_t   (prefix="t")
+      v_init, v_final, delta_v   (prefix="v")
+
+    COND_PAT 가 알아보는 이름만 만든다. 그래야 만들자마자 기존 경로에
+    그대로 실린다. 평균온도나 dT/dt 같은 것은 지금 읽는 쪽이 없고,
+    dT/dt 는 창 길이가 모든 셀에 같아 delta_t 의 상수배라 순위가 같다.
+
+    이미 스칼라 컬럼이 있으면 건드리지 않는다.
+    """
+    pat = re.compile(rf"^{prefix}[_\s]*(-?\d+(?:\.\d+)?)\s*min$", re.I)
+    cs = sorted([c for c in D.columns if pat.match(c)],
+                key=lambda c: float(pat.match(c).group(1)))
+    if len(cs) < 2: return []
+    # astype(float) 는 문자열이 하나만 섞여도 죽는다. 엑셀에서 온 표는 섞인다.
+    V = D[cs].apply(pd.to_numeric, errors="coerce").values
+    made = []
+
+    def put(name, val):
+        if name not in D.columns:
+            D[name] = val; made.append(name)
+
+    put(f"{prefix}_init", V[:, 0])
+    put(f"{prefix}_final", V[:, -1])
+    put(f"delta_{prefix}", V[:, -1] - V[:, 0])
+    return made
+
+
 def safe_div(a, b, fill=0.0):
     with np.errstate(divide="ignore", invalid="ignore"):
         return np.where(np.abs(b) > 0, np.asarray(a, float) / np.where(np.abs(b) > 0, b, 1.0), fill)
@@ -202,6 +236,11 @@ def main(spec, at=None, cov_req=None, do_sweep=False, ea=EA_DEFAULT):
     D = D.dropna(subset=icols).reset_index(drop=True)
     D["_upto"] = measured_upto(D[icols].values, mins)
     D = D[D["_upto"] >= mins[-1]].reset_index(drop=True)
+    # 병합 파일에는 v_init 대신 v_0min… 이 들어 있다. 이름을 맞춰 준다.
+    # 온도는 아래에서 t_XXmin 전체를 회귀하는 쪽이 더 정확하므로 그쪽이 먼저다.
+    made = derive_conds(D, "t") + derive_conds(D, "v")
+    if made:
+        print(f"  시계열에서 만든 조건 변수 {len(made)}개: {', '.join(made)}")
     if len(D) < 30:
         print(f"\n  !! {mins[-1]}분까지 측정된 셀이 {len(D)}개뿐입니다. 분석을 건너뜁니다.")
         print("     모든 시점의 전류가 같으면 '측정 조기 종료' 로 판정되어 전부 걸러집니다.")

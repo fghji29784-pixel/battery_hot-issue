@@ -65,7 +65,8 @@ warnings.filterwarnings("ignore")
 import numpy as np, pandas as pd
 import runlog
 from predict_xlsx import load, I_PAT, COND_PAT, TARGET_PAT, TRAY_PAT, measured_upto
-from correct import between_tray_share, within_tray_rho, topk_recall
+from correct import (between_tray_share, within_tray_rho, topk_recall,
+                     derive_conds)
 
 GRADE_KEY = "판정등급"
 
@@ -121,6 +122,9 @@ def main(spec, at=None, k=2):
     D = D.dropna(subset=icols).reset_index(drop=True)
     D["_upto"] = measured_upto(D[icols].values, mins)
     D = D[D["_upto"] >= mins[-1]].reset_index(drop=True)
+    made = derive_conds(D, "t") + derive_conds(D, "v")
+    if made:
+        print(f"  시계열에서 만든 조건 변수 {len(made)}개: {', '.join(made)}")
     # 분해는 행렬 연산이라 inf 하나로 SVD 가 발산한다. 유한값이 아닌 셀은 뺀다.
     fin = np.isfinite(D[icols].values).all(1)
     if not fin.all():
@@ -174,8 +178,15 @@ def main(spec, at=None, k=2):
             r2 = spearmanr(aC_, D[c], nan_policy="omit").statistic
             print(f"    {c:<22}{r1:>+12.3f}{r2:>+12.3f}")
             if c in tcols: rT.append((abs(r1), abs(r2)))
-        ok = (np.isfinite(rY[0]) and abs(rY[0]) > abs(rY[1])
-              and rT and max(r[1] for r in rT) > max(r[0] for r in rT))
+        # 대조할 변수가 없으면 '분리 안 됨' 이 아니라 '판정 불가' 다. 구분해야 한다.
+        if not np.isfinite(rY[0]) or not rT:
+            miss = []
+            if not np.isfinite(rY[0]): miss.append("3일 ΔOCV")
+            if not rT: miss.append("온도(delta_t / t_init)")
+            print(f"      → ※ 판정 불가 — 대조할 변수가 없다: {', '.join(miss)}")
+            print(f"        이것은 '분리가 안 된다' 와 다르다. 붙이고 다시 볼 것.")
+            return aL_, aC_, None
+        ok = (abs(rY[0]) > abs(rY[1]) and max(r[1] for r in rT) > max(r[0] for r in rT))
         print(f"      → {'★ 두 성분이 서로 다른 것과 묶인다. 분리 성립.' if ok else '☠ 두 성분이 같은 것과 묶인다. 이 창에서는 분리가 안 된다.'}")
         return aL_, aC_, ok
 
@@ -188,6 +199,11 @@ def main(spec, at=None, k=2):
       열 항의 변곡점이 {at}분 부근이라 짧은 창에서는 곡률이 잘려 나간 것이다.
       → 이 접근을 쓰려면 창을 {mins[-1]}분까지 열어야 한다.
         측정시간 단축과 상충하므로, 둘 중 무엇을 택할지는 [2][3] 으로 판단할 것.""")
+        elif ok_full is None or ok_at is None:
+            print("""
+    ※ 판정을 못 했다. 위에 적힌 대로 대조할 변수를 붙인 뒤 다시 돌릴 것.
+      ingest.py 로 합친 파일이라면 본체 엑셀의 ΔOCV 를 tray_id + cell_no 로
+      붙이면 된다. 온도는 시계열에서 자동으로 만들어진다.""")
         elif not ok_full and not ok_at:
             print(f"""
     ☠ 두 창 모두에서 안 갈린다. 15~30분 구간에서 자가방전과 열드리프트의

@@ -182,7 +182,24 @@ def main(spec, at=None, rows=None, cols=None, order="col"):
             pass
     fin = np.isfinite(B).all(1)
     print(f"    트레이마다 전류에 평면을 맞춘다:  I = a + b x 행 + c x 열")
-    print(f"    맞춘 트레이 {int(fin.sum())} / {len(trays)}개\n")
+    print(f"    맞춘 트레이 {int(fin.sum())} / {len(trays)}개")
+    # 전체 행 프로파일이 직선으로 설명되는가. 안 되면 평면 모형 자체가 부적합하다.
+    gp0 = pd.Series(tnI).groupby(R).mean()
+    gp0 = gp0[gp0.index >= 0]
+    if len(gp0) >= 4:
+        xr = gp0.index.values.astype(float); yr = gp0.values
+        pr = np.polyval(np.polyfit(xr, yr, 1), xr)
+        r2p = 1 - np.sum((pr - yr) ** 2) / max(np.sum((yr - yr.mean()) ** 2), 1e-300)
+        print(f"    전체 행 프로파일을 직선이 설명하는 정도  R2 = {r2p:.3f}")
+        if r2p < 0.3:
+            print(f"""    ☠ 직선으로 설명이 안 된다. 프로파일이 단조 구배가 아니라는 뜻이다
+      (양 끝이 낮고 가운데가 높은 U자 등). 그러면 아래 '기울기 부호 일치율' 은
+      의미가 없다 — 직선 기울기가 0 근처라 부호를 잡음이 정한다.
+      ★ 이 경우 판정은 기울기가 아니라 '프로파일 상관' 으로 해야 한다.\n""")
+        else:
+            print()
+    else:
+        print()
     print(f"    {'기울기':<10}{'중앙':>13}{'5~95%':>26}{'같은 부호':>11}")
     print("    " + "-" * 60)
     for j, nm in ((0, "행 방향 b"), (1, "열 방향 c")):
@@ -221,17 +238,25 @@ def main(spec, at=None, rows=None, cols=None, order="col"):
         print(f"      중앙 {np.median(cors):.3f}   하위10% {np.percentile(cors,10):.3f}"
               f"   음수인 트레이 {int((cors<0).sum())} / {len(cors)}개")
 
-    if np.isfinite(b_same) and b_same > 0.85 and v_com > v_dev:
-        print(f"""
-    ★ 전제가 성립한다. 행 기울기의 부호가 {b_same*100:.0f}% 트레이에서 같고,
-      공통 구배가 트레이별 차이보다 크다.
-      → 전체 공통 보정을 써도 된다. [3] 의 ② 를 볼 것.""")
-    else:
-        print(f"""
-    ☠ 전제가 약하다. 행 기울기의 부호가 같은 트레이는 {b_same*100:.0f}% 이고,
-      공통 {v_com*100:.1f}% 대 트레이별 {v_dev*100:.1f}% 다.
-      → 전체 공통 보정(②)은 구배가 반대인 트레이를 오히려 망친다.
-        트레이별 보정(②')을 쓸 것. [3] 에서 둘을 비교한다.""")
+    # 판정은 프로파일 상관으로 한다. 기울기 부호는 프로파일이 단조일 때만 뜻이 있다.
+    if len(cors):
+        neg = int((cors < 0).sum()); med = float(np.median(cors))
+        if med > 0.4 and neg <= max(1, len(cors) // 10):
+            print(f"""
+    ★ 전제가 성립하는 쪽이다. 트레이별 프로파일이 전체 평균과 중앙 {med:.2f} 로
+      같은 방향이고, 반대인 트레이는 {neg}/{len(cors)}개뿐이다.
+      → 전체 공통 보정(②)을 먼저 볼 것. [3] 에서 ②와 ②' 를 비교한다.""")
+        elif med > 0.2:
+            print(f"""
+    △ 전제가 반쯤 성립한다. 프로파일 상관 중앙 {med:.2f}, 반대인 트레이 {neg}/{len(cors)}개.
+      → ② 와 ②' 중 어느 쪽이 나은지는 [3] 의 실측으로만 정해진다.
+        둘 다 보고 고를 것.""")
+        else:
+            print(f"""
+    ☠ 전제가 약하다. 프로파일 상관 중앙이 {med:.2f} 로 낮고 반대인 트레이가
+      {neg}/{len(cors)}개다. 전체 공통 보정은 방향이 반대인 트레이를 망친다.
+      → 트레이별 보정(②'/②'')을 쓸 것.""")
+    print(f"      (참고) 공통 성분 {v_com*100:.1f}% 대 트레이별 {v_dev*100:.1f}%")
     print("""
     ※ 트레이별 보정에는 대가가 있다. 그 트레이 안의 진짜 공간 불량
       (예: 특정 자리만 실제로 나쁜 경우)까지 같이 지워진다.
@@ -254,6 +279,11 @@ def main(spec, at=None, rows=None, cols=None, order="col"):
         pl = B[k, 0] * R[i] + B[k, 1] * C[i]
         sp_t[i] = tnI[i] - (pl - np.mean(pl))
 
+    # ②'' 트레이별 '프로파일' 보정 — 평면이 아니라 행별 중앙값을 뺀다.
+    #    프로파일이 U자처럼 단조가 아니면 평면으로는 못 따라간다.
+    prof_t = pd.Series(tnI).groupby([pd.Series(g), pd.Series(R)]).transform("median").values
+    sp_p = tnI - np.nan_to_num(prof_t, nan=0.0)
+
     # 곡선 형상: 후반 기울기와 최저점 대비 회복량
     V = D[icols].values
     lateA = next((j for j, m in enumerate(mins) if m >= at - 10), 0)
@@ -265,7 +295,8 @@ def main(spec, at=None, rows=None, cols=None, order="col"):
 
     cand = [("① 트레이 정규화 전류", tnI),
             ("② 자리 보정 (전체 공통)", sp),
-            ("②' 자리 보정 (트레이별)", sp_t),
+            ("②' 자리 보정 (트레이별 평면)", sp_t),
+            ("②'' 자리 보정 (트레이별 행프로파일)", sp_p),
             (f"③ 후반 기울기 ({mins[lateA]}~{mins[lateB]}분)", late),
             ("④ 후반 기울기 + 자리보정", late - pd.Series(late).groupby(D["_rc"].values).transform("median").values),
             ("⑤ 최저점 대비 회복량", rec),

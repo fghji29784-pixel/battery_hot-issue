@@ -291,8 +291,13 @@ def main(spec, at=None, rows=None, cols=None, order="col"):
 
     # ②'' 트레이별 '프로파일' 보정 — 평면이 아니라 행별 중앙값을 뺀다.
     #    프로파일이 U자처럼 단조가 아니면 평면으로는 못 따라간다.
-    prof_t = pd.Series(tnI).groupby([pd.Series(g), pd.Series(R)]).transform("median").values
-    sp_p = tnI - np.nan_to_num(prof_t, nan=0.0)
+    #   ※ 한 묶음에 셀이 몇 개 없으면 중앙값이 그 셀 자신이 되어 점수가 0 이 된다.
+    #     불량이 그렇게 숨을 수 있으므로, 5개 미만인 묶음은 보정하지 않는다.
+    key = [pd.Series(g), pd.Series(R)]
+    prof_t = pd.Series(tnI).groupby(key).transform("median").values
+    cnt_t = pd.Series(tnI).groupby(key).transform("count").values
+    sp_p = np.where(cnt_t >= 5, tnI - np.nan_to_num(prof_t, nan=0.0), tnI)
+    n_small = int(np.sum(cnt_t < 5))
 
     # ②* 공통 모양 x 트레이별 크기 — 트레이당 파라미터 하나
     #   [2-b] 가 '모양은 트레이마다 같은데 크기는 다르다' 를 가리켰다
@@ -365,6 +370,41 @@ def main(spec, at=None, rows=None, cols=None, order="col"):
         print("""      → 특정 행에 몰려 있으면 그 자리가 불량을 만드는지(진짜),
         아니면 그 자리가 측정을 왜곡해 불량으로 보이게 하는지(가짜) 갈라야 한다.
         [2] 의 냉각량 상관이 그 단서다.""")
+
+    # ── [5] 시점별 안정성 ────────────────────────────────────────
+    if y.sum() and len(mins) > 3:
+        print("\n" + "-" * 78)
+        print(" [5] 그 결과가 시점을 바꿔도 버티는가  (최악셀 검사율)")
+        print("-" * 78)
+        need = lambda sc: max((np.sum(sc > sc[i]) + 1) / n for i in np.where(y == 1)[0])
+        h3 = "②'' 트레이별행"
+        print(f"    {'구간':>6}{'① 트레이정규화':>15}{'② 전체공통':>12}{h3:>16}{'②* 공통x크기':>14}")
+        print("    " + "-" * 57)
+        for m in mins:
+            if m not in (5, 8, 10, 12, 15, 20, 25, 30) or m > mins[-1]: continue
+            cm = f"i_{m}min"
+            if cm not in D.columns: continue
+            v = D[cm].values.astype(float)
+            t0 = v - pd.Series(v).groupby(g).transform("median").values
+            s2 = t0 - pd.Series(t0).groupby(D["_rc"].values).transform("median").values
+            pt = pd.Series(t0).groupby(key).transform("median").values
+            ct = pd.Series(t0).groupby(key).transform("count").values
+            s3 = np.where(ct >= 5, t0 - np.nan_to_num(pt, nan=0.0), t0)
+            gpm = pd.Series(t0).groupby(R).median()
+            Pc = np.nan_to_num(pd.Series(R).map(gpm).values.astype(float), nan=0.0)
+            s4 = t0.copy()
+            for t_ in trays:
+                i_ = np.where((g == t_) & (R >= 0))[0]
+                if len(i_) < 20: continue
+                x_ = Pc[i_]; d_ = float(x_ @ x_)
+                if d_ > 0: s4[i_] = t0[i_] - float((t0[i_] @ x_) / d_) * x_
+            print(f"    {m:>4}분{need(t0)*100:>14.2f}%{need(s2)*100:>11.2f}%"
+                  f"{need(s3)*100:>15.2f}%{need(s4)*100:>13.2f}%")
+        print("""
+    → 한 시점에서만 좋고 다른 시점에서 무너지면 우연일 가능성이 크다.
+      여러 시점에서 일관되게 낮아야 믿을 수 있는 결과다.""")
+        if n_small:
+            print(f"    ※ (트레이,행) 묶음 중 셀 5개 미만이라 보정하지 않은 셀 {n_small}개")
 
     print("\n" + "=" * 78)
     print(""" 이 스크립트가 시험하는 것

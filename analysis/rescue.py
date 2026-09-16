@@ -257,6 +257,16 @@ def main(spec, at=None, rows=None, cols=None, order="col"):
       {neg}/{len(cors)}개다. 전체 공통 보정은 방향이 반대인 트레이를 망친다.
       → 트레이별 보정(②'/②'')을 쓸 것.""")
     print(f"      (참고) 공통 성분 {v_com*100:.1f}% 대 트레이별 {v_dev*100:.1f}%")
+    if len(cors) and v_dev > v_com:
+        print(f"""
+    ★★ 두 지표를 합쳐 읽을 것
+      프로파일 상관이 높은데(중앙 {float(np.median(cors)):.2f}) 트레이별 분산이
+      공통보다 크다({v_dev*100:.1f}% > {v_com*100:.1f}%).
+      모순이 아니다 — '모양은 트레이마다 같은데 크기가 다르다' 는 뜻이다.
+      → 그러면 전체 공통 보정(②)도 트레이별 자유 보정(②'')도 최선이 아니다.
+        모양은 전체에서 한 번 추정하고 크기만 트레이마다 맞추면 된다.
+        [3] 의 ②* 가 그것이다. 트레이당 파라미터가 하나뿐이라
+        진짜 불량을 지울 위험이 ②'' 보다 훨씬 작다.""")
     print("""
     ※ 트레이별 보정에는 대가가 있다. 그 트레이 안의 진짜 공간 불량
       (예: 특정 자리만 실제로 나쁜 경우)까지 같이 지워진다.
@@ -284,6 +294,24 @@ def main(spec, at=None, rows=None, cols=None, order="col"):
     prof_t = pd.Series(tnI).groupby([pd.Series(g), pd.Series(R)]).transform("median").values
     sp_p = tnI - np.nan_to_num(prof_t, nan=0.0)
 
+    # ②* 공통 모양 x 트레이별 크기 — 트레이당 파라미터 하나
+    #   [2-b] 가 '모양은 트레이마다 같은데 크기는 다르다' 를 가리켰다
+    #   (프로파일 상관 중앙 0.62 인데 트레이별 분산이 공통의 두 배).
+    #   그러면 모양은 전체에서 한 번 추정하고, 크기만 트레이마다 맞추면 된다.
+    #   구배가 약한 트레이는 alpha 가 작게 나와 보정이 저절로 약해진다.
+    gprof = pd.Series(tnI).groupby(R).median()
+    Pcell = pd.Series(R).map(gprof).values.astype(float)
+    Pcell = np.nan_to_num(Pcell, nan=0.0)
+    sp_a = tnI.copy(); alphas = {}
+    for t in trays:
+        i = np.where((g == t) & (R >= 0))[0]
+        if len(i) < 20: continue
+        x = Pcell[i]; d = float(x @ x)
+        if d <= 0: continue
+        a_ = float((tnI[i] @ x) / d)
+        alphas[t] = a_
+        sp_a[i] = tnI[i] - a_ * x
+
     # 곡선 형상: 후반 기울기와 최저점 대비 회복량
     V = D[icols].values
     lateA = next((j for j, m in enumerate(mins) if m >= at - 10), 0)
@@ -297,6 +325,7 @@ def main(spec, at=None, rows=None, cols=None, order="col"):
             ("② 자리 보정 (전체 공통)", sp),
             ("②' 자리 보정 (트레이별 평면)", sp_t),
             ("②'' 자리 보정 (트레이별 행프로파일)", sp_p),
+            ("②* 공통 모양 x 트레이별 크기", sp_a),
             (f"③ 후반 기울기 ({mins[lateA]}~{mins[lateB]}분)", late),
             ("④ 후반 기울기 + 자리보정", late - pd.Series(late).groupby(D["_rc"].values).transform("median").values),
             ("⑤ 최저점 대비 회복량", rec),

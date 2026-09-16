@@ -169,12 +169,35 @@ def main(spec, at=None, rows=None, cols=None, order="col"):
         bar = "█" * int(min(abs(v_) / (prof.abs().max() + 1e-300) * 24, 24))
         print(f"      {chr(65+int(r_))}  {v_:>12.4g}  {'' if v_>=0 else '-'}{bar}")
     if "t_init" in D.columns and "t_final" in D.columns:
+        # 냉각량 = T_start - T_final. 많이 식었으면 큰 값.
         dT = tn((D["t_init"] - D["t_final"]).values)
-        pr2 = pd.Series(dT).groupby(D["_r"].values).median()
         from scipy.stats import spearmanr
-        rr = spearmanr(prof.values, pr2.reindex(prof.index).values).statistic
-        print(f"\n    행별 전류 와 행별 냉각량(T_start-T_final) 의 순위상관 = {rr:+.3f}")
-        print("      → 음수면 '많이 식은 행일수록 전류가 낮다' 는 뜻이다. 열드리프트와 부합.")
+        print(f"\n    전류 와 냉각량(T_start-T_final) 의 순위상관 — 집계 단위별")
+        print(f"      {'단위':<16}{'상관':>9}{'표본':>8}")
+        print("      " + "-" * 33)
+        units = [("셀 (집계 없음)", None), ("행 (A~)", "_r"), ("열 (1~)", "_c"), ("자리 (행x열)", "_rc")]
+        rows_pair = None
+        for nm, key in units:
+            if key is None:
+                a, b = tnI, dT
+            else:
+                a = pd.Series(tnI).groupby(D[key].values).median()
+                b = pd.Series(dT).groupby(D[key].values).median().reindex(a.index)
+                if key == "_r": rows_pair = (a, b)
+                a, b = a.values, b.values
+            m = np.isfinite(a) & np.isfinite(b)
+            if m.sum() < 3: continue
+            rr = spearmanr(a[m], b[m]).statistic
+            print(f"      {nm:<16}{rr:>+9.3f}{int(m.sum()):>7}개")
+        print("      → 음수면 '많이 식은 쪽일수록 전류를 낮게 읽는다' 는 뜻이다. 열드리프트와 부합.")
+        print("      ※ 집계 단위를 올릴수록 잡음이 평균되어 상관이 커진다. 셀 단위가 가장 보수적이다.")
+        if rows_pair is not None:
+            print(f"\n    행별 원자료 (산점도용)")
+            print(f"      {'행':>4}{'전류(중앙값 대비)':>18}{'냉각량(중앙값 대비)':>20}")
+            print("      " + "-" * 42)
+            for r_, v_ in rows_pair[0].items():
+                if r_ < 0: continue
+                print(f"      {chr(65+int(r_)):>4}{v_:>18.4g}{rows_pair[1].get(r_, float('nan')):>20.4g}")
 
     # ── [2-b] 그 구배가 트레이마다 같은가 ─────────────────────────
     print("\n" + "-" * 78)

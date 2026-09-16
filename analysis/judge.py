@@ -15,8 +15,9 @@
  무엇을 묻는가
 ────────────────────────────────────────────────────────────────────────
  지금까지의 '최악셀 검사율' 은 전 셀을 한 줄로 세우고 위에서 자르는 방식을
- 전제했다. 그런데 현행 공정은 트레이별 상대평가(μ+3σ)를 쓴다.
- 상대평가로 자르면 과검이 줄어드는가?
+ 전제했다. 트레이별 상대평가(μ+kσ 등)로 자르면 과검이 줄어드는가?
+ ※ 현행 공정 판정은 ML 이다. 여기서 시험하는 트레이 상대평가는 현행 규칙이
+   아니라, 이 점수에 씌울 수 있는 판정 규칙 후보 중 하나다.
 
  상반된 두 효과가 있어서 계산해 봐야 한다.
 
@@ -170,8 +171,13 @@ def main(spec, at=None, which="tnrow", rows=None, cols=None, order="col"):
     print("\n" + "-" * 78)
     print(" [2] 자기 마스킹 — 불량이 자기 트레이의 문턱을 밀어올리는가")
     print("-" * 78)
-    print(f"    {'불량 셀':>8}{'트레이':>16}{'전역 순위':>10}{'자신 포함 z':>13}{'자신 제외 z':>13}{'차이':>9}")
-    print("    " + "-" * 71)
+    # 보정 전(단순 트레이 정규화 전류 끝값) 순위도 같이 찍는다.
+    # '보정을 해서 순위가 얼마나 올라왔나' 가 이 분석의 핵심 수치다.
+    base = X[:, ai] - pd.Series(X[:, ai]).groupby(pd.Series(g)).transform("median").values
+    base = np.nan_to_num(base, nan=-1e18, posinf=-1e18, neginf=-1e18)
+    print(f"    {'불량 셀':>8}{'트레이':>16}{'보정 전 순위':>13}{'보정 후 순위':>13}"
+          f"{'자신 포함 z':>12}{'자신 제외 z':>12}")
+    print("    " + "-" * 76)
     worst_in, worst_ex = [], []
     for i in sorted(np.where(y == 1)[0], key=lambda j: -int(np.sum(s > s[j]))):
         m = (g == g[i])
@@ -181,14 +187,19 @@ def main(spec, at=None, which="tnrow", rows=None, cols=None, order="col"):
         z_ex = (s[i] - vo.mean()) / (vo.std(ddof=1) or 1e-12)
         worst_in.append(z_in); worst_ex.append(z_ex)
         rk = int(np.sum(s > s[i])) + 1
-        print(f"    {int(D['_num'][i]):>8}{str(g[i]):>16}{rk:>9}위{z_in:>13.2f}{z_ex:>13.2f}{z_ex - z_in:>9.2f}")
+        rk0 = int(np.sum(base > base[i])) + 1
+        print(f"    {int(D['_num'][i]):>8}{str(g[i]):>16}{rk0:>12,}위{rk:>12,}위"
+              f"{z_in:>12.2f}{z_ex:>12.2f}")
+    print(f"\n    전 셀 {n:,}개 중 순위다. 보정 전에는 {worst_rank(base, y):,}위까지 내려가야"
+          f" 불량이 전부 들어오고,\n    보정 후에는 {worst_rank(s, y):,}위면 된다.")
     infl = float(np.mean(np.array(worst_ex) - np.array(worst_in)))
     print(f"\n    평균 z 상승폭 {infl:+.2f}  (자신을 빼고 재면 이만큼 더 튄다)")
     need_k = float(np.min(worst_in))
     print(f"    불량을 전부 잡으려면 k ≤ {need_k:.2f} 여야 한다 (가장 안 튀는 불량의 z).")
     if need_k < 3:
-        print(f"    → 현행 μ+3σ 로는 이 중 일부가 빠져나간다. k 를 낮춰야 하고,")
+        print(f"    → 트레이별 μ+3σ 규칙을 씌운다면 이 중 일부가 빠져나간다. k 를 낮춰야 하고,")
         print(f"      낮추는 순간 불량 없는 트레이에서도 셀이 쏟아진다. 그게 과검이다.")
+        print(f"      (현행 공정 판정은 ML 이다. 이것은 이 점수에 씌울 규칙을 고르는 얘기다.)")
 
     # ── [3] 규칙별 비교 ───────────────────────────────────────────
     print("\n" + "-" * 78)
@@ -198,8 +209,8 @@ def main(spec, at=None, which="tnrow", rows=None, cols=None, order="col"):
     zt_m = group_z(s, g, "mad")
     zr_m = group_z(s, D["_r"].values, "mad")
     rules = [
-        ("전역 상위 N (지금 방식)", s, "rank"),
-        ("트레이별 μ + kσ (현행 공정)", zt_s, "k"),
+        ("전역 순위 컷 (지금 방식)", s, "rank"),
+        ("트레이별 μ + kσ", zt_s, "k"),
         ("트레이별 중앙값 + k·MAD", zt_m, "k"),
         ("행별 중앙값 + k·MAD", zr_m, "k"),
         ("트레이별 표준화 후 전역 컷", zt_m, "rank"),
@@ -229,10 +240,10 @@ def main(spec, at=None, which="tnrow", rows=None, cols=None, order="col"):
     pool = usable or res
     if pool:
         best = min(pool, key=lambda k: pool[k][1])
-        base = res.get("전역 상위 N (지금 방식)")
+        base = res.get("전역 순위 컷 (지금 방식)")
         tail = "" if usable else "   (쓸 수 있는 규칙이 없어 전체에서 고름)"
         print(f"\n    ★ 가장 적게 버리는 규칙: {best}  ({pool[best][1]}셀){tail}")
-        if base and best != "전역 상위 N (지금 방식)":
+        if base and best != "전역 순위 컷 (지금 방식)":
             d = base[1] - pool[best][1]
             if d <= 0:
                 print(f"      그래도 지금 방식({base[1]}셀)보다 적지 않다. 바꿀 이유가 없다.")
@@ -286,7 +297,7 @@ def main(spec, at=None, which="tnrow", rows=None, cols=None, order="col"):
     print("\n" + "-" * 78)
     print(" [4] 반대로 — 적출 예산을 고정하면 몇 개를 잡는가")
     print("-" * 78)
-    budget = res.get("전역 상위 N (지금 방식)", (None, max(10, int(y.sum()) * 4), None))[1]
+    budget = res.get("전역 순위 컷 (지금 방식)", (None, max(10, int(y.sum()) * 4), None))[1]
     print(f"    적출 예산 {budget}셀 고정")
     print(f"    {'판정 규칙':<26}{'검출':>10}{'실제 적출':>12}")
     print("    " + "-" * 50)
@@ -302,7 +313,7 @@ def main(spec, at=None, which="tnrow", rows=None, cols=None, order="col"):
     print(" 읽는 법")
     print("   [1] 불량이 없는 트레이가 많으면 트레이 상대평가는 불리하다.")
     print("       그 트레이에서 나오는 적출은 전부 과검이기 때문이다.")
-    print("   [2] 불량의 z 가 3보다 작으면 현행 μ+3σ 로는 못 잡는다.")
+    print("   [2] 불량의 z 가 3보다 작으면 트레이별 μ+3σ 규칙으로는 못 잡는다.")
     print("       자기 자신이 σ 를 키워서 문턱을 밀어올리기 때문이다(자기 마스킹).")
     print("       중앙값+MAD 는 그 영향을 덜 받는다. [3] 에서 둘을 비교한다.")
     print("   [3] 검출을 맞춰 놓았으므로 적출 셀 수가 곧 비용이다. 적을수록 좋다.")

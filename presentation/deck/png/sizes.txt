@@ -7,7 +7,7 @@ cell140 1360 479
 ranks 1360 759
 growth 1360 514
 snr4 1360 661
-heat 1360 616
+heat 1360 562
 cliff 1360 684
 plan 1360 284
 rulebar 1360 443

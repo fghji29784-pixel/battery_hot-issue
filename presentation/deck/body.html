@@ -1,0 +1,490 @@
+<div class="wrap">
+
+<header class="masthead">
+  <p class="kicker">SDM 데이터 분석 · 중간 보고</p>
+  <h1>SDM 5분 선별 가능성 검토</h1>
+  <p class="standfirst">
+    SDM 전류에는 자가방전 말고 다른 것이 섞여 있다. 그것이 무엇인지 밝히고,
+    그 상태에서 측정 시간을 5분까지 줄여도 불량을 전부 골라낼 수 있는지 확인했다.
+    결과는 “된다” — 1,294셀을 줄 세우면 불량 4개가 전부 상위 20위 안에 들어온다. 3분은 안 된다.
+  </p>
+  <div class="meta">
+    <span>장비 <b>Keysight BT2152B</b></span>
+    <span>쓴 데이터 <b>SDM 전류 곡선 + 셀 번호</b></span>
+    <span>검증 <b>3개 데이터셋 · 최대 41트레이 5,815셀</b></span>
+  </div>
+</header>
+
+<div class="toc">
+  <div class="t">발표 순서</div>
+  <ol>
+    <li><b>지금 SDM 데이터에 무슨 문제가 있나</b> — 음수 전류의 정체를 찾는다</li>
+    <li><b>5분이 가능한지 어떻게 판단했나</b> — 기준을 정하고, 왜 3분은 안 되고 5분은 되는지 본다</li>
+    <li><b>앞으로 할 것</b> — 공정 데이터 결합, 다른 로트 재현</li>
+  </ol>
+</div>
+
+<!-- ═══════════════ 0. 배경 ═══════════════ -->
+<section class="slide">
+  <div class="slide-head"><span class="sn">배경</span><span class="role">SDM이란</span></div>
+  <h2>SDM은 셀의 전압을 붙들어 놓고, 그것을 유지하는 데 드는 전류를 잰다</h2>
+  <figure>
+    <div id="sdmconcept"></div>
+    <figcaption>
+      셀이 스스로 방전하면 전압이 내려가려 한다. 장비는 전압을 원래 값에 붙들어 두려고 그만큼 전류를 흘려 넣는다.
+      <strong>그 전류가 곧 자가방전 전류</strong>다. 자가방전이 큰 셀 — 즉 내부에 미세한 단락이 있는 셀 — 은 더 많은 전류를 필요로 한다.
+    </figcaption>
+  </figure>
+  <div class="two">
+    <div class="box">
+      <div class="bt">현행 판정</div>
+      <p>3일 보관 후 ΔOCV를 재서 ML로 판정한다. 정확하지만 <strong>리드타임 3일</strong>이 그대로 재고에 얹힌다.</p>
+    </div>
+    <div class="box">
+      <div class="bt">15분 SDM 판정</div>
+      <p>SDM 15분 측정에 <strong>공정 데이터까지 결합</strong>해 판정하는 로직이 이미 확립돼 있다. 이 발표는 그 위에서 시작한다.</p>
+    </div>
+  </div>
+  <div class="say">
+    <div class="t">발표에서 할 말</div>
+    <p>“3일이 15분이 됐습니다. 이 발표는 그 다음 질문입니다 — 얼마나 더 줄일 수 있습니까?”</p>
+  </div>
+</section>
+
+<div class="part"><span class="pn">1부</span><h2 class="ph">지금 SDM 데이터에 무슨 문제가 있나</h2></div>
+
+<!-- ═══════════════ 1-1 ═══════════════ -->
+<section class="slide">
+  <div class="slide-head"><span class="sn">1-1</span><span class="role">증상</span></div>
+  <h2>자가방전 전류가 음수로 나오는 셀이 있다</h2>
+  <p>
+    자가방전은 셀이 스스로 전기를 잃는 현상이다. 방향이 정해져 있으므로
+    <strong>전류는 반드시 양수여야 한다.</strong> 그런데 음수가 나오는 셀이 있다.
+  </p>
+  <p>
+    그리고 같은 셀을 트레이를 바꿔 재면 값이 달라진다. 15분 시점 전류와 3일 ΔOCV의 상관도
+    트레이마다 방향이 뒤집힌다. <strong>측정값 안에 자가방전이 아닌 무언가가 섞여 있다는 신호다.</strong>
+  </p>
+  <div class="say">
+    <div class="t">발표에서 할 말</div>
+    <p>“장비가 고장 난 게 아닙니다. 전류에 자가방전 말고 다른 성분이 더해져 있고, 그게 자가방전보다 클 때 부호가 뒤집힙니다.”</p>
+  </div>
+</section>
+
+<!-- ═══════════════ 1-2 ═══════════════ -->
+<section class="slide">
+  <div class="slide-head"><span class="sn">1-2</span><span class="role">원인</span></div>
+  <h2>섞여 있던 것은 ‘식는 속도’다 — 열드리프트</h2>
+  <p>
+    셀이 아직 식는 중이면 개방전압이 온도를 따라 움직인다. 장비는 전압을 붙들어 두려고
+    그 변화를 되돌리는 전류를 흘리고, 그 전류가 자가방전 전류에 그대로 더해진다.
+  </p>
+  <figure>
+    <svg class="chart" viewBox="0 0 700 132" role="img" aria-label="측정 전류는 자가방전 전류와 열드리프트 항의 합이다">
+      <rect x="0" y="0" width="700" height="132" fill="none"></rect>
+      <text x="0" y="26" font-size="15" font-weight="600" style="fill:var(--ink)">I_meas</text>
+      <text x="72" y="26" font-size="15" style="fill:var(--muted)">=</text>
+      <text x="96" y="26" font-size="15" font-weight="600" style="fill:var(--accent)">I_sd</text>
+      <text x="146" y="26" font-size="15" style="fill:var(--muted)">+</text>
+      <text x="170" y="26" font-size="15" font-weight="600" style="fill:var(--legacy)">C · (dU/dT) · (dT/dt)</text>
+      <line x1="96" y1="36" x2="134" y2="36" stroke="var(--accent)" stroke-width="2.5"></line>
+      <line x1="170" y1="36" x2="358" y2="36" stroke="var(--legacy)" stroke-width="2.5"></line>
+      <text x="96" y="58" font-size="12" font-weight="600" style="fill:var(--accent)">우리가 재고 싶은 것</text>
+      <text x="96" y="76" font-size="11.5" style="fill:var(--muted)">자가방전. 항상 양수.</text>
+      <text x="170" y="58" font-size="12" font-weight="600" style="fill:var(--legacy)">교란 — 식는 속도에 비례</text>
+      <text x="170" y="76" font-size="11.5" style="fill:var(--muted)">식는 중이면 한쪽, 데워지면 반대쪽. 부호가 자유롭다.</text>
+      <line x1="0" y1="94" x2="700" y2="94" class="grid-line"></line>
+      <text x="0" y="118" font-size="12.5" style="fill:var(--ink)">→ 이 두 번째 항이 자가방전보다 크면, 합이 음수가 된다. 그것이 음수 전류의 정체다.</text>
+    </svg>
+  </figure>
+  <figure style="margin-top:26px">
+    <div id="mech"></div>
+    <figcaption>
+      온도는 식어가고(1단), 식는 속도는 <strong>투입 직후가 가장 빠르다</strong>(2단).
+      측정 전류(3단)는 자가방전(가는 선)에 그 식는 속도가 더해진 값(굵은 선)이다.
+      붉은 구간이 5분 창인데, 하필 <strong>교란이 가장 큰 자리</strong>에 걸린다.
+    </figcaption>
+  </figure>
+  <div class="say">
+    <div class="t">발표에서 할 말</div>
+    <p>“온도가 얼마인지가 아니라 <strong>얼마나 빨리 식고 있는지</strong>가 전류로 읽힙니다. 그래서 투입 직후일수록 심합니다.”</p>
+  </div>
+</section>
+
+<!-- ═══════════════ 1-3 ═══════════════ -->
+<section class="slide">
+  <div class="slide-head"><span class="sn">1-3</span><span class="role">증거</span></div>
+  <h2>증거 — 많이 식은 행일수록 전류를 낮게 읽는다</h2>
+  <p>
+    셀은 12×12 격자로 트레이에 실린다. 트레이 중앙값을 뺀 뒤 행별로 모으면
+    전류는 <strong>양 끝이 내려간 U자</strong>가 되고, 냉각량은 그 반대 모양이 된다.
+  </p>
+  <figure>
+    <div id="rowprofile"></div>
+    <figcaption>행별 전류(트레이 중앙값 대비, µA). 가장자리 행 A·L만 −1.3 수준으로 내려가고 가운데는 +0.2~+0.4에 몰려 있다.</figcaption>
+  </figure>
+  <p style="margin-top:24px">두 값을 한 점씩 찍으면 이렇게 된다.</p>
+  <figure>
+    <div id="scatter"></div>
+    <figcaption>
+      점 하나가 행 하나다(A~L 12개). 가로는 그 행이 얼마나 식었는지, 세로는 그 행의 전류다.
+      <strong>오른쪽 아래로 내려가는 관계</strong> — 많이 식은 행일수록 전류가 낮다. 순위상관 ρ = −0.846.
+      가장자리 A·L(붉은 점)이 오른쪽 아래 끝에 있다.
+    </figcaption>
+  </figure>
+  <p style="margin-top:24px">
+    행으로만 본 것이 아니다. 같은 관계를 네 가지 집계 단위로 전부 확인했다.
+  </p>
+  <figure>
+    <div id="units"></div>
+    <figcaption>
+      막대가 왼쪽으로 길수록 “많이 식으면 전류가 낮다”가 뚜렷하다는 뜻이다.
+      <strong>행 −0.846, 열 −0.021</strong> — 냉각 구조가 <strong>행 방향으로만</strong> 정렬돼 있다.
+      셀 하나하나로 봐도 −0.251로 같은 방향이다(1,294셀).
+    </figcaption>
+  </figure>
+  <div class="two" style="margin-top:22px">
+    <div class="box hi">
+      <div class="bt">이 그림이 말하는 것</div>
+      <p>온도계를 따로 달 필요가 없다. <strong>셀 번호만 알면</strong> 그 셀이 어느 행인지 알 수 있고,
+        같은 행끼리 비교하는 것만으로 열 효과가 상당 부분 상쇄된다.</p>
+    </div>
+    <div class="box">
+      <div class="bt">정직하게 덧붙일 것</div>
+      <p>행 사이 냉각량 차이는 <strong>0.02 °C 남짓</strong>으로 매우 작다. 순서는 뚜렷하지만 크기는 작다.
+        이 정도 온도차가 −1.3 µA를 만드는지는 이 데이터만으로 확정할 수 없고,
+        실제 원인은 총 온도차가 아니라 <strong>식는 속도</strong>일 가능성이 크다.</p>
+    </div>
+  </div>
+  <div class="say">
+    <div class="t">발표에서 할 말</div>
+    <p>“열 방향으로는 상관이 거의 0(−0.021)인데 행 방향은 −0.846입니다. 트레이 안에서 냉각이 행 단위로 구조화돼 있다는 뜻이고, 그래서 뒤에서 <strong>행</strong>을 비교 단위로 씁니다.”</p>
+  </div>
+</section>
+
+<!-- ═══════════════ 1-4 ═══════════════ -->
+<section class="slide">
+  <div class="slide-head"><span class="sn">1-4</span><span class="role">가장 곤란한 사례</span></div>
+  <h2>그래서 이런 일이 생긴다 — 불량인데 양품보다 전류가 낮다</h2>
+  <figure>
+    <div id="cell140"></div>
+    <figcaption>
+      불량(E)으로 판정된 4개 셀의 트레이 대비 전류. 셋은 양수로 튀어 쉽게 잡히지만,
+      <strong>140번은 −4.055 µA로 음수</strong>다. 원시 전류로 줄을 세우면 이 셀은 멀쩡한 양품 1,250개보다 뒤에 묻힌다.
+    </figcaption>
+  </figure>
+  <p style="margin-top:18px">
+    140번은 트레이 <span class="mono">CFDD011456</span>의 L08 자리 — <strong>맨 뒤 가장자리 행</strong>이다.
+    가장 빨리 식는 자리라 열드리프트가 자가방전 신호를 통째로 눌러버렸다.
+  </p>
+  <div class="say warnbox">
+    <div class="t">1부의 결론</div>
+    <p>“SDM 전류를 그대로 쓰면 안 됩니다. 어떤 형태로든 보정이 먼저입니다. 이것이 1부에서 확인한 것입니다.”</p>
+  </div>
+</section>
+
+<div class="part"><span class="pn">2부</span><h2 class="ph">5분이 가능한지 어떻게 판단했나</h2></div>
+
+<!-- ═══════════════ 2-1 ═══════════════ -->
+<section class="slide">
+  <div class="slide-head"><span class="sn">2-1</span><span class="role">판단 기준</span></div>
+  <h2>기준은 하나 — 줄 세웠을 때 마지막 불량이 몇 번째에 있는가</h2>
+  <p>모든 셀이 똑같은 경로를 지난다. 분기되는 것은 공정이 아니라 결과다.</p>
+  <figure>
+    <svg class="chart" viewBox="0 0 700 96" role="img" aria-label="전 셀이 동일한 5분 측정과 동일한 임계값을 거친다">
+      <rect x="0" y="0" width="700" height="96" fill="none"></rect>
+      <g font-size="12">
+        <rect x="0" y="20" width="118" height="36" rx="3" fill="var(--surface-2)" stroke="var(--rule-2)"></rect>
+        <text x="59" y="42" text-anchor="middle" style="fill:var(--ink)">전 셀</text>
+        <text x="132" y="42" text-anchor="middle" style="fill:var(--muted)">→</text>
+        <rect x="146" y="20" width="152" height="36" rx="3" fill="var(--surface-2)" stroke="var(--rule-2)"></rect>
+        <text x="222" y="42" text-anchor="middle" style="fill:var(--ink)">5분 SDM · 전 셀 동일</text>
+        <text x="312" y="42" text-anchor="middle" style="fill:var(--muted)">→</text>
+        <rect x="326" y="20" width="152" height="36" rx="3" fill="var(--surface-2)" stroke="var(--rule-2)"></rect>
+        <text x="402" y="42" text-anchor="middle" style="fill:var(--ink)">점수 · 임계값 · 동일</text>
+        <text x="492" y="42" text-anchor="middle" style="fill:var(--muted)">→</text>
+        <rect x="506" y="6" width="194" height="30" rx="3" fill="none" stroke="var(--accent)" stroke-width="2"></rect>
+        <text x="603" y="25" text-anchor="middle" font-weight="600" style="fill:var(--accent)">상위 20셀 — 불량 처리</text>
+        <rect x="506" y="42" width="194" height="30" rx="3" fill="none" stroke="var(--rule-2)"></rect>
+        <text x="603" y="61" text-anchor="middle" style="fill:var(--muted)">통과 1,274셀</text>
+      </g>
+      <text x="0" y="90" font-size="11" style="fill:var(--muted)">※ 걸러낸 20셀은 '추가로 검사할 셀' 이 아니라 '불량으로 처리할 셀' 이다. 2단계 공정도 적응형도 아니다.</text>
+    </svg>
+  </figure>
+  <p style="margin-top:22px">
+    점수로 전 셀 1,294개를 <strong>의심스러운 순서대로 줄 세운다.</strong>
+    그리고 위에서 몇 번째까지 보면 불량 4개가 전부 들어오는지를 센다.
+    그 숫자가 이 발표의 기준이다 — <strong>불량 최하위 순위</strong>라고 부르겠다.
+  </p>
+  <figure>
+    <div id="ranks"></div>
+    <figcaption>
+      불량 4개가 줄의 어디에 있는지. 보정 없이 트레이 전류 끝값으로 세우면
+      셋은 1·7·28위인데 <strong>140번 하나가 1,232위</strong>라 거기까지 다 봐야 한다.
+      같은 행 12셀 대비 5분 기울기로 세우면 1·2·18·<strong>20위</strong>가 되어 20번째까지만 보면 된다.
+    </figcaption>
+  </figure>
+  <div class="two" style="margin-top:22px">
+    <div class="box hi">
+      <div class="bt">보정 후 — 불량 4개의 자리</div>
+      <p class="bignum">1 · 2 · 18 · 20위</p>
+      <p>1,294셀 중이다. 20번째까지 보면 4개가 전부 들어온다.
+        <strong>16셀은 양품</strong>이므로 그만큼이 헛걸음이다.</p>
+    </div>
+    <div class="box">
+      <div class="bt">얻는 것 / 치르는 것</div>
+      <p><b>얻는 것</b> — 불량 4개 전량 검출. 놓치는 셀 없음.</p>
+      <p><b>치르는 것</b> — 20셀 중 16셀이 양품이다. <strong>수율 1.24%</strong>.
+        이것이 유일한 비용이다.</p>
+    </div>
+  </div>
+  <p style="margin-top:16px;color:var(--muted);font-size:13.5px">
+    ※ 양품이 하나도 안 걸리려면 불량 4개가 정확히 1·2·3·4위여야 한다. 선별에서 그런 일은 없다.
+    판단 기준은 “0인가”가 아니라 “현행 대비 손해인가”이며, 그 비교 기준선은 아직 확보하지 못했다.
+  </p>
+</section>
+
+<!-- ═══════════════ 2-2 — 핵심 ═══════════════ -->
+<section class="slide">
+  <div class="slide-head"><span class="sn">2-2</span><span class="role">핵심</span></div>
+  <h2>왜 3분은 안 되고 5분은 되는가</h2>
+  <p>
+    시간을 늘리면 두 가지가 동시에 좋아진다. 먼저 용어부터 정리한다.
+  </p>
+  <div class="two">
+    <div class="box">
+      <div class="bt">① 신호가 자란 정도</div>
+      <p>자가방전 전류는 시간이 지나야 자란다. 얼마나 빨리 자라는지는 셀의 시상수 τ가 정하고,
+        실측값이 <strong>τ = 7.45시간</strong>이다.</p>
+      <p>그래서 5분은 그 곡선의 <strong>맨 앞 1.1%</strong> 구간이다. 3분은 0.67%.
+        <strong>5분이 3분보다 신호가 1.66배 크다.</strong></p>
+    </div>
+    <div class="box">
+      <div class="bt">② 기울기를 재는 정밀도</div>
+      <p>우리는 전류값이 아니라 <strong>기울기</strong>를 읽는다(2-3에서 이유를 설명한다).
+        기울기는 점이 많을수록, 창이 길수록 정확하게 구해진다.</p>
+      <p>3분 창은 1분 간격 <strong>4점 · 길이 3</strong>, 5분 창은 <strong>6점 · 길이 5</strong>다.
+        점이 많으면 잡음이 평균되고, 창이 길면 같은 잡음이 더 긴 지렛대에 걸린다.
+        그래서 5분은 <strong>기울기를 1.87배 정밀하게</strong> 잰다(최소자승 기울기 오차 계산).</p>
+    </div>
+  </div>
+  <div class="box hi" style="margin-top:14px">
+    <div class="bt">신호 대 잡음비(SNR)란</div>
+    <p style="font-size:14.5px">
+      <strong>신호 ÷ 잡음.</strong> 재려는 값이 흔들림에 비해 얼마나 큰가를 뜻한다.
+      이 값이 크면 불량 셀이 양품 무리 밖으로 튀어나오고, 작으면 잡음에 묻힌다.
+      위 두 요인이 곱해져서 정해진다 — <strong>1.66 × 1.87 = 3.11배</strong>.
+    </p>
+  </div>
+  <figure style="margin-top:26px">
+    <div id="growth"></div>
+    <figcaption>
+      자가방전 신호가 자라는 곡선. 30분까지도 최종값의 6.5%밖에 안 자란다 — 우리는 늘 곡선의 맨 앞자락만 본다.
+      그 안에서도 3분(0.67%)과 5분(1.11%)은 <strong>1.66배</strong> 차이가 난다.
+    </figcaption>
+  </figure>
+  <figure style="margin-top:28px">
+    <div id="snr4"></div>
+    <figcaption>
+      위 칸은 이론으로 계산한 신호 대 잡음비(3분을 1로 둔 배수), 아래 칸은 실제로 몇 번째까지 봐야 했는지다.
+      <strong>3분 → 5분에서 SNR이 3.1배 오르면서 387위가 20위로 떨어진다.</strong>
+      그 뒤로는 SNR이 계속 올라도(10분 16배, 15분 41배) 순위는 13~20위에서 더 내려가지 않는다.
+    </figcaption>
+  </figure>
+  <div class="two" style="margin-top:24px">
+    <div class="box hi">
+      <div class="bt">3분이 안 되는 이유</div>
+      <p>신호가 덜 자랐고, 점이 4개뿐이라 기울기도 못 잰다.
+        둘이 겹쳐서 <strong>5분보다 3.1배 불리하다.</strong> 그 상태에서는 불량이 잡음에 묻힌다.</p>
+    </div>
+    <div class="box">
+      <div class="bt">5분 이후에 왜 안 줄어드나</div>
+      <p>SNR은 계속 오르는데 순위는 멈춘다. <strong>5분에서 이미 문턱을 넘었고,
+        그 뒤는 신호 대 잡음비가 아니라 다른 것이 바닥을 정한다</strong>는 뜻이다.</p>
+      <p>그래서 10분·15분으로 늘려도 얻는 것이 작다. 5분이 비용 대비 최적점이다.</p>
+    </div>
+  </div>
+  <div class="say">
+    <div class="t">발표에서 할 말</div>
+    <p>“3분이 안 되는 건 운이 나빠서가 아닙니다. 신호가 1.66배 덜 자랐고 기울기를 1.87배 덜 정밀하게 잽니다. 5분에서 그 둘이 3.1배 좋아지면서 문턱을 넘습니다.”</p>
+  </div>
+</section>
+
+<!-- ═══════════════ 2-3 ═══════════════ -->
+<section class="slide">
+  <div class="slide-head"><span class="sn">2-3</span><span class="role">방법</span></div>
+  <h2>같은 5분 데이터를 어떻게 읽을 것인가 — 손잡이는 둘</h2>
+  <p>측정을 바꾸지 않는다. 읽는 법만 바꾼다. 조합 24개를 전부 돌려 비교했다.</p>
+  <ul class="tight">
+    <li><strong>누구와 비교할 것인가</strong> — 열드리프트는 이웃한 셀들이 함께 겪는다. 이웃의 중앙값을 빼면 공통으로 겪은 만큼이 상쇄된다. 이웃을 어떻게 묶느냐가 첫 손잡이다.</li>
+    <li><strong>무엇을 읽을 것인가</strong> — 5분 끝값 한 점인가, 창 전체의 기울기인가, 6개 시점의 평균인가, 누적 전하인가.</li>
+  </ul>
+  <figure>
+    <div id="heat"></div>
+    <figcaption>
+      <strong>칸 안의 숫자는 “불량 최하위 순위”를 전체 대비 %로 적은 것이다</strong>
+      (1.55% = 1,294셀 중 20번째까지 봐야 4개가 다 들어온다는 뜻). 낮을수록 좋다.
+      전부 <strong>5분 창의 전류 데이터</strong>로 계산했고, 온도는 쓰지 않았다.
+      24개 조합 중 한 칸만 내려간다 — 같은 트레이 같은 행 12셀의 중앙값을 빼고, 창 전체의 기울기를 읽는 조합이다.
+    </figcaption>
+  </figure>
+  <div class="two" style="margin-top:24px">
+    <div class="box">
+      <div class="bt">왜 행 12셀인가</div>
+      <p>트레이 전체(144셀)는 너무 넓어 교란이 덜 상쇄되고, 인접 8셀은 너무 좁아 중앙값이 불안정하다.
+        그 사이 어딘가가 최적이다.</p>
+      <p>그리고 <strong>1-3에서 근거를 봤다</strong> — 냉각량과 전류의 상관이
+        <strong>행 방향 −0.846, 열 방향 −0.021</strong>이다.
+        열 번호로는 냉각이 설명되지 않고 행 번호로는 설명된다. 그래서 행이 맞는 단위다.</p>
+    </div>
+    <div class="box">
+      <div class="bt">왜 기울기인가</div>
+      <p>끝값을 읽으면 열드리프트가 만든 <strong>오프셋</strong>이 그대로 들어온다.
+        1-2의 3단 그림에서 굵은 선과 가는 선의 <strong>간격</strong>이 그 오프셋이다.</p>
+      <p>기울기를 읽으면 값이 아니라 변화율만 타므로 그 간격이 스스로 빠진다.
+        히트맵에서 ‘끝점’ 열보다 ‘기울기’ 열이 낮은 것이 그 결과다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 2-4 ═══════════════ -->
+<section class="slide">
+  <div class="slide-head"><span class="sn">2-4</span><span class="role">결과</span></div>
+  <h2>결과 — 5분에서 20위</h2>
+  <figure>
+    <div id="cliff"></div>
+    <figcaption>
+      세로축은 <strong>불량 최하위 순위</strong> — 1,294셀을 줄 세웠을 때 마지막 불량이 몇 번째인가(로그 눈금).
+      보정 없이 트레이 전류 끝값만 쓰면 어느 시점에서도 1,230위 아래라 사실상 전수 검사다.
+      같은 행 12셀 대비 기울기로 읽으면 5분에서 20위로 올라오고, 그 뒤는 거의 평평하다.
+    </figcaption>
+  </figure>
+  <div class="tablewrap">
+    <table>
+      <thead><tr>
+        <th>측정 시간</th>
+        <th>보정 없이<br>트레이 전류 끝값</th>
+        <th>같은 행 12셀<br>대비 기울기</th>
+        <th>같이 걸리는<br>양품</th>
+        <th>수율 손실</th>
+      </tr></thead>
+      <tbody>
+        <tr><td>3분</td><td class="num">—</td><td class="num">387위</td><td class="num">383셀</td><td class="num">29.60%</td></tr>
+        <tr class="win"><td>5분</td><td class="num">1,232위</td><td class="num">20위</td><td class="num">16셀</td><td class="num">1.24%</td></tr>
+        <tr><td>8분</td><td class="num">—</td><td class="num">14위</td><td class="num">10셀</td><td class="num">0.77%</td></tr>
+        <tr><td>10분</td><td class="num">—</td><td class="num">13위</td><td class="num">9셀</td><td class="num">0.70%</td></tr>
+        <tr><td>15분</td><td class="num">1,251위</td><td class="num">16위</td><td class="num">12셀</td><td class="num">0.93%</td></tr>
+        <tr><td>30분</td><td class="num">—</td><td class="num">11위</td><td class="num">7셀</td><td class="num">0.54%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="margin-top:12px;color:var(--muted);font-size:13.5px">
+    전 1,294셀 중 순위다. 어느 행이든 불량 4개를 <strong>전부</strong> 잡는 조건이다.
+    “—”는 그 시점에서 보정 없는 값을 따로 구하지 않았다는 뜻이다.
+    ※ 이 표의 ‘보정 없이 트레이 전류 끝값’은 현행 공정의 판정 방식이 아니다.
+    보정을 안 했을 때의 기준선으로만 쓴 것이다.
+  </p>
+  <div class="say">
+    <div class="t">발표에서 할 말</div>
+    <p>“5분을 10분으로 늘리면 20위가 13위가 됩니다. 측정 시간을 두 배 쓰고 수율 0.5%p를 얻는 거래입니다. 어느 쪽이 맞는지는 라인이 판단할 문제입니다.”</p>
+  </div>
+</section>
+
+<div class="part"><span class="pn">3부</span><h2 class="ph">앞으로 할 것</h2></div>
+
+<!-- ═══════════════ 3 ═══════════════ -->
+<section class="slide">
+  <div class="slide-head"><span class="sn">3-1</span><span class="role">계획</span></div>
+  <h2>지금은 SDM 데이터만 썼다 — 여기에 둘을 더한다</h2>
+  <figure>
+    <div id="plan"></div>
+    <figcaption>현재 위치와 다음 두 단계. 지금 결과는 SDM 전류 곡선과 셀 번호만으로 얻은 것이다.</figcaption>
+  </figure>
+
+  <div class="plancard">
+    <div class="pnum">01</div>
+    <div>
+      <h3>공정 데이터 결합</h3>
+      <p>15분 판정 로직은 이미 공정 데이터를 함께 쓴다. 5분 창에도 같은 정보를 붙이면
+        SDM 단독으로는 넘지 못한 부분을 메울 수 있다.</p>
+      <ul class="tight">
+        <li><strong>붙일 것</strong> — 조립·화성 이력 등 셀 단위로 따라붙는 공정 변수</li>
+        <li><strong>검증 방법</strong> — 트레이 단위로 나눠 학습/평가를 분리한다. 같은 트레이가 양쪽에 들어가면 성능이 부풀려진다</li>
+        <li><strong>볼 것</strong> — 불량 최하위 순위가 20위보다 올라가는가. 안 올라가면 SDM 단독이 이미 한계라는 뜻이다</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="plancard">
+    <div class="pnum">02</div>
+    <div>
+      <h3>다른 로트 재현</h3>
+      <p>지금 결과는 한 로트에서 나왔고 불량이 4~8개뿐이다. 다른 로트에서 같은 값이 나와야
+        “가능하다”고 말할 수 있다.</p>
+      <ul class="tight">
+        <li><strong>볼 것</strong> — 5분 불량 최하위 순위가 다시 20위권인가</li>
+        <li><strong>볼 것</strong> — 행 U자와 냉각량 상관이 다시 나오는가 (기전이 로트에 따라 달라지지 않는지)</li>
+        <li><strong>볼 것</strong> — L행 편중이 재현되는가. 재현되면 자리가 실제로 불량을 만든다는 뜻이고, 그러면 자리 보정이 오히려 불량을 가린다</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="say">
+    <div class="t">발표에서 할 말</div>
+    <p>“지금 말씀드릴 수 있는 것은 ‘5분이 가능해 보인다’까지입니다. 공정 데이터를 붙이고 로트를 늘려서 <strong>가능한지 아닌지 판단</strong>하는 것이 다음 단계입니다.”</p>
+  </div>
+</section>
+
+<!-- ═══════════════ 백업 ═══════════════ -->
+<section class="slide">
+  <div class="slide-head"><span class="sn">백업</span><span class="role">질문 대비</span></div>
+  <h2>예상 질문</h2>
+  <ul class="tight">
+    <li><strong>“기존 15분 로직과 뭐가 다릅니까?”</strong> → 경쟁하지 않는다. 15분 로직은 SDM에 공정 데이터까지 쓰고, 이 검토는 SDM만으로 더 짧은 구간을 봤다.
+      <strong>SDM 단독 성능의 하한선</strong>을 잡은 셈이고, 다음 단계가 공정 데이터 결합이다.</li>
+    <li><strong>“왜 3분은 안 됩니까?”</strong> → 2-2. 신호가 1.66배 덜 자랐고 기울기를 1.87배 덜 정밀하게 잰다. 합쳐서 SNR이 3.1배 낮다.</li>
+    <li><strong>“140번 셀은 왜 특별합니까?”</strong> → 불량 4개 중 유일하게 트레이 대비 전류가 음수(−4.055)다. 가장 빨리 식는 L행 가장자리에 있다.</li>
+    <li><strong>“설비를 바꿔야 합니까?”</strong> → 아니오. 장비가 이미 재고 있는 1 Hz 원시 데이터를 받아오면 0~5분 구간이 생기고, 1분 구간 평균만으로 잡음이 7.6배 준다.</li>
+    <li><strong>“트레이별 상대평가로 자르면 과검이 줄지 않나요?”</strong> → 시험했고 늘었다. 아래 표.</li>
+  </ul>
+
+  <h3 style="margin-top:28px">판정 규칙 비교 (5분, 불량 4개 전량 검출 조건)</h3>
+  <figure><div id="rulebar"></div></figure>
+  <p style="margin-top:8px;color:var(--muted);font-size:13.5px">
+    이유는 둘이다. ① 불량이 9트레이 중 4개에만 하나씩 있어, 불량 없는 5개 트레이에서 걸러지는 셀은 전부 양품이다.
+    ② 불량이 자기 트레이의 산포를 키워 문턱을 밀어올린다(자기 마스킹) — 138번은 자기 자신 때문에 z가 9.38에서 7.36으로 깎였다.
+  </p>
+
+  <h3 style="margin-top:28px">기각한 시도</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>시도</th><th>불량 최하위 순위</th><th>기각 근거</th></tr></thead>
+      <tbody>
+        <tr><td>곡선 모양 분해 (직선/곡률)</td><td class="num">1,145~1,275위</td><td>온도가 곡률보다 직선 성분에 6~14배 강하게 붙는다 — 가설과 반대</td></tr>
+        <tr><td>주성분 분석으로 공통성분 제거</td><td class="num">1,275위</td><td>첫 성분이 곧 신호의 크기라, 빼면 신호가 지워진다</td></tr>
+        <tr><td>적응형 측정 시간</td><td class="num">이득 없음</td><td>평균 20.3분을 써야 고정 5분과 같다. 전 셀 동일 공정 제약에도 위배</td></tr>
+        <tr><td>공통 모양 × 트레이별 크기</td><td class="num">941위</td><td>원리적으로 가장 그럴듯했으나 실측에서 52배 졌다</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="say">
+    <div class="t">가져갈 교훈</div>
+    <p>“보정 방법은 원리로 고르면 안 됩니다. 가장 그럴듯했던 방식이 실측에서 52배 졌습니다. 불량 최하위 순위로 골라야 합니다.”</p>
+  </div>
+</section>
+
+<div class="closing">
+  <h2>한 문장으로</h2>
+  <p style="font-size:17px;color:var(--ink)">
+    “SDM 전류에는 <strong>식는 속도</strong>가 섞여 있습니다. 그것을 자리로 빼고 기울기로 읽으면
+    <strong>5분에 1,294셀을 줄 세우면 불량 4개가 전부 상위 20위 안에 들어옵니다.</strong> 3분은 안 됩니다 —
+    신호와 정밀도가 합쳐 3.1배 모자랍니다.”
+  </p>
+  <p style="margin-top:14px;color:var(--muted);font-size:13.5px">
+    수치 출처 — rescue.py / short.py / judge.py / decompose.py 실행 로그(analysis/results/), 발표 내용정리 부록 21~27.
+    모든 수치는 자사 데이터이며, 불량 개수가 적어 과검율은 방향 지표로만 사용할 것.
+  </p>
+</div>
+
+</div>
+<div class="tooltip" id="tip" role="status" aria-live="polite"></div>

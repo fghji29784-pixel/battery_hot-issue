@@ -1,0 +1,1309 @@
+<title>SDM 5분 선별 가능성 검토</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#f4f6f8; --surface:#ffffff; --surface-2:#eef2f5;
+  --ink:#0e1417; --ink-2:#3d4a52; --muted:#6b767e;
+  --rule:#dde4e9; --rule-2:#c6d1d8;
+  --accent:#2a78d6;        /* 제안 */
+  --legacy:#eb6834;        /* 현행 */
+  --good:#0ca30c; --crit:#d03b3b; --warn:#b07400;
+  --seq-1:#cde2fb; --seq-2:#9ec5f4; --seq-3:#5598e7; --seq-4:#2a78d6; --seq-5:#184f95;
+  --shadow:0 1px 2px rgba(14,20,23,.05), 0 8px 24px -16px rgba(14,20,23,.22);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0e1113; --surface:#171b1e; --surface-2:#1f2429;
+    --ink:#eef2f5; --ink-2:#c3ccd3; --muted:#8e99a1;
+    --rule:#2a3136; --rule-2:#3a4349;
+    --accent:#3987e5; --legacy:#d95926;
+    --good:#0ca30c; --crit:#e66767; --warn:#fab219;
+    --seq-1:#0d366b; --seq-2:#184f95; --seq-3:#256abf; --seq-4:#3987e5; --seq-5:#9ec5f4;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.7);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0e1113; --surface:#171b1e; --surface-2:#1f2429;
+  --ink:#eef2f5; --ink-2:#c3ccd3; --muted:#8e99a1;
+  --rule:#2a3136; --rule-2:#3a4349;
+  --accent:#3987e5; --legacy:#d95926;
+  --good:#0ca30c; --crit:#e66767; --warn:#fab219;
+  --seq-1:#0d366b; --seq-2:#184f95; --seq-3:#256abf; --seq-4:#3987e5; --seq-5:#9ec5f4;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.7);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--ground); color:var(--ink);
+  font-family:"IBM Plex Sans KR",-apple-system,BlinkMacSystemFont,"Malgun Gothic",sans-serif;
+  font-size:15px; line-height:1.72; margin:0;
+  padding-block:0 72px; padding-left:20px; padding-right:20px;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:980px; margin:0 auto}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* ── 머리말 ── */
+.masthead{padding-block:56px 40px; border-bottom:2px solid var(--ink)}
+.kicker{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:500;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin:0 0 18px;
+}
+h1{
+  font-size:clamp(30px,5.4vw,46px); line-height:1.16; font-weight:700;
+  letter-spacing:-.022em; margin:0 0 18px; text-wrap:balance;
+}
+.standfirst{font-size:17px; color:var(--ink-2); max-width:62ch; margin:0; line-height:1.68}
+.meta{
+  display:flex; flex-wrap:wrap; gap:8px 26px; margin-top:26px;
+  font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--muted);
+}
+.meta b{color:var(--ink-2); font-weight:500}
+
+/* ── 헤드라인 수치 ── */
+.headline-figs{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(168px,1fr));
+  gap:1px; background:var(--rule); border:1px solid var(--rule);
+  margin-block:36px; border-radius:3px; overflow:hidden;
+}
+.fig{background:var(--surface); padding:20px 20px 18px}
+.fig .lab{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.06em; color:var(--muted); margin-bottom:8px}
+.fig .val{font-family:"IBM Plex Mono",monospace; font-size:30px; font-weight:600; line-height:1; letter-spacing:-.02em; font-variant-numeric:tabular-nums}
+.fig .sub{font-size:12.5px; color:var(--muted); margin-top:7px; line-height:1.5}
+.fig.hi .val{color:var(--accent)}
+.fig.old .val{color:var(--legacy)}
+
+/* ── 슬라이드 블록 ── */
+.slide{
+  background:var(--surface); border:1px solid var(--rule); border-radius:4px;
+  padding:26px 26px 28px; margin-block:22px; box-shadow:var(--shadow);
+}
+.slide-head{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:6px}
+.sn{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:600; letter-spacing:.1em;
+  color:var(--surface); background:var(--ink); padding:3px 8px; border-radius:2px; white-space:nowrap;
+}
+.role{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--muted)}
+h2{font-size:clamp(20px,3vw,25px); line-height:1.3; font-weight:600; letter-spacing:-.015em; margin:8px 0 14px; text-wrap:balance}
+.slide p{margin:0 0 13px; color:var(--ink-2); max-width:68ch}
+.slide p:last-child{margin-bottom:0}
+.slide strong{color:var(--ink); font-weight:600}
+
+.say{
+  border-left:3px solid var(--accent); background:var(--surface-2);
+  padding:14px 18px; margin-top:20px; border-radius:0 3px 3px 0;
+}
+.say .t{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.11em; text-transform:uppercase; color:var(--muted); margin-bottom:6px}
+.say p{margin:0; font-size:14.5px; color:var(--ink)}
+
+.warnbox{border-left-color:var(--crit)}
+.warnbox p{color:var(--ink)}
+
+/* ── 차트 ── */
+figure{margin:20px 0 0}
+figcaption{font-size:12.5px; color:var(--muted); margin-top:11px; line-height:1.55}
+.chart{width:100%; display:block; overflow:visible}
+.chart text{font-family:"IBM Plex Mono",monospace; fill:var(--muted)}
+.axis-line{stroke:var(--rule-2); stroke-width:1}
+.grid-line{stroke:var(--rule); stroke-width:1}
+.legend{display:flex; flex-wrap:wrap; gap:8px 20px; margin-top:12px; font-size:12.5px; color:var(--ink-2)}
+.legend span{display:inline-flex; align-items:center; gap:7px}
+.swatch{width:13px; height:13px; border-radius:2px; flex:none}
+.swatch.ln{height:3px; border-radius:2px}
+
+/* ── 표 ── */
+.tablewrap{overflow-x:auto; margin-top:18px; border:1px solid var(--rule); border-radius:3px}
+table{border-collapse:collapse; width:100%; font-size:13.5px; min-width:480px}
+th,td{padding:9px 13px; text-align:right; border-bottom:1px solid var(--rule); white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:500; letter-spacing:.05em;
+  color:var(--muted); background:var(--surface-2); border-bottom:1px solid var(--rule-2);
+}
+tbody tr:last-child td{border-bottom:none}
+td.num{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums}
+tr.win td{background:color-mix(in srgb,var(--accent) 9%,transparent); font-weight:600; color:var(--ink)}
+tr.win td.num{color:var(--accent)}
+.tag{font-family:"IBM Plex Mono",monospace; font-size:10.5px; padding:2px 6px; border-radius:2px; letter-spacing:.04em}
+.tag.no{background:color-mix(in srgb,var(--crit) 14%,transparent); color:var(--crit)}
+.tag.yes{background:color-mix(in srgb,var(--good) 16%,transparent); color:var(--good)}
+
+/* ── 목록 ── */
+ul.tight{margin:4px 0 0; padding-left:0; list-style:none}
+ul.tight li{
+  position:relative; padding-left:19px; margin-bottom:9px; color:var(--ink-2); max-width:68ch;
+}
+ul.tight li::before{
+  content:""; position:absolute; left:2px; top:.62em; width:6px; height:6px;
+  border-radius:50%; background:var(--rule-2);
+}
+ul.tight li.ok::before{background:var(--good)}
+ul.tight li.bad::before{background:var(--crit)}
+
+/* ── 격자도 ── */
+.trayfig{display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start}
+.traybox{flex:0 0 auto}
+.traynotes{flex:1 1 240px; min-width:0}
+
+/* ── 마무리 ── */
+.closing{border:2px solid var(--ink); border-radius:4px; padding:28px 26px; margin-top:32px; background:var(--surface)}
+.closing h2{margin-top:0}
+.tooltip{
+  position:fixed; pointer-events:none; z-index:50; opacity:0; transition:opacity .1s;
+  background:var(--ink); color:var(--ground); font-family:"IBM Plex Mono",monospace;
+  font-size:11.5px; line-height:1.5; padding:7px 10px; border-radius:3px; white-space:nowrap;
+  box-shadow:0 4px 14px rgba(0,0,0,.25);
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+@media (max-width:560px){
+  .slide{padding:20px 17px 22px}
+  body{padding-left:16px; padding-right:16px}
+}
+
+.note{font-size:12.5px; color:var(--muted); margin-top:10px; line-height:1.55;
+  border-left:2px solid var(--rule-2); padding-left:12px}
+.note b{color:var(--ink-2); font-weight:600}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <p class="kicker">SDM 데이터 분석 · 중간 보고</p>
+  <h1>SDM 5분 선별 가능성 검토</h1>
+  <p class="standfirst">
+    SDM 전류에는 자가방전 말고 다른 것이 섞여 있다. 그것이 무엇인지 밝히고,
+    그 상태에서 측정 시간을 5분까지 줄여도 불량을 전부 골라낼 수 있는지 확인했다.
+    결과는 “된다” — 1,294셀을 줄 세우면 불량 4개가 전부 상위 20위 안에 들어온다. 3분은 안 된다.
+  </p>
+  <div class="meta">
+    <span>장비 <b>Keysight BT2152B</b></span>
+    <span>쓴 데이터 <b>SDM 전류 곡선 + 셀 번호</b></span>
+    <span>검증 <b>3개 데이터셋 · 최대 41트레이 5,815셀</b></span>
+  </div>
+</header>
+
+<div class="toc">
+  <div class="t">발표 순서</div>
+  <ol>
+    <li><b>지금 SDM 데이터에 무슨 문제가 있나</b> — 음수 전류의 정체를 찾는다</li>
+    <li><b>5분이 가능한지 어떻게 판단했나</b> — 기준을 정하고, 왜 3분은 안 되고 5분은 되는지 본다</li>
+    <li><b>앞으로 할 것</b> — 공정 데이터 결합, 다른 로트 재현</li>
+  </ol>
+</div>
+
+<!-- ═══════════════ 0. 배경 ═══════════════ -->
+<section class="slide">
+  <div class="slide-head"><span class="sn">배경</span><span class="role">SDM이란</span></div>
+  <h2>SDM은 셀의 전압을 붙들어 놓고, 그것을 유지하는 데 드는 전류를 잰다</h2>
+  <figure>
+    <div id="sdmconcept"></div>
+    <figcaption>
+      셀이 스스로 방전하면 전압이 내려가려 한다. 장비는 전압을 원래 값에 붙들어 두려고 그만큼 전류를 흘려 넣는다.
+      <strong>그 전류가 곧 자가방전 전류</strong>다. 자가방전이 큰 셀 — 즉 내부에 미세한 단락이 있는 셀 — 은 더 많은 전류를 필요로 한다.
+    </figcaption>
+  </figure>
+  <div class="two">
+    <div class="box">
+      <div class="bt">현행 판정</div>
+      <p>3일 보관 후 ΔOCV를 재서 ML로 판정한다. 정확하지만 <strong>리드타임 3일</strong>이 그대로 재고에 얹힌다.</p>
+    </div>
+    <div class="box">
+      <div class="bt">15분 SDM 판정</div>
+      <p>SDM 15분 측정에 <strong>공정 데이터까지 결합</strong>해 판정하는 로직이 이미 확립돼 있다. 이 발표는 그 위에서 시작한다.</p>
+    </div>
+  </div>
+  <div class="say">
+    <div class="t">발표에서 할 말</div>
+    <p>“3일이 15분이 됐습니다. 이 발표는 그 다음 질문입니다 — 얼마나 더 줄일 수 있습니까?”</p>
+  </div>
+</section>
+
+<div class="part"><span class="pn">1부</span><h2 class="ph">지금 SDM 데이터에 무슨 문제가 있나</h2></div>
+
+<!-- ═══════════════ 1-1 ═══════════════ -->
+<section class="slide">
+  <div class="slide-head"><span class="sn">1-1</span><span class="role">증상</span></div>
+  <h2>자가방전 전류가 음수로 나오는 셀이 있다</h2>
+  <p>
+    자가방전은 셀이 스스로 전기를 잃는 현상이다. 방향이 정해져 있으므로
+    <strong>전류는 반드시 양수여야 한다.</strong> 그런데 음수가 나오는 셀이 있다.
+  </p>
+  <p>
+    그리고 같은 셀을 트레이를 바꿔 재면 값이 달라진다. 15분 시점 전류와 3일 ΔOCV의 상관도
+    트레이마다 방향이 뒤집힌다. <strong>측정값 안에 자가방전이 아닌 무언가가 섞여 있다는 신호다.</strong>
+  </p>
+  <div class="say">
+    <div class="t">발표에서 할 말</div>
+    <p>“장비가 고장 난 게 아닙니다. 전류에 자가방전 말고 다른 성분이 더해져 있고, 그게 자가방전보다 클 때 부호가 뒤집힙니다.”</p>
+  </div>
+</section>
+
+<!-- ═══════════════ 1-2 ═══════════════ -->
+<section class="slide">
+  <div class="slide-head"><span class="sn">1-2</span><span class="role">원인</span></div>
+  <h2>섞여 있던 것은 ‘식는 속도’다 — 열드리프트</h2>
+  <p>
+    셀이 아직 식는 중이면 개방전압이 온도를 따라 움직인다. 장비는 전압을 붙들어 두려고
+    그 변화를 되돌리는 전류를 흘리고, 그 전류가 자가방전 전류에 그대로 더해진다.
+  </p>
+  <figure>
+    <svg class="chart" viewBox="0 0 700 132" role="img" aria-label="측정 전류는 자가방전 전류와 열드리프트 항의 합이다">
+      <rect x="0" y="0" width="700" height="132" fill="none"></rect>
+      <text x="0" y="26" font-size="15" font-weight="600" style="fill:var(--ink)">I_meas</text>
+      <text x="72" y="26" font-size="15" style="fill:var(--muted)">=</text>
+      <text x="96" y="26" font-size="15" font-weight="600" style="fill:var(--accent)">I_sd</text>
+      <text x="146" y="26" font-size="15" style="fill:var(--muted)">+</text>
+      <text x="170" y="26" font-size="15" font-weight="600" style="fill:var(--legacy)">C · (dU/dT) · (dT/dt)</text>
+      <line x1="96" y1="36" x2="134" y2="36" stroke="var(--accent)" stroke-width="2.5"></line>
+      <line x1="170" y1="36" x2="358" y2="36" stroke="var(--legacy)" stroke-width="2.5"></line>
+      <text x="96" y="58" font-size="12" font-weight="600" style="fill:var(--accent)">우리가 재고 싶은 것</text>
+      <text x="96" y="76" font-size="11.5" style="fill:var(--muted)">자가방전. 항상 양수.</text>
+      <text x="170" y="58" font-size="12" font-weight="600" style="fill:var(--legacy)">교란 — 식는 속도에 비례</text>
+      <text x="170" y="76" font-size="11.5" style="fill:var(--muted)">식는 중이면 한쪽, 데워지면 반대쪽. 부호가 자유롭다.</text>
+      <line x1="0" y1="94" x2="700" y2="94" class="grid-line"></line>
+      <text x="0" y="118" font-size="12.5" style="fill:var(--ink)">→ 이 두 번째 항이 자가방전보다 크면, 합이 음수가 된다. 그것이 음수 전류의 정체다.</text>
+    </svg>
+  </figure>
+  <figure style="margin-top:26px">
+    <div id="mech"></div>
+    <figcaption>
+      온도는 식어가고(1단), 식는 속도는 <strong>투입 직후가 가장 빠르다</strong>(2단).
+      측정 전류(3단)는 자가방전(가는 선)에 그 식는 속도가 더해진 값(굵은 선)이다.
+      붉은 구간이 5분 창인데, 하필 <strong>교란이 가장 큰 자리</strong>에 걸린다.
+    </figcaption>
+  </figure>
+  <div class="say">
+    <div class="t">발표에서 할 말</div>
+    <p>“온도가 얼마인지가 아니라 <strong>얼마나 빨리 식고 있는지</strong>가 전류로 읽힙니다. 그래서 투입 직후일수록 심합니다.”</p>
+  </div>
+</section>
+
+<!-- ═══════════════ 1-3 ═══════════════ -->
+<section class="slide">
+  <div class="slide-head"><span class="sn">1-3</span><span class="role">증거</span></div>
+  <h2>증거 — 많이 식은 행일수록 전류를 낮게 읽는다</h2>
+  <p>
+    셀은 12×12 격자로 트레이에 실린다. 트레이 중앙값을 뺀 뒤 행별로 모으면
+    전류는 <strong>양 끝이 내려간 U자</strong>가 되고, 냉각량은 그 반대 모양이 된다.
+  </p>
+  <figure>
+    <div id="rowprofile"></div>
+    <figcaption>행별 전류(트레이 중앙값 대비, µA). 가장자리 행 A·L만 −1.3 수준으로 내려가고 가운데는 +0.2~+0.4에 몰려 있다.</figcaption>
+  </figure>
+  <p style="margin-top:24px">두 값을 한 점씩 찍으면 이렇게 된다.</p>
+  <figure>
+    <div id="scatter"></div>
+    <figcaption>
+      점 하나가 행 하나다(A~L 12개). 가로는 그 행이 얼마나 식었는지, 세로는 그 행의 전류다.
+      <strong>오른쪽 아래로 내려가는 관계</strong> — 많이 식은 행일수록 전류가 낮다. 순위상관 ρ = −0.846.
+      가장자리 A·L(붉은 점)이 오른쪽 아래 끝에 있다.
+    </figcaption>
+  </figure>
+  <p style="margin-top:24px">
+    행으로만 본 것이 아니다. 같은 관계를 네 가지 집계 단위로 전부 확인했다.
+  </p>
+  <figure>
+    <div id="units"></div>
+    <figcaption>
+      막대가 왼쪽으로 길수록 “많이 식으면 전류가 낮다”가 뚜렷하다는 뜻이다.
+      <strong>행 −0.846, 열 −0.021</strong> — 냉각 구조가 <strong>행 방향으로만</strong> 정렬돼 있다.
+      셀 하나하나로 봐도 −0.251로 같은 방향이다(1,294셀).
+    </figcaption>
+  </figure>
+  <div class="two" style="margin-top:22px">
+    <div class="box hi">
+      <div class="bt">이 그림이 말하는 것</div>
+      <p>온도계를 따로 달 필요가 없다. <strong>셀 번호만 알면</strong> 그 셀이 어느 행인지 알 수 있고,
+        같은 행끼리 비교하는 것만으로 열 효과가 상당 부분 상쇄된다.</p>
+    </div>
+    <div class="box">
+      <div class="bt">정직하게 덧붙일 것</div>
+      <p>행 사이 냉각량 차이는 <strong>0.02 °C 남짓</strong>으로 매우 작다. 순서는 뚜렷하지만 크기는 작다.
+        이 정도 온도차가 −1.3 µA를 만드는지는 이 데이터만으로 확정할 수 없고,
+        실제 원인은 총 온도차가 아니라 <strong>식는 속도</strong>일 가능성이 크다.</p>
+    </div>
+  </div>
+  <div class="say">
+    <div class="t">발표에서 할 말</div>
+    <p>“열 방향으로는 상관이 거의 0(−0.021)인데 행 방향은 −0.846입니다. 트레이 안에서 냉각이 행 단위로 구조화돼 있다는 뜻이고, 그래서 뒤에서 <strong>행</strong>을 비교 단위로 씁니다.”</p>
+  </div>
+</section>
+
+<!-- ═══════════════ 1-4 ═══════════════ -->
+<section class="slide">
+  <div class="slide-head"><span class="sn">1-4</span><span class="role">가장 곤란한 사례</span></div>
+  <h2>그래서 이런 일이 생긴다 — 불량인데 양품보다 전류가 낮다</h2>
+  <figure>
+    <div id="cell140"></div>
+    <figcaption>
+      불량(E)으로 판정된 4개 셀의 트레이 대비 전류. 셋은 양수로 튀어 쉽게 잡히지만,
+      <strong>140번은 −4.055 µA로 음수</strong>다. 원시 전류로 줄을 세우면 이 셀은 멀쩡한 양품 1,250개보다 뒤에 묻힌다.
+    </figcaption>
+  </figure>
+  <p style="margin-top:18px">
+    140번은 트레이 <span class="mono">CFDD011456</span>의 L08 자리 — <strong>맨 뒤 가장자리 행</strong>이다.
+    가장 빨리 식는 자리라 열드리프트가 자가방전 신호를 통째로 눌러버렸다.
+  </p>
+  <div class="say warnbox">
+    <div class="t">1부의 결론</div>
+    <p>“SDM 전류를 그대로 쓰면 안 됩니다. 어떤 형태로든 보정이 먼저입니다. 이것이 1부에서 확인한 것입니다.”</p>
+  </div>
+</section>
+
+<div class="part"><span class="pn">2부</span><h2 class="ph">5분이 가능한지 어떻게 판단했나</h2></div>
+
+<!-- ═══════════════ 2-1 ═══════════════ -->
+<section class="slide">
+  <div class="slide-head"><span class="sn">2-1</span><span class="role">판단 기준</span></div>
+  <h2>기준은 하나 — 줄 세웠을 때 마지막 불량이 몇 번째에 있는가</h2>
+  <p>모든 셀이 똑같은 경로를 지난다. 분기되는 것은 공정이 아니라 결과다.</p>
+  <figure>
+    <svg class="chart" viewBox="0 0 700 96" role="img" aria-label="전 셀이 동일한 5분 측정과 동일한 임계값을 거친다">
+      <rect x="0" y="0" width="700" height="96" fill="none"></rect>
+      <g font-size="12">
+        <rect x="0" y="20" width="118" height="36" rx="3" fill="var(--surface-2)" stroke="var(--rule-2)"></rect>
+        <text x="59" y="42" text-anchor="middle" style="fill:var(--ink)">전 셀</text>
+        <text x="132" y="42" text-anchor="middle" style="fill:var(--muted)">→</text>
+        <rect x="146" y="20" width="152" height="36" rx="3" fill="var(--surface-2)" stroke="var(--rule-2)"></rect>
+        <text x="222" y="42" text-anchor="middle" style="fill:var(--ink)">5분 SDM · 전 셀 동일</text>
+        <text x="312" y="42" text-anchor="middle" style="fill:var(--muted)">→</text>
+        <rect x="326" y="20" width="152" height="36" rx="3" fill="var(--surface-2)" stroke="var(--rule-2)"></rect>
+        <text x="402" y="42" text-anchor="middle" style="fill:var(--ink)">점수 · 임계값 · 동일</text>
+        <text x="492" y="42" text-anchor="middle" style="fill:var(--muted)">→</text>
+        <rect x="506" y="6" width="194" height="30" rx="3" fill="none" stroke="var(--accent)" stroke-width="2"></rect>
+        <text x="603" y="25" text-anchor="middle" font-weight="600" style="fill:var(--accent)">상위 20셀 — 불량 처리</text>
+        <rect x="506" y="42" width="194" height="30" rx="3" fill="none" stroke="var(--rule-2)"></rect>
+        <text x="603" y="61" text-anchor="middle" style="fill:var(--muted)">통과 1,274셀</text>
+      </g>
+      <text x="0" y="90" font-size="11" style="fill:var(--muted)">※ 걸러낸 20셀은 '추가로 검사할 셀' 이 아니라 '불량으로 처리할 셀' 이다. 2단계 공정도 적응형도 아니다.</text>
+    </svg>
+  </figure>
+  <p style="margin-top:22px">
+    점수로 전 셀 1,294개를 <strong>의심스러운 순서대로 줄 세운다.</strong>
+    그리고 위에서 몇 번째까지 보면 불량 4개가 전부 들어오는지를 센다.
+    그 숫자가 이 발표의 기준이다 — <strong>불량 최하위 순위</strong>라고 부르겠다.
+  </p>
+  <figure>
+    <div id="ranks"></div>
+    <figcaption>
+      불량 4개가 줄의 어디에 있는지. 보정 없이 트레이 전류 끝값으로 세우면
+      셋은 1·7·28위인데 <strong>140번 하나가 1,232위</strong>라 거기까지 다 봐야 한다.
+      같은 행 12셀 대비 5분 기울기로 세우면 1·2·18·<strong>20위</strong>가 되어 20번째까지만 보면 된다.
+    </figcaption>
+  </figure>
+  <div class="two" style="margin-top:22px">
+    <div class="box hi">
+      <div class="bt">보정 후 — 불량 4개의 자리</div>
+      <p class="bignum">1 · 2 · 18 · 20위</p>
+      <p>1,294셀 중이다. 20번째까지 보면 4개가 전부 들어온다.
+        <strong>16셀은 양품</strong>이므로 그만큼이 헛걸음이다.</p>
+    </div>
+    <div class="box">
+      <div class="bt">얻는 것 / 치르는 것</div>
+      <p><b>얻는 것</b> — 불량 4개 전량 검출. 놓치는 셀 없음.</p>
+      <p><b>치르는 것</b> — 20셀 중 16셀이 양품이다. <strong>수율 1.24%</strong>.
+        이것이 유일한 비용이다.</p>
+    </div>
+  </div>
+  <p style="margin-top:16px;color:var(--muted);font-size:13.5px">
+    ※ 양품이 하나도 안 걸리려면 불량 4개가 정확히 1·2·3·4위여야 한다. 선별에서 그런 일은 없다.
+    판단 기준은 “0인가”가 아니라 “현행 대비 손해인가”이며, 그 비교 기준선은 아직 확보하지 못했다.
+  </p>
+</section>
+
+<!-- ═══════════════ 2-2 — 핵심 ═══════════════ -->
+<section class="slide">
+  <div class="slide-head"><span class="sn">2-2</span><span class="role">핵심</span></div>
+  <h2>왜 3분은 안 되고 5분은 되는가</h2>
+  <p>
+    시간을 늘리면 두 가지가 동시에 좋아진다. 먼저 용어부터 정리한다.
+  </p>
+  <div class="two">
+    <div class="box">
+      <div class="bt">① 신호가 자란 정도</div>
+      <p>자가방전 전류는 시간이 지나야 자란다. 얼마나 빨리 자라는지는 셀의 시상수 τ가 정하고,
+        실측값이 <strong>τ = 7.45시간</strong>이다.</p>
+      <p>그래서 5분은 그 곡선의 <strong>맨 앞 1.1%</strong> 구간이다. 3분은 0.67%.
+        <strong>5분이 3분보다 신호가 1.66배 크다.</strong></p>
+    </div>
+    <div class="box">
+      <div class="bt">② 기울기를 재는 정밀도</div>
+      <p>우리는 전류값이 아니라 <strong>기울기</strong>를 읽는다(2-3에서 이유를 설명한다).
+        기울기는 점이 많을수록, 창이 길수록 정확하게 구해진다.</p>
+      <p>3분 창은 1분 간격 <strong>4점 · 길이 3</strong>, 5분 창은 <strong>6점 · 길이 5</strong>다.
+        점이 많으면 잡음이 평균되고, 창이 길면 같은 잡음이 더 긴 지렛대에 걸린다.
+        그래서 5분은 <strong>기울기를 1.87배 정밀하게</strong> 잰다(최소자승 기울기 오차 계산).</p>
+    </div>
+  </div>
+  <div class="box hi" style="margin-top:14px">
+    <div class="bt">신호 대 잡음비(SNR)란</div>
+    <p style="font-size:14.5px">
+      <strong>신호 ÷ 잡음.</strong> 재려는 값이 흔들림에 비해 얼마나 큰가를 뜻한다.
+      이 값이 크면 불량 셀이 양품 무리 밖으로 튀어나오고, 작으면 잡음에 묻힌다.
+      위 두 요인이 곱해져서 정해진다 — <strong>1.66 × 1.87 = 3.11배</strong>.
+    </p>
+  </div>
+  <figure style="margin-top:26px">
+    <div id="growth"></div>
+    <figcaption>
+      자가방전 신호가 자라는 곡선. 30분까지도 최종값의 6.5%밖에 안 자란다 — 우리는 늘 곡선의 맨 앞자락만 본다.
+      그 안에서도 3분(0.67%)과 5분(1.11%)은 <strong>1.66배</strong> 차이가 난다.
+    </figcaption>
+  </figure>
+  <figure style="margin-top:28px">
+    <div id="snr4"></div>
+    <figcaption>
+      위 칸은 이론으로 계산한 신호 대 잡음비(3분을 1로 둔 배수), 아래 칸은 실제로 몇 번째까지 봐야 했는지다.
+      <strong>3분 → 5분에서 SNR이 3.1배 오르면서 387위가 20위로 떨어진다.</strong>
+      그 뒤로는 SNR이 계속 올라도(10분 16배, 15분 41배) 순위는 13~20위에서 더 내려가지 않는다.
+    </figcaption>
+  </figure>
+  <div class="two" style="margin-top:24px">
+    <div class="box hi">
+      <div class="bt">3분이 안 되는 이유</div>
+      <p>신호가 덜 자랐고, 점이 4개뿐이라 기울기도 못 잰다.
+        둘이 겹쳐서 <strong>5분보다 3.1배 불리하다.</strong> 그 상태에서는 불량이 잡음에 묻힌다.</p>
+    </div>
+    <div class="box">
+      <div class="bt">5분 이후에 왜 안 줄어드나</div>
+      <p>SNR은 계속 오르는데 순위는 멈춘다. <strong>5분에서 이미 문턱을 넘었고,
+        그 뒤는 신호 대 잡음비가 아니라 다른 것이 바닥을 정한다</strong>는 뜻이다.</p>
+      <p>그래서 10분·15분으로 늘려도 얻는 것이 작다. 5분이 비용 대비 최적점이다.</p>
+    </div>
+  </div>
+  <div class="say">
+    <div class="t">발표에서 할 말</div>
+    <p>“3분이 안 되는 건 운이 나빠서가 아닙니다. 신호가 1.66배 덜 자랐고 기울기를 1.87배 덜 정밀하게 잽니다. 5분에서 그 둘이 3.1배 좋아지면서 문턱을 넘습니다.”</p>
+  </div>
+</section>
+
+<!-- ═══════════════ 2-3 ═══════════════ -->
+<section class="slide">
+  <div class="slide-head"><span class="sn">2-3</span><span class="role">방법</span></div>
+  <h2>같은 5분 데이터를 어떻게 읽을 것인가 — 손잡이는 둘</h2>
+  <p>측정을 바꾸지 않는다. 읽는 법만 바꾼다. 조합 24개를 전부 돌려 비교했다.</p>
+  <ul class="tight">
+    <li><strong>누구와 비교할 것인가</strong> — 열드리프트는 이웃한 셀들이 함께 겪는다. 이웃의 중앙값을 빼면 공통으로 겪은 만큼이 상쇄된다. 이웃을 어떻게 묶느냐가 첫 손잡이다.</li>
+    <li><strong>무엇을 읽을 것인가</strong> — 5분 끝값 한 점인가, 창 전체의 기울기인가, 6개 시점의 평균인가, 누적 전하인가.</li>
+  </ul>
+  <figure>
+    <div id="heat"></div>
+    <figcaption>
+      <strong>칸 안의 숫자는 “불량 최하위 순위”를 전체 대비 %로 적은 것이다</strong>
+      (1.55% = 1,294셀 중 20번째까지 봐야 4개가 다 들어온다는 뜻). 낮을수록 좋다.
+      전부 <strong>5분 창의 전류 데이터</strong>로 계산했고, 온도는 쓰지 않았다.
+      24개 조합 중 한 칸만 내려간다 — 같은 트레이 같은 행 12셀의 중앙값을 빼고, 창 전체의 기울기를 읽는 조합이다.
+    </figcaption>
+  </figure>
+  <div class="two" style="margin-top:24px">
+    <div class="box">
+      <div class="bt">왜 행 12셀인가</div>
+      <p>트레이 전체(144셀)는 너무 넓어 교란이 덜 상쇄되고, 인접 8셀은 너무 좁아 중앙값이 불안정하다.
+        그 사이 어딘가가 최적이다.</p>
+      <p>그리고 <strong>1-3에서 근거를 봤다</strong> — 냉각량과 전류의 상관이
+        <strong>행 방향 −0.846, 열 방향 −0.021</strong>이다.
+        열 번호로는 냉각이 설명되지 않고 행 번호로는 설명된다. 그래서 행이 맞는 단위다.</p>
+    </div>
+    <div class="box">
+      <div class="bt">왜 기울기인가</div>
+      <p>끝값을 읽으면 열드리프트가 만든 <strong>오프셋</strong>이 그대로 들어온다.
+        1-2의 3단 그림에서 굵은 선과 가는 선의 <strong>간격</strong>이 그 오프셋이다.</p>
+      <p>기울기를 읽으면 값이 아니라 변화율만 타므로 그 간격이 스스로 빠진다.
+        히트맵에서 ‘끝점’ 열보다 ‘기울기’ 열이 낮은 것이 그 결과다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 2-4 ═══════════════ -->
+<section class="slide">
+  <div class="slide-head"><span class="sn">2-4</span><span class="role">결과</span></div>
+  <h2>결과 — 5분에서 20위</h2>
+  <figure>
+    <div id="cliff"></div>
+    <figcaption>
+      세로축은 <strong>불량 최하위 순위</strong> — 1,294셀을 줄 세웠을 때 마지막 불량이 몇 번째인가(로그 눈금).
+      보정 없이 트레이 전류 끝값만 쓰면 어느 시점에서도 1,230위 아래라 사실상 전수 검사다.
+      같은 행 12셀 대비 기울기로 읽으면 5분에서 20위로 올라오고, 그 뒤는 거의 평평하다.
+    </figcaption>
+  </figure>
+  <div class="tablewrap">
+    <table>
+      <thead><tr>
+        <th>측정 시간</th>
+        <th>보정 없이<br>트레이 전류 끝값</th>
+        <th>같은 행 12셀<br>대비 기울기</th>
+        <th>같이 걸리는<br>양품</th>
+        <th>수율 손실</th>
+      </tr></thead>
+      <tbody>
+        <tr><td>3분</td><td class="num">—</td><td class="num">387위</td><td class="num">383셀</td><td class="num">29.60%</td></tr>
+        <tr class="win"><td>5분</td><td class="num">1,232위</td><td class="num">20위</td><td class="num">16셀</td><td class="num">1.24%</td></tr>
+        <tr><td>8분</td><td class="num">—</td><td class="num">14위</td><td class="num">10셀</td><td class="num">0.77%</td></tr>
+        <tr><td>10분</td><td class="num">—</td><td class="num">13위</td><td class="num">9셀</td><td class="num">0.70%</td></tr>
+        <tr><td>15분</td><td class="num">1,251위</td><td class="num">16위</td><td class="num">12셀</td><td class="num">0.93%</td></tr>
+        <tr><td>30분</td><td class="num">—</td><td class="num">11위</td><td class="num">7셀</td><td class="num">0.54%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="margin-top:12px;color:var(--muted);font-size:13.5px">
+    전 1,294셀 중 순위다. 어느 행이든 불량 4개를 <strong>전부</strong> 잡는 조건이다.
+    “—”는 그 시점에서 보정 없는 값을 따로 구하지 않았다는 뜻이다.
+    ※ 이 표의 ‘보정 없이 트레이 전류 끝값’은 현행 공정의 판정 방식이 아니다.
+    보정을 안 했을 때의 기준선으로만 쓴 것이다.
+  </p>
+  <div class="say">
+    <div class="t">발표에서 할 말</div>
+    <p>“5분을 10분으로 늘리면 20위가 13위가 됩니다. 측정 시간을 두 배 쓰고 수율 0.5%p를 얻는 거래입니다. 어느 쪽이 맞는지는 라인이 판단할 문제입니다.”</p>
+  </div>
+</section>
+
+<div class="part"><span class="pn">3부</span><h2 class="ph">앞으로 할 것</h2></div>
+
+<!-- ═══════════════ 3 ═══════════════ -->
+<section class="slide">
+  <div class="slide-head"><span class="sn">3-1</span><span class="role">계획</span></div>
+  <h2>지금은 SDM 데이터만 썼다 — 여기에 둘을 더한다</h2>
+  <figure>
+    <div id="plan"></div>
+    <figcaption>현재 위치와 다음 두 단계. 지금 결과는 SDM 전류 곡선과 셀 번호만으로 얻은 것이다.</figcaption>
+  </figure>
+
+  <div class="plancard">
+    <div class="pnum">01</div>
+    <div>
+      <h3>공정 데이터 결합</h3>
+      <p>15분 판정 로직은 이미 공정 데이터를 함께 쓴다. 5분 창에도 같은 정보를 붙이면
+        SDM 단독으로는 넘지 못한 부분을 메울 수 있다.</p>
+      <ul class="tight">
+        <li><strong>붙일 것</strong> — 조립·화성 이력 등 셀 단위로 따라붙는 공정 변수</li>
+        <li><strong>검증 방법</strong> — 트레이 단위로 나눠 학습/평가를 분리한다. 같은 트레이가 양쪽에 들어가면 성능이 부풀려진다</li>
+        <li><strong>볼 것</strong> — 불량 최하위 순위가 20위보다 올라가는가. 안 올라가면 SDM 단독이 이미 한계라는 뜻이다</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="plancard">
+    <div class="pnum">02</div>
+    <div>
+      <h3>다른 로트 재현</h3>
+      <p>지금 결과는 한 로트에서 나왔고 불량이 4~8개뿐이다. 다른 로트에서 같은 값이 나와야
+        “가능하다”고 말할 수 있다.</p>
+      <ul class="tight">
+        <li><strong>볼 것</strong> — 5분 불량 최하위 순위가 다시 20위권인가</li>
+        <li><strong>볼 것</strong> — 행 U자와 냉각량 상관이 다시 나오는가 (기전이 로트에 따라 달라지지 않는지)</li>
+        <li><strong>볼 것</strong> — L행 편중이 재현되는가. 재현되면 자리가 실제로 불량을 만든다는 뜻이고, 그러면 자리 보정이 오히려 불량을 가린다</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="say">
+    <div class="t">발표에서 할 말</div>
+    <p>“지금 말씀드릴 수 있는 것은 ‘5분이 가능해 보인다’까지입니다. 공정 데이터를 붙이고 로트를 늘려서 <strong>가능한지 아닌지 판단</strong>하는 것이 다음 단계입니다.”</p>
+  </div>
+</section>
+
+<!-- ═══════════════ 백업 ═══════════════ -->
+<section class="slide">
+  <div class="slide-head"><span class="sn">백업</span><span class="role">질문 대비</span></div>
+  <h2>예상 질문</h2>
+  <ul class="tight">
+    <li><strong>“기존 15분 로직과 뭐가 다릅니까?”</strong> → 경쟁하지 않는다. 15분 로직은 SDM에 공정 데이터까지 쓰고, 이 검토는 SDM만으로 더 짧은 구간을 봤다.
+      <strong>SDM 단독 성능의 하한선</strong>을 잡은 셈이고, 다음 단계가 공정 데이터 결합이다.</li>
+    <li><strong>“왜 3분은 안 됩니까?”</strong> → 2-2. 신호가 1.66배 덜 자랐고 기울기를 1.87배 덜 정밀하게 잰다. 합쳐서 SNR이 3.1배 낮다.</li>
+    <li><strong>“140번 셀은 왜 특별합니까?”</strong> → 불량 4개 중 유일하게 트레이 대비 전류가 음수(−4.055)다. 가장 빨리 식는 L행 가장자리에 있다.</li>
+    <li><strong>“설비를 바꿔야 합니까?”</strong> → 아니오. 장비가 이미 재고 있는 1 Hz 원시 데이터를 받아오면 0~5분 구간이 생기고, 1분 구간 평균만으로 잡음이 7.6배 준다.</li>
+    <li><strong>“트레이별 상대평가로 자르면 과검이 줄지 않나요?”</strong> → 시험했고 늘었다. 아래 표.</li>
+  </ul>
+
+  <h3 style="margin-top:28px">판정 규칙 비교 (5분, 불량 4개 전량 검출 조건)</h3>
+  <figure><div id="rulebar"></div></figure>
+  <p style="margin-top:8px;color:var(--muted);font-size:13.5px">
+    이유는 둘이다. ① 불량이 9트레이 중 4개에만 하나씩 있어, 불량 없는 5개 트레이에서 걸러지는 셀은 전부 양품이다.
+    ② 불량이 자기 트레이의 산포를 키워 문턱을 밀어올린다(자기 마스킹) — 138번은 자기 자신 때문에 z가 9.38에서 7.36으로 깎였다.
+  </p>
+
+  <h3 style="margin-top:28px">기각한 시도</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>시도</th><th>불량 최하위 순위</th><th>기각 근거</th></tr></thead>
+      <tbody>
+        <tr><td>곡선 모양 분해 (직선/곡률)</td><td class="num">1,145~1,275위</td><td>온도가 곡률보다 직선 성분에 6~14배 강하게 붙는다 — 가설과 반대</td></tr>
+        <tr><td>주성분 분석으로 공통성분 제거</td><td class="num">1,275위</td><td>첫 성분이 곧 신호의 크기라, 빼면 신호가 지워진다</td></tr>
+        <tr><td>적응형 측정 시간</td><td class="num">이득 없음</td><td>평균 20.3분을 써야 고정 5분과 같다. 전 셀 동일 공정 제약에도 위배</td></tr>
+        <tr><td>공통 모양 × 트레이별 크기</td><td class="num">941위</td><td>원리적으로 가장 그럴듯했으나 실측에서 52배 졌다</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="say">
+    <div class="t">가져갈 교훈</div>
+    <p>“보정 방법은 원리로 고르면 안 됩니다. 가장 그럴듯했던 방식이 실측에서 52배 졌습니다. 불량 최하위 순위로 골라야 합니다.”</p>
+  </div>
+</section>
+
+<div class="closing">
+  <h2>한 문장으로</h2>
+  <p style="font-size:17px;color:var(--ink)">
+    “SDM 전류에는 <strong>식는 속도</strong>가 섞여 있습니다. 그것을 자리로 빼고 기울기로 읽으면
+    <strong>5분에 1,294셀을 줄 세우면 불량 4개가 전부 상위 20위 안에 들어옵니다.</strong> 3분은 안 됩니다 —
+    신호와 정밀도가 합쳐 3.1배 모자랍니다.”
+  </p>
+  <p style="margin-top:14px;color:var(--muted);font-size:13.5px">
+    수치 출처 — rescue.py / short.py / judge.py / decompose.py 실행 로그(analysis/results/), 발표 내용정리 부록 21~27.
+    모든 수치는 자사 데이터이며, 불량 개수가 적어 과검율은 방향 지표로만 사용할 것.
+  </p>
+</div>
+
+</div>
+<div class="tooltip" id="tip" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+  var NS="http://www.w3.org/2000/svg";
+  var tip=document.getElementById("tip");
+  function el(n,a){var e=document.createElementNS(NS,n);for(var k in a){if(a[k]!==null&&a[k]!==undefined)e.setAttribute(k,a[k]);}return e;}
+  function txt(x,y,s,o){o=o||{};var t=el("text",{x:x,y:y,"font-size":o.size||11,"text-anchor":o.anchor||"start","font-weight":o.weight||400,style:"fill:"+(o.fill||"var(--muted)")});t.textContent=s;return t;}
+  function svg(host,w,h){var s=el("svg",{viewBox:"0 0 "+w+" "+h,class:"chart",role:"img"});s.setAttribute("aria-label",host.dataset.label||"");host.appendChild(s);return s;}
+  function hover(node,label){
+    node.style.cursor="crosshair";
+    node.addEventListener("pointerenter",function(ev){tip.textContent=label;tip.style.opacity="1";move(ev);});
+    node.addEventListener("pointermove",move);
+    node.addEventListener("pointerleave",function(){tip.style.opacity="0";});
+    function move(ev){
+      var x=ev.clientX+14, y=ev.clientY-12;
+      if(x+tip.offsetWidth>window.innerWidth-8) x=ev.clientX-tip.offsetWidth-14;
+      if(y<4) y=4;
+      tip.style.left=x+"px"; tip.style.top=y+"px";
+    }
+  }
+
+  /* ───── 1. 행별 전류 프로파일 (발산 막대) ───── */
+  (function(){
+    var host=document.getElementById("rowprofile"); if(!host)return;
+    var rows=[["A",-1.309],["B",-0.176],["C",0.282],["D",0.344],["E",0.306],["F",0.407],
+              ["G",0.404],["H",0.194],["I",0.249],["J",0.021],["K",-0.270],["L",-1.292]];
+    var W=700,H=250,L=34,R=14,T=16,B=40;
+    var iw=W-L-R, ih=H-T-B, n=rows.length, step=iw/n, bw=Math.min(34,step-9);
+    var max=1.45, zero=T+ih*(max/(2*max));
+    var s=svg(host,W,H);
+    [-1,-0.5,0,0.5,1].forEach(function(v){
+      var y=T+ih*((max-v)/(2*max));
+      s.appendChild(el("line",{x1:L,y1:y,x2:W-R,y2:y,class:v===0?"axis-line":"grid-line"}));
+      s.appendChild(txt(L-7,y+3.6,v.toFixed(1),{anchor:"end",size:10}));
+    });
+    rows.forEach(function(r,i){
+      var v=r[1], x=L+step*i+(step-bw)/2;
+      var y=T+ih*((max-Math.max(v,0))/(2*max));
+      var hgt=Math.abs(ih*(v/(2*max)));
+      var edge=v<0?"L":"A";
+      var col=v<0?"var(--accent)":"var(--legacy)";
+      var rc=el("rect",{x:x,y:y,width:bw,height:Math.max(hgt,1.5),fill:col,rx:3,
+                        stroke:"var(--surface)","stroke-width":2});
+      hover(rc,r[0]+"행   "+(v>0?"+":"")+v.toFixed(3));
+      s.appendChild(rc);
+      var big=Math.abs(v)>1;
+      s.appendChild(txt(x+bw/2,H-B+17,r[0],{anchor:"middle",size:11,
+        weight:big?600:400, fill:big?"var(--ink)":"var(--muted)"}));
+    });
+    s.appendChild(txt(L,H-6,"트레이 내 행 (A = 앞쪽 가장자리, L = 뒤쪽 가장자리)",{size:10.5}));
+    s.appendChild(txt(W-R,T+11,"↑ 전류 높게 읽힘",{anchor:"end",size:10,fill:"var(--legacy)"}));
+    s.appendChild(txt(W-R,T+ih-2,"↓ 낮게 읽힘",{anchor:"end",size:10,fill:"var(--accent)"}));
+    host.insertAdjacentHTML("beforeend",
+      '<div class="legend"><span><i class="swatch" style="background:var(--accent)"></i>중앙값보다 낮다 (많이 식은 자리)</span>'+
+      '<span><i class="swatch" style="background:var(--legacy)"></i>중앙값보다 높다</span></div>');
+  })();
+
+  /* ───── 2. 상관 대 검출 산점도 ───── */
+  (function(){
+    var host=document.getElementById("rhoscatter"); if(!host)return;
+    var pts=[["①현행 트레이정규화",0.049,96.68],["② 전체 공통 보정",0.420,96.14],
+             ["②' 트레이별 평면",-0.125,82.07],["②'' 트레이별 행프로파일",0.161,1.39],
+             ["②* 공통모양×크기",0.235,72.72],["③ 후반 기울기",0.077,93.59],
+             ["④ 기울기+자리보정",0.376,90.49],["⑤ 회복량",0.051,95.75],
+             ["⑥ 자리보정+회복량",0.281,96.21]];
+    var W=700,H=320,L=54,R=22,T=40,B=50;
+    var iw=W-L-R, ih=H-T-B;
+    var x0=-0.20,x1=0.48;
+    function X(v){return L+iw*(v-x0)/(x1-x0);}
+    function Y(v){return T+ih*(1-Math.log10(Math.max(v,0.7)/0.7)/Math.log10(150/0.7));}
+    var s0=svg(host,W,H);
+    /* 90% 위쪽을 '사실상 전수검사' 띠로 깔아 군집의 의미를 먼저 읽히게 한다 */
+    s0.appendChild(el("rect",{x:L,y:Y(150),width:iw,height:Y(90)-Y(150),
+      fill:"var(--legacy)","fill-opacity":.07}));
+    s0.appendChild(txt(W-R-6,Y(150)+14,"90% 이상 — 사실상 전수검사",
+      {anchor:"end",size:10,weight:600,fill:"var(--legacy)"}));
+    [1,3,10,30,100].forEach(function(v){
+      var y=Y(v);
+      s0.appendChild(el("line",{x1:L,y1:y,x2:W-R,y2:y,class:"grid-line"}));
+      s0.appendChild(txt(L-8,y+3.6,v+"%",{anchor:"end",size:10}));
+    });
+    [-0.2,0,0.2,0.4].forEach(function(v){
+      var x=X(v);
+      s0.appendChild(el("line",{x1:x,y1:T,x2:x,y2:T+ih,class:v===0?"axis-line":"grid-line"}));
+      s0.appendChild(txt(x,T+ih+17,v.toFixed(1),{anchor:"middle",size:10}));
+    });
+    /* 라벨은 세 점만 — 나머지는 붙이면 서로 겹쳐 읽을 수 없다 */
+    var LBL={"②'' 트레이별 행프로파일":[13,4,"start"],
+             "② 전체 공통 보정":[13,4,"start"],
+             "①현행 트레이정규화":[-13,4,"end"]};
+    pts.forEach(function(p){
+      var win=p[2]<5, cx=X(p[1]), cy=Y(p[2]);
+      var c=el("circle",{cx:cx,cy:cy,r:win?8:6,
+        fill:win?"var(--accent)":"var(--legacy)",
+        "fill-opacity":win?1:0.72,stroke:"var(--surface)","stroke-width":2});
+      hover(c,p[0]+"   ρ "+p[1].toFixed(3)+"   검사율 "+p[2].toFixed(2)+"%");
+      s0.appendChild(c);
+      var L2=LBL[p[0]];
+      if(L2){
+        s0.appendChild(txt(cx+L2[0],cy+L2[1],p[0],{size:10.5,anchor:L2[2],
+          weight:win?600:500, fill:win?"var(--accent)":"var(--ink-2)"}));
+      }
+    });
+    s0.appendChild(txt(L,H-8,"→ 3일 ΔOCV와의 트레이내 순위상관 ρ   (나머지 6개 점수는 그래프 위에 커서를 올리면 이름이 나온다)",{size:10.5}));
+    s0.appendChild(txt(L-8,T-12,"검사율 ↑",{anchor:"end",size:10.5}));
+    host.insertAdjacentHTML("beforeend",
+      '<div class="legend"><span><i class="swatch" style="background:var(--accent);border-radius:50%"></i>불량을 전부 잡는 점수</span>'+
+      '<span><i class="swatch" style="background:var(--legacy);border-radius:50%;opacity:.75"></i>사실상 못 잡는 점수</span>'+
+      '<span style="color:var(--muted)">상관이 높다고 검출이 좋아지지 않는다</span></div>');
+  })();
+
+  /* ───── 3. 이웃 × 축약 히트맵 ───── */
+  (function(){
+    var host=document.getElementById("heat"); if(!host)return;
+    var rows=["트레이 전체","행 12셀","열 12셀","행+열","인접 8셀","인접 24셀"];
+    var cols=["끝점","전 시점 평균","기울기","누적 전하"];
+    var m=[[95.21,96.21,95.21,96.68],[2.78,17.00,1.55,21.17],[96.21,97.14,96.21,97.22],
+           [73.26,88.25,67.70,90.34],[82.61,93.04,92.04,94.28],[94.28,96.83,95.83,97.30]];
+    var W=700,H=272,L=104,R=12,T=34,B=30;
+    var cw=(W-L-R)/cols.length, rh=(H-T-B)/rows.length;
+    var s=svg(host,W,H);
+    var steps=["var(--seq-1)","var(--seq-2)","var(--seq-3)","var(--seq-4)","var(--seq-5)"];
+    function band(v){return v<5?0:v<30?1:v<70?2:v<90?3:4;}
+    cols.forEach(function(c,j){s.appendChild(txt(L+cw*j+cw/2,T-13,c,{anchor:"middle",size:11,fill:"var(--ink-2)"}));});
+    rows.forEach(function(r,i){
+      s.appendChild(txt(L-10,T+rh*i+rh/2+4,r,{anchor:"end",size:11,
+        weight:i===1?600:400,fill:i===1?"var(--ink)":"var(--muted)"}));
+      cols.forEach(function(c,j){
+        var v=m[i][j], b=band(v), best=(i===1&&j===2);
+        var x=L+cw*j+1, y=T+rh*i+1;
+        var rc=el("rect",{x:x,y:y,width:cw-2,height:rh-2,fill:steps[b],rx:2});
+        hover(rc,r+" × "+c+"   "+v.toFixed(2)+"%");
+        s.appendChild(rc);
+        if(best){s.appendChild(el("rect",{x:x-1.5,y:y-1.5,width:cw+1,height:rh+1,fill:"none",
+          stroke:"var(--legacy)","stroke-width":2.5,rx:3}));}
+        s.appendChild(txt(x+cw/2-1,y+rh/2+4,v.toFixed(2),{anchor:"middle",size:11.5,
+          weight:b<=1?600:500, fill:b<=1?"var(--ink)":(b>=3?"#ffffff":"var(--ink)")}));
+      });
+    });
+    s.appendChild(txt(L,H-8,"칸 안의 숫자 = 최악셀 검사율(%)   ·   붉은 테두리가 최적 조합",{size:10.5}));
+    host.insertAdjacentHTML("beforeend",
+      '<div class="legend"><span><i class="swatch" style="background:var(--seq-1)"></i>5% 미만 (쓸 만하다)</span>'+
+      '<span><i class="swatch" style="background:var(--seq-2)"></i>5~30%</span>'+
+      '<span><i class="swatch" style="background:var(--seq-3)"></i>30~70%</span>'+
+      '<span><i class="swatch" style="background:var(--seq-4)"></i>70~90%</span>'+
+      '<span><i class="swatch" style="background:var(--seq-5)"></i>90% 이상 (사실상 전수검사)</span></div>');
+  })();
+
+  /* ───── 4. 문턱 곡선 ───── */
+  (function(){
+    var host=document.getElementById("cliff"); if(!host)return;
+    var prop=[[3,387],[5,20],[8,14],[10,13],[12,15],[15,16],[20,15],[30,11]];
+    var leg=[[5,1232],[8,1236],[10,1238],[12,1246],[15,1251],[20,1241],[30,1230]];
+    var W=700,H=320,L=56,R=104,T=24,B=54;
+    var iw=W-L-R, ih=H-T-B;
+    function X(v){return L+iw*(Math.log10(v)-Math.log10(3))/(Math.log10(33)-Math.log10(3));}
+    function Y(v){return T+ih*(1-(Math.log10(v)-Math.log10(8))/(Math.log10(2000)-Math.log10(8)));}
+    var s=svg(host,W,H);
+    [10,30,100,300,1000].forEach(function(v){
+      var y=Y(v);
+      s.appendChild(el("line",{x1:L,y1:y,x2:W-R,y2:y,class:"grid-line"}));
+      s.appendChild(txt(L-8,y+3.6,v.toLocaleString(),{anchor:"end",size:10}));
+    });
+    [3,5,8,10,15,20,30].forEach(function(v){
+      s.appendChild(txt(X(v),T+ih+18,v+"분",{anchor:"middle",size:10.5,
+        weight:v===5?600:400, fill:v===5?"var(--accent)":"var(--muted)"}));
+    });
+    s.appendChild(el("line",{x1:L,y1:T+ih,x2:W-R,y2:T+ih,class:"axis-line"}));
+    /* 5분 문턱 강조 */
+    s.appendChild(el("rect",{x:X(3),y:T,width:X(5)-X(3),height:ih,
+      fill:"var(--accent)","fill-opacity":.07}));
+    s.appendChild(txt((X(3)+X(5))/2,T+14,"문턱",{anchor:"middle",size:10.5,weight:600,fill:"var(--accent)"}));
+    function line(data,col,w){
+      var d=data.map(function(p,i){return (i?"L":"M")+X(p[0]).toFixed(1)+" "+Y(p[1]).toFixed(1);}).join(" ");
+      s.appendChild(el("path",{d:d,fill:"none",stroke:col,"stroke-width":w,
+        "stroke-linejoin":"round","stroke-linecap":"round"}));
+    }
+    line(leg,"var(--legacy)",2);
+    line(prop,"var(--accent)",2.5);
+    function dots(data,col,lbl){
+      data.forEach(function(p){
+        var c=el("circle",{cx:X(p[0]),cy:Y(p[1]),r:4.5,fill:col,stroke:"var(--surface)","stroke-width":2});
+        hover(c,lbl+"   "+p[0]+"분   "+p[1].toLocaleString()+"셀");
+        s.appendChild(c);
+      });
+    }
+    dots(leg,"var(--legacy)","현행 전류 끝값");
+    dots(prop,"var(--accent)","제안 행12셀×기울기");
+    [[3,387],[5,20],[30,11]].forEach(function(p){
+      s.appendChild(txt(X(p[0]),Y(p[1])-13,p[1]+"셀",{anchor:"middle",size:11,weight:600,fill:"var(--accent)"}));
+    });
+    s.appendChild(txt(W-R+8,Y(1251)+4,"현행 방식",{size:11,weight:600,fill:"var(--legacy)"}));
+    s.appendChild(txt(W-R+8,Y(1251)+19,"1,230셀 이상",{size:10,fill:"var(--muted)"}));
+    s.appendChild(txt(W-R+8,Y(11)+4,"제안 방식",{size:11,weight:600,fill:"var(--accent)"}));
+    s.appendChild(txt(W-R+8,Y(11)+19,"11~20셀",{size:10,fill:"var(--muted)"}));
+    s.appendChild(txt(L-46,T+8,"검사 셀",{size:10.5}));
+    s.appendChild(txt(L,H-8,"측정 시간 (로그 눈금)   ·   세로축도 로그 눈금, 1,294셀 중 검사해야 하는 셀 수",{size:10.5}));
+    host.insertAdjacentHTML("beforeend",
+      '<div class="legend"><span><i class="swatch ln" style="background:var(--legacy)"></i>현행 — 트레이 정규화 전류 끝값</span>'+
+      '<span><i class="swatch ln" style="background:var(--accent)"></i>제안 — 같은 행 12셀 대비 기울기</span>'+
+      '<span style="color:var(--muted)">두 방식 모두 불량 4/4 검출 기준</span></div>');
+  })();
+
+  
+
+  
+
+  /* ───── 열드리프트 기전 3단 (모식도) ───── */
+  (function(){
+    var host=document.getElementById("mech"); if(!host)return;
+    var W=700,H=330,L=112,R=150,PH=82,GAP=14,T=18;
+    var iw=W-L-R;
+    var s=svg(host,W,H);
+    function X(t){return L+iw*t/30;}
+    function panel(i,label,sub){
+      var y0=T+i*(PH+GAP);
+      s.appendChild(el("rect",{x:L,y:y0,width:iw,height:PH,rx:3,
+        fill:"var(--surface-2)","fill-opacity":.55}));
+      s.appendChild(txt(L-12,y0+PH/2-2,label,{anchor:"end",size:12,weight:600,fill:"var(--ink)"}));
+      s.appendChild(txt(L-12,y0+PH/2+14,sub,{anchor:"end",size:10}));
+      return y0;
+    }
+    function curve(y0,f,col,w){
+      var d="";
+      for(var t=0;t<=30;t+=0.25){
+        var v=f(t);                       // 0(바닥) ~ 1(천장)
+        d+=(t?"L":"M")+X(t).toFixed(1)+" "+(y0+PH-8-v*(PH-20)).toFixed(1)+" ";
+      }
+      s.appendChild(el("path",{d:d,fill:"none",stroke:col,"stroke-width":w||2.5,
+        "stroke-linecap":"round"}));
+    }
+    var TT=9;  // 열 시상수(모식도용, 분)
+    // 1단 — 온도
+    var y0=panel(0,"셀 온도","식어간다");
+    curve(y0,function(t){return 0.15+0.8*Math.exp(-t/TT);},"var(--legacy)");
+    s.appendChild(txt(W-R+10,y0+24,"투입 직후 가장 뜨겁고",{size:10.5}));
+    s.appendChild(txt(W-R+10,y0+40,"점점 주변 온도로",{size:10.5}));
+    // 2단 — dT/dt
+    var y1=panel(1,"식는 속도","dT/dt");
+    curve(y1,function(t){return 0.88*Math.exp(-t/TT);},"var(--legacy)");
+    s.appendChild(el("line",{x1:X(0),y1:y1+PH-8,x2:X(30),y2:y1+PH-8,class:"grid-line"}));
+    s.appendChild(txt(W-R+10,y1+22,"처음이 가장 가파르고",{size:10.5,weight:600,fill:"var(--legacy)"}));
+    s.appendChild(txt(W-R+10,y1+38,"시간이 갈수록 0 에 붙는다",{size:10.5}));
+    s.appendChild(txt(W-R+10,y1+58,"← 5분 창이 걸리는 자리",{size:10.5,fill:"var(--crit)"}));
+    // 3단 — 전류
+    var y2=panel(2,"측정 전류","둘의 합");
+    // 두 곡선 사이를 채워 '간격 = 열드리프트' 를 눈에 보이게 한다
+    var sd=function(t){return 0.12+0.011*t;};
+    var tot=function(t){return sd(t)+0.62*Math.exp(-t/TT);};
+    var fd="";
+    for(var q=0;q<=30;q+=0.25) fd+=(q?"L":"M")+X(q).toFixed(1)+" "+(y2+PH-8-tot(q)*(PH-20)).toFixed(1)+" ";
+    for(var q2=30;q2>=0;q2-=0.25) fd+="L"+X(q2).toFixed(1)+" "+(y2+PH-8-sd(q2)*(PH-20)).toFixed(1)+" ";
+    s.appendChild(el("path",{d:fd+"Z",fill:"var(--legacy)","fill-opacity":.18,stroke:"none"}));
+    curve(y2,sd,"var(--accent)",2);
+    curve(y2,tot,"var(--ink)",2.5);
+    s.appendChild(txt(W-R+10,y2+20,"굵은 선 = 실제로 읽히는 값",{size:10.5,weight:600,fill:"var(--ink)"}));
+    s.appendChild(txt(W-R+10,y2+36,"가는 선 = 자가방전만",{size:10.5,fill:"var(--accent)"}));
+    s.appendChild(txt(W-R+10,y2+56,"둘의 간격이 열드리프트다",{size:10.5,fill:"var(--legacy)"}));
+    // 5분 구간 표시
+    [y0,y1,y2].forEach(function(yy){
+      s.appendChild(el("rect",{x:X(0),y:yy,width:X(5)-X(0),height:PH,
+        fill:"var(--crit)","fill-opacity":.07}));
+    });
+    s.appendChild(txt(X(2.5),H-6,"0~5분",{anchor:"middle",size:10.5,weight:600,fill:"var(--crit)"}));
+    s.appendChild(txt(X(18),H-6,"→ 시간",{anchor:"middle",size:10.5}));
+    host.insertAdjacentHTML("beforeend",
+      '<div class="note">모식도다. 축에 눈금을 넣지 않은 것은 셀마다 값이 다르기 때문이고, '+
+      '모양만 실제 곡선을 따른다. 요점은 <b>교란이 5분 창에서 가장 크다</b>는 것이다.</div>');
+  })();
+
+  /* ───── 행별 전류 vs 냉각량 산점도 (실측 12점) ───── */
+  (function(){
+    var host=document.getElementById("scatter"); if(!host)return;
+    var P=[["A",-1.309,0.002477],["B",-0.1755,0.001448],["C",0.2819,-0.00321],
+           ["D",0.3443,-0.005746],["E",0.3062,-0.01249],["F",0.4072,-0.003655],
+           ["G",0.4043,-0.003011],["H",0.1944,-0.002192],["I",0.249,-0.0004886],
+           ["J",0.02087,0.003912],["K",-0.2704,0.01052],["L",-1.292,0.01016]];
+    var W=700,H=330,L=74,R=120,T=24,B=54;
+    var iw=W-L-R, ih=H-T-B;
+    var xmin=-0.016,xmax=0.014, ymin=-1.6,ymax=0.7;
+    function X(v){return L+iw*(v-xmin)/(xmax-xmin);}
+    function Y(v){return T+ih*(1-(v-ymin)/(ymax-ymin));}
+    var s=svg(host,W,H);
+    [-0.01,-0.005,0,0.005,0.01].forEach(function(v){
+      s.appendChild(el("line",{x1:X(v),y1:T,x2:X(v),y2:T+ih,class:v===0?"axis-line":"grid-line"}));
+      s.appendChild(txt(X(v),T+ih+18,v===0?"0":v.toFixed(3),{anchor:"middle",size:10}));
+    });
+    [-1.5,-1,-0.5,0,0.5].forEach(function(v){
+      s.appendChild(el("line",{x1:L,y1:Y(v),x2:W-R,y2:Y(v),class:v===0?"axis-line":"grid-line"}));
+      s.appendChild(txt(L-8,Y(v)+3.6,v.toFixed(1),{anchor:"end",size:10}));
+    });
+    /* 직선을 긋지 않는다 — rho 는 순위상관이라 직선 적합이 아니다 */
+    P.forEach(function(p){
+      var edge=(p[0]==="A"||p[0]==="L");
+      var c=el("circle",{cx:X(p[2]),cy:Y(p[1]),r:edge?9:7,
+        fill:edge?"var(--crit)":"var(--accent)","fill-opacity":edge?1:.82,
+        stroke:"var(--surface)","stroke-width":2});
+      hover(c,p[0]+"행   전류 "+p[1].toFixed(3)+" µA   냉각량 "+p[2].toFixed(5)+" °C");
+      s.appendChild(c);
+      s.appendChild(txt(X(p[2]),Y(p[1])+(edge?-15:-12),p[0],
+        {anchor:"middle",size:edge?12:10.5,weight:edge?700:500,
+         fill:edge?"var(--crit)":"var(--ink-2)"}));
+    });
+    s.appendChild(txt(L,H-8,"→ 냉각량 (T_시작 − T_끝, 트레이 중앙값 대비, °C) · 오른쪽일수록 많이 식었다",{size:10.5}));
+    s.appendChild(txt(L-58,T+10,"전류 (µA)",{size:10.5}));
+    s.appendChild(txt(W-R+10,Y(-1.30)+4,"A·L = 가장자리 행",{size:11,weight:600,fill:"var(--crit)"}));
+    s.appendChild(txt(W-R+10,Y(-1.30)+20,"많이 식고",{size:10.5,fill:"var(--muted)"}));
+    s.appendChild(txt(W-R+10,Y(-1.30)+35,"전류가 낮다",{size:10.5,fill:"var(--muted)"}));
+    s.appendChild(txt(W-R+10,T+14,"순위상관 ρ",{size:10.5,fill:"var(--muted)"}));
+    s.appendChild(txt(W-R+10,T+36,"ρ = −0.846",{size:16,weight:600,fill:"var(--accent)"}));
+  })();
+
+  /* ───── 집계 단위별 상관 ───── */
+  (function(){
+    var host=document.getElementById("units"); if(!host)return;
+    var rows=[["행 (A~)",-0.846,12],["자리 (행×열)",-0.335,144],
+              ["셀 (집계 없음)",-0.251,1294],["열 (1~)",-0.021,12]];
+    var W=700,H=178,L=146,R=150,T=18,B=32;
+    var iw=W-L-R, ih=H-T-B, rh=ih/rows.length, bh=Math.min(22,rh-10);
+    function X(v){return L+iw*(v+1)/1.2;}   // -1 .. 0.2
+    var s=svg(host,W,H);
+    [-1,-0.8,-0.6,-0.4,-0.2,0].forEach(function(v){
+      s.appendChild(el("line",{x1:X(v),y1:T,x2:X(v),y2:T+ih,class:v===0?"axis-line":"grid-line"}));
+      s.appendChild(txt(X(v),T+ih+17,v.toFixed(1),{anchor:"middle",size:10}));
+    });
+    rows.forEach(function(r,i){
+      var y=T+rh*i+(rh-bh)/2, strong=Math.abs(r[1])>0.5;
+      s.appendChild(txt(L-12,y+bh/2-1,r[0],{anchor:"end",size:11.5,
+        weight:strong?600:400,fill:strong?"var(--ink)":"var(--muted)"}));
+      s.appendChild(txt(L-12,y+bh/2+13,r[2].toLocaleString()+"개",{anchor:"end",size:9.5}));
+      var w=X(0)-X(r[1]);
+      var rc=el("rect",{x:X(r[1]),y:y,width:Math.max(w,2),height:bh,rx:3,
+        fill:strong?"var(--accent)":"var(--rule-2)"});
+      hover(rc,r[0]+"   ρ = "+r[1].toFixed(3)+"   표본 "+r[2]+"개");
+      s.appendChild(rc);
+      s.appendChild(txt(X(r[1])-9,y+bh/2+4,r[1].toFixed(3),{anchor:"end",size:11.5,weight:600,
+        fill:strong?"var(--accent)":"var(--muted)"}));
+    });
+    s.appendChild(txt(W-R+10,T+rh*0+rh/2+4,"← 행 방향으로만",{size:11,weight:600,fill:"var(--accent)"}));
+    s.appendChild(txt(W-R+10,T+rh*0+rh/2+20,"   구조가 있다",{size:11,fill:"var(--muted)"}));
+    s.appendChild(txt(W-R+10,T+rh*3+rh/2+4,"← 열 방향은 거의 0",{size:11,fill:"var(--muted)"}));
+    s.appendChild(txt(L,H-4,"전류와 냉각량의 순위상관 (음수일수록 '많이 식으면 전류가 낮다')",{size:10.5}));
+  })();
+
+  /* ───── 순위 변화 — 슬로프 차트 ───── */
+  (function(){
+    var host=document.getElementById("ranks"); if(!host)return;
+    var N=1294;
+    var P=[["셀 138","CFDD015271",1,1],["셀 136","CFDD018933",7,2],
+           ["셀 49","CFDD004154",28,18],["셀 140","CFDD011456",1232,20]];
+    var W=700,H=330,T=54,B=52,LX=214,RX=486;
+    var ih=H-T-B;
+    function Y(r){return T+ih*(Math.log10(r)/Math.log10(N));}
+    var s=svg(host,W,H);
+    // 눈금 — 가운데 두 기둥 사이에만 긋는다. 바깥은 셀 이름 자리라 비워 둔다.
+    [1,10,100,1000].forEach(function(v){
+      s.appendChild(el("line",{x1:LX,y1:Y(v),x2:RX,y2:Y(v),class:"grid-line"}));
+      s.appendChild(txt((LX+RX)/2,Y(v)-5,v.toLocaleString()+"위",
+        {anchor:"middle",size:9.5,fill:"var(--muted)"}));
+    });
+    // 라벨이 겹치지 않도록 세로로 밀어낸다 (18위와 20위는 로그축에서 3px 차이다)
+    function spread(vals){
+      var o = vals.map(function(v,i){return {y:Y(v), i:i};}).sort(function(a,b){return a.y-b.y;});
+      for(var k=1;k<o.length;k++) if(o[k].y - o[k-1].y < 15) o[k].y = o[k-1].y + 15;
+      var out=[]; o.forEach(function(e){out[e.i]=e.y;}); return out;
+    }
+    var yL = spread(P.map(function(p){return p[2];}));
+    var yR = spread(P.map(function(p){return p[3];}));
+    // 기둥
+    [[LX,"var(--legacy)","보정 없이","트레이 전류 끝값"],
+     [RX,"var(--accent)","보정 후","같은 행 12셀 대비 5분 기울기"]].forEach(function(c){
+      s.appendChild(el("line",{x1:c[0],y1:T-10,x2:c[0],y2:T+ih+10,
+        stroke:"var(--rule-2)","stroke-width":2}));
+      s.appendChild(txt(c[0],T-30,c[2],{anchor:"middle",size:13,weight:600,fill:c[1]}));
+      s.appendChild(txt(c[0],T-14,c[3],{anchor:"middle",size:10}));
+    });
+    // 전량 검출에 필요한 선
+    // 안쪽으로만 긋는다 — 바깥으로 빼면 셀 이름 라벨을 가로지른다
+    [[LX,1232,"var(--legacy)",1],[RX,20,"var(--accent)",-1]].forEach(function(c){
+      s.appendChild(el("line",{x1:c[0],y1:Y(c[1]),x2:c[0]+c[3]*52,y2:Y(c[1]),
+        stroke:c[2],"stroke-width":2,"stroke-dasharray":"5 3"}));
+    });
+    // 연결선 + 점
+    P.forEach(function(p){
+      var big=(p[0]==="셀 140");
+      s.appendChild(el("line",{x1:LX,y1:Y(p[2]),x2:RX,y2:Y(p[3]),
+        stroke:big?"var(--crit)":"var(--rule-2)","stroke-width":big?2.5:2,
+        "stroke-dasharray":big?"":""}));
+      [[LX,p[2],"var(--legacy)"],[RX,p[3],"var(--accent)"]].forEach(function(e){
+        var c=el("circle",{cx:e[0],cy:Y(e[1]),r:big?7:6,
+          fill:big?"var(--crit)":e[2],stroke:"var(--surface)","stroke-width":2});
+        hover(c,p[0]+" ("+p[1]+")   "+e[1].toLocaleString()+"위"); s.appendChild(c);
+      });
+      // 이름은 바깥쪽에만. 겹치면 위에서 계산한 밀어낸 y 를 쓰고 잇는 선을 그린다.
+      var k = P.indexOf(p);
+      var ly = yL[k], ry = yR[k];
+      s.appendChild(txt(LX-18,ly+4,p[0]+"  "+p[2].toLocaleString()+"위",{anchor:"end",size:11.5,
+        weight:big?700:600,fill:big?"var(--crit)":"var(--ink)"}));
+      s.appendChild(txt(RX+18,ry+4,p[3].toLocaleString()+"위",{anchor:"start",size:11.5,
+        weight:big?700:600,fill:big?"var(--crit)":"var(--ink)"}));
+      if(Math.abs(ry-Y(p[3]))>1)
+        s.appendChild(el("line",{x1:RX+6,y1:Y(p[3]),x2:RX+14,y2:ry,
+          stroke:"var(--rule-2)","stroke-width":1}));
+    });
+    s.appendChild(txt(LX,T+ih+26,"1,232위까지 봐야 4개가 다 들어온다",
+      {anchor:"middle",size:11,weight:600,fill:"var(--legacy)"}));
+    s.appendChild(txt(RX,T+ih+26,"20위까지만 보면 된다",
+      {anchor:"middle",size:11,weight:600,fill:"var(--accent)"}));
+    s.appendChild(txt(W/2,T+ih+44,"전 1,294셀 중 순위 (로그 눈금, 위로 갈수록 상위)",
+      {anchor:"middle",size:10.5}));
+    host.insertAdjacentHTML("beforeend",
+      '<div class="note">붉은 선이 <b>셀 140</b>이다. 보정 전에는 1,232위로 양품 1,231개에 묻혀 있다가 '+
+      '보정 후 20위로 올라온다. 나머지 셋은 보정 전에도 28위 안에 있었다 — '+
+      '<b>보정의 효과가 이 한 셀에 집중돼 있다.</b></div>');
+  })();
+
+  /* ───── 시점별 SNR(이론) 과 실측 — 두 패널 ───── */
+  (function(){
+    var host=document.getElementById("snr4"); if(!host)return;
+    var D=[[3,1.00,1.00,1.00,387],[5,1.66,1.87,3.11,20],
+           [10,3.31,4.69,15.51,13],[15,4.93,8.25,40.69,16]];
+    var W=700,H=340,L=92,R=26,T=34;
+    var iw=W-L-R;
+    var PH=118, GAP=58;
+    var s=svg(host,W,H);
+    var bw=iw/D.length;
+    /* 패널 1 — SNR */
+    s.appendChild(txt(0,16,"① 신호 대 잡음비 — 이론값 (3분을 1로 둔 배수)",
+      {size:12,weight:600,fill:"var(--ink)"}));
+    function Y1(v){return T+PH*(1-Math.log10(v)/Math.log10(60));}
+    [1,3,10,30].forEach(function(v){
+      s.appendChild(el("line",{x1:L,y1:Y1(v),x2:W-R,y2:Y1(v),class:"grid-line"}));
+      s.appendChild(txt(L-8,Y1(v)+3.6,v+"배",{anchor:"end",size:10}));
+    });
+    D.forEach(function(d,i){
+      var x=L+bw*i+bw*0.24, w=bw*0.52, y=Y1(d[3]);
+      var rc=el("rect",{x:x,y:y,width:w,height:T+PH-y,rx:3,
+        fill:d[0]===5?"var(--accent)":"var(--seq-3)","fill-opacity":d[0]===5?1:.55});
+      hover(rc,d[0]+"분   신호 "+d[1].toFixed(2)+"배 × 정밀도 "+d[2].toFixed(2)+"배 = SNR "+d[3].toFixed(2)+"배");
+      s.appendChild(rc);
+      s.appendChild(txt(x+w/2,y-7,d[3].toFixed(1)+"배",{anchor:"middle",size:11.5,weight:600,
+        fill:d[0]===5?"var(--accent)":"var(--ink-2)"}));
+      s.appendChild(txt(x+w/2,T+PH+16,d[0]+"분",{anchor:"middle",size:11,
+        weight:d[0]===5?600:400,fill:d[0]===5?"var(--accent)":"var(--muted)"}));
+    });
+    /* 패널 2 — 실측 */
+    var T2=T+PH+GAP;
+    s.appendChild(txt(0,T2-22,"② 실제로 몇 위까지 봐야 하는가 — 실측 (1,294셀 중)",
+      {size:12,weight:600,fill:"var(--ink)"}));
+    function Y2(v){return T2+PH*(1-Math.log10(v/8)/Math.log10(600/8));}
+    [10,30,100,300].forEach(function(v){
+      s.appendChild(el("line",{x1:L,y1:Y2(v),x2:W-R,y2:Y2(v),class:"grid-line"}));
+      s.appendChild(txt(L-8,Y2(v)+3.6,v+"위",{anchor:"end",size:10}));
+    });
+    D.forEach(function(d,i){
+      var x=L+bw*i+bw*0.24, w=bw*0.52, y=Y2(d[4]);
+      var rc=el("rect",{x:x,y:y,width:w,height:T2+PH-y,rx:3,
+        fill:d[0]===5?"var(--accent)":"var(--seq-3)","fill-opacity":d[0]===5?1:.55});
+      hover(rc,d[0]+"분   "+d[4]+"위까지");
+      s.appendChild(rc);
+      s.appendChild(txt(x+w/2,y-7,d[4]+"위",{anchor:"middle",size:11.5,weight:600,
+        fill:d[0]===5?"var(--accent)":"var(--ink-2)"}));
+      s.appendChild(txt(x+w/2,T2+PH+16,d[0]+"분",{anchor:"middle",size:11,
+        weight:d[0]===5?600:400,fill:d[0]===5?"var(--accent)":"var(--muted)"}));
+    });
+    /* 5분 이후 평평함 강조 */
+    s.appendChild(el("line",{x1:L+bw*1+bw*0.5,y1:Y2(20)-20,x2:W-R-6,y2:Y2(20)-20,
+      stroke:"var(--legacy)","stroke-width":1.5,"stroke-dasharray":"4 3"}));
+    s.appendChild(txt(L+bw*2.6,Y2(20)-26,"5분 이후로는 거의 평평",
+      {anchor:"middle",size:10.5,weight:600,fill:"var(--legacy)"}));
+  })();
+
+  /* ───── 판정 규칙 비교 (백업) ───── */
+  (function(){
+    var host=document.getElementById("rulebar"); if(!host)return;
+    var rows=[["전역 순위 컷 (제안)",20,16],["행별 중앙값 + k·MAD",21,17],
+              ["트레이별 μ + kσ",25,21],["트레이별 중앙값 + k·MAD",29,25],
+              ["트레이별 표준화 후 전역 컷",29,25]];
+    var W=700,H=196,L=196,R=86,T=14,B=30;
+    var iw=W-L-R, ih=H-T-B, rh=ih/rows.length, bh=Math.min(20,rh-9);
+    var mx=32;
+    var s=svg(host,W,H);
+    [0,10,20,30].forEach(function(v){
+      var x=L+iw*v/mx;
+      s.appendChild(el("line",{x1:x,y1:T,x2:x,y2:T+ih,class:v===0?"axis-line":"grid-line"}));
+      s.appendChild(txt(x,T+ih+16,v+"셀",{anchor:"middle",size:10}));
+    });
+    rows.forEach(function(r,i){
+      var y=T+rh*i+(rh-bh)/2, best=(i===0);
+      var wd=iw*r[1]/mx, wg=iw*4/mx;
+      s.appendChild(txt(L-10,y+bh/2+4,r[0],{anchor:"end",size:11,
+        weight:best?600:400, fill:best?"var(--ink)":"var(--muted)"}));
+      var g1=el("rect",{x:L,y:y,width:wg,height:bh,rx:3,fill:"var(--accent)"});
+      hover(g1,r[0]+"   실제 불량 4셀"); s.appendChild(g1);
+      var g2=el("rect",{x:L+wg+2,y:y,width:Math.max(wd-wg-2,1),height:bh,rx:3,
+        fill:"var(--legacy)","fill-opacity":best?.85:.5});
+      hover(g2,r[0]+"   양품 "+r[2]+"셀"); s.appendChild(g2);
+      s.appendChild(txt(L+wd+9,y+bh/2+4,r[1]+"셀",{size:11,
+        weight:best?600:400, fill:best?"var(--accent)":"var(--ink-2)"}));
+    });
+    host.insertAdjacentHTML("beforeend",
+      '<div class="legend"><span><i class="swatch" style="background:var(--accent)"></i>실제 불량 4셀</span>'+
+      '<span><i class="swatch" style="background:var(--legacy);opacity:.7"></i>같이 걸리는 양품</span>'+
+      '<span style="color:var(--muted)">모두 불량 4개 전량 검출 조건</span></div>');
+  })();
+
+  /* ───── 불량 4개의 트레이 대비 전류 ───── */
+  (function(){
+    var host=document.getElementById("cell140"); if(!host)return;
+    var rows=[["셀 138","CFDD015271","L06",7.875],["셀 136","CFDD018933","L04",4.743],
+              ["셀 49","CFDD004154","E01",4.315],["셀 140","CFDD011456","L08",-4.055]];
+    var W=700,H=232,L=176,R=132,T=30,B=40;
+    var iw=W-L-R, ih=H-T-B, rh=ih/rows.length, bh=Math.min(28,rh-12);
+    var mn=-6,mx=9;
+    function X(v){return L+iw*(v-mn)/(mx-mn);}
+    var s=svg(host,W,H);
+    [-4,-2,0,2,4,6,8].forEach(function(v){
+      s.appendChild(el("line",{x1:X(v),y1:T-6,x2:X(v),y2:T+ih,class:v===0?"axis-line":"grid-line"}));
+      s.appendChild(txt(X(v),T+ih+17,v,{anchor:"middle",size:10}));
+    });
+    s.appendChild(txt(X(0),T-12,"트레이 중앙값",{anchor:"middle",size:10.5,fill:"var(--muted)"}));
+    rows.forEach(function(r,i){
+      var v=r[3], y=T+rh*i+(rh-bh)/2, neg=v<0;
+      var x=neg?X(v):X(0), w=Math.abs(X(v)-X(0));
+      s.appendChild(txt(L-12,y+bh/2-1,r[0],{anchor:"end",size:12,weight:600,
+        fill:neg?"var(--crit)":"var(--ink)"}));
+      s.appendChild(txt(L-12,y+bh/2+13,r[1]+" · "+r[2],{anchor:"end",size:9.5}));
+      var rc=el("rect",{x:x,y:y,width:Math.max(w,2),height:bh,rx:3,
+        fill:neg?"var(--crit)":"var(--legacy)","fill-opacity":neg?1:.8});
+      hover(rc,r[0]+"   트레이 대비 "+(v>0?"+":"")+v.toFixed(3)+" µA");
+      s.appendChild(rc);
+      s.appendChild(txt(neg?x-9:x+w+9,y+bh/2+4,(v>0?"+":"")+v.toFixed(2),
+        {anchor:neg?"end":"start",size:11.5,weight:600,
+         fill:neg?"var(--crit)":"var(--ink-2)"}));
+      if(neg) s.appendChild(txt(X(0)+10,y+bh/2+4,"← 양품보다도 낮다",
+        {size:11,weight:600,fill:"var(--crit)"}));
+    });
+    s.appendChild(txt(L,H-8,"트레이 중앙값 대비 전류 (µA) · 네 셀 모두 불량(E) 판정",{size:10.5}));
+  })();
+
+
+  /* ───── SDM 개념도 ───── */
+  (function(){
+    var host=document.getElementById("sdmconcept"); if(!host)return;
+    var s=svg(host,700,188);
+    function box(x,y,w,h,fill,stroke){return el("rect",{x:x,y:y,width:w,height:h,rx:4,
+      fill:fill||"var(--surface-2)",stroke:stroke||"var(--rule-2)","stroke-width":1.5});}
+    s.appendChild(box(36,44,104,84));
+    s.appendChild(txt(88,80,"셀",{anchor:"middle",size:14,weight:600,fill:"var(--ink)"}));
+    s.appendChild(txt(88,100,"(충전 완료)",{anchor:"middle",size:10.5}));
+    s.appendChild(box(300,44,150,84,"none","var(--accent)"));
+    s.appendChild(txt(375,74,"SDM 장비",{anchor:"middle",size:13,weight:600,fill:"var(--accent)"}));
+    s.appendChild(txt(375,94,"전압을 원래 값에",{anchor:"middle",size:10.5}));
+    s.appendChild(txt(375,109,"붙들어 둔다",{anchor:"middle",size:10.5}));
+    s.appendChild(el("line",{x1:140,y1:70,x2:300,y2:70,stroke:"var(--rule-2)","stroke-width":2}));
+    s.appendChild(el("line",{x1:140,y1:104,x2:300,y2:104,stroke:"var(--rule-2)","stroke-width":2}));
+    s.appendChild(el("path",{d:"M88 44 L88 24",stroke:"var(--legacy)","stroke-width":2}));
+    s.appendChild(el("path",{d:"M83 30 L88 22 L93 30 Z",fill:"var(--legacy)"}));
+    s.appendChild(txt(100,26,"자가방전 — 전압이 내려가려 한다",{size:11.5,fill:"var(--legacy)"}));
+    s.appendChild(el("line",{x1:296,y1:87,x2:150,y2:87,stroke:"var(--accent)","stroke-width":2.5}));
+    s.appendChild(el("path",{d:"M158 82 L146 87 L158 92 Z",fill:"var(--accent)"}));
+    s.appendChild(txt(222,79,"보상 전류",{anchor:"middle",size:11.5,weight:600,fill:"var(--accent)"}));
+    s.appendChild(box(510,58,160,56,"none","var(--accent)"));
+    s.appendChild(txt(590,82,"이 전류를 잰다",{anchor:"middle",size:12,weight:600,fill:"var(--accent)"}));
+    s.appendChild(txt(590,100,"= 자가방전 전류",{anchor:"middle",size:11}));
+    s.appendChild(el("line",{x1:450,y1:86,x2:506,y2:86,stroke:"var(--accent)","stroke-width":2}));
+    s.appendChild(el("path",{d:"M498 81 L510 86 L498 91 Z",fill:"var(--accent)"}));
+    s.appendChild(el("line",{x1:0,y1:148,x2:700,y2:148,class:"grid-line"}));
+    s.appendChild(txt(0,170,"자가방전이 클수록 보상 전류가 크다  →  전류가 큰 셀이 의심 대상이다.",
+      {size:12.5,fill:"var(--ink)"}));
+  })();
+
+  /* ───── 신호 성숙도 곡선 ───── */
+  (function(){
+    var host=document.getElementById("growth"); if(!host)return;
+    var TAU=7.45*60;
+    var W=700,H=250,L=56,R=132,T=22,B=46;
+    var iw=W-L-R, ih=H-T-B;
+    function X(t){return L+iw*t/32;}
+    function Y(p){return T+ih*(1-p/7.5);}
+    var s=svg(host,W,H);
+    [0,2,4,6].forEach(function(v){
+      s.appendChild(el("line",{x1:L,y1:Y(v),x2:W-R,y2:Y(v),class:v===0?"axis-line":"grid-line"}));
+      s.appendChild(txt(L-8,Y(v)+3.6,v+"%",{anchor:"end",size:10}));
+    });
+    [0,5,10,15,20,25,30].forEach(function(v){
+      s.appendChild(txt(X(v),T+ih+18,v+"분",{anchor:"middle",size:10.5,
+        weight:v===5?600:400,fill:v===5?"var(--accent)":"var(--muted)"}));
+    });
+    var d="";
+    for(var t=0;t<=32;t+=0.5){
+      var p=(1-Math.exp(-t/TAU))*100;
+      d+=(t?"L":"M")+X(t).toFixed(1)+" "+Y(p).toFixed(1)+" ";
+    }
+    s.appendChild(el("path",{d:d,fill:"none",stroke:"var(--accent)","stroke-width":2.5,
+      "stroke-linecap":"round"}));
+    [[3,"var(--legacy)","3분"],[5,"var(--accent)","5분"]].forEach(function(m){
+      var t=m[0], p=(1-Math.exp(-t/TAU))*100;
+      s.appendChild(el("line",{x1:X(t),y1:Y(p),x2:X(t),y2:T+ih,
+        stroke:m[1],"stroke-width":1.5,"stroke-dasharray":"3 3"}));
+      var c=el("circle",{cx:X(t),cy:Y(p),r:6,fill:m[1],stroke:"var(--surface)","stroke-width":2});
+      hover(c,m[2]+"   신호 "+p.toFixed(3)+"%"); s.appendChild(c);
+      s.appendChild(txt(X(t)+(t===3?-10:12),Y(p)-13,p.toFixed(2)+"%",
+        {anchor:t===3?"end":"start",size:11.5,weight:600,fill:m[1]}));
+    });
+    s.appendChild(el("line",{x1:X(3),y1:Y(0.669),x2:X(3),y2:Y(1.112),
+      stroke:"var(--ink)","stroke-width":1.5}));
+    s.appendChild(txt(X(3)-8,Y(0.9)+16,"1.66배",{anchor:"end",size:11,weight:600,fill:"var(--ink)"}));
+    var p30=(1-Math.exp(-30/TAU))*100;
+    s.appendChild(txt(W-R+8,Y(p30)+4,"30분에도",{size:11,fill:"var(--muted)"}));
+    s.appendChild(txt(W-R+8,Y(p30)+19,p30.toFixed(1)+"%",{size:13,weight:600,fill:"var(--accent)"}));
+    s.appendChild(txt(L-46,T+8,"성숙도",{size:10.5}));
+    s.appendChild(txt(L,H-8,"자가방전 신호가 최종값의 몇 %까지 자랐는가   (τ = 7.45시간)",{size:10.5}));
+  })();
+
+  /* ───── 계획 흐름 ───── */
+  (function(){
+    var host=document.getElementById("plan"); if(!host)return;
+    var W=700,H=132;
+    var s=svg(host,W,H);
+    var steps=[["지금","SDM 전류 곡선","+ 셀 번호",true],
+               ["다음 01","+ 공정 데이터","",false],
+               ["다음 02","+ 다른 로트","",false]];
+    var bw=196, gap=(W-bw*3)/2;
+    steps.forEach(function(st,i){
+      var x=i*(bw+gap), cur=st[3];
+      s.appendChild(el("rect",{x:x,y:30,width:bw,height:66,rx:4,
+        fill:cur?"color-mix(in srgb,var(--accent) 10%,transparent)":"var(--surface-2)",
+        stroke:cur?"var(--accent)":"var(--rule-2)","stroke-width":cur?2:1.5}));
+      s.appendChild(txt(x+bw/2,22,st[0],{anchor:"middle",size:10.5,weight:600,
+        fill:cur?"var(--accent)":"var(--muted)"}));
+      s.appendChild(txt(x+bw/2,st[2]?58:68,st[1],{anchor:"middle",size:12.5,
+        weight:cur?600:400,fill:cur?"var(--ink)":"var(--ink-2)"}));
+      if(st[2]) s.appendChild(txt(x+bw/2,76,st[2],{anchor:"middle",size:12.5,
+        weight:cur?600:400,fill:cur?"var(--ink)":"var(--ink-2)"}));
+      if(i<2){
+        s.appendChild(el("path",{d:"M"+(x+bw+6)+" 63 L"+(x+bw+gap-8)+" 63",
+          stroke:"var(--rule-2)","stroke-width":2}));
+        s.appendChild(el("path",{d:"M"+(x+bw+gap-14)+" 58 L"+(x+bw+gap-6)+" 63 L"+(x+bw+gap-14)+" 68 Z",
+          fill:"var(--rule-2)"}));
+      }
+    });
+    s.appendChild(txt(0,120,"현재 결과는 첫 칸만으로 얻은 것이다. 공정 데이터는 아직 쓰지 않았다.",{size:11}));
+  })();
+
+})();</script>
